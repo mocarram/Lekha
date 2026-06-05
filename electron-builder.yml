@@ -1,0 +1,49 @@
+appId: com.lekha.app
+productName: Lekha
+copyright: Copyright (c) 2026 Lekha
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+
+# No native modules to unpack - Lekha has no .node binaries
+# asarUnpack left empty intentionally
+
+npmRebuild: false
+
+# Publishing: not configured yet - signing/notarization is a future step.
+# Set CSC_IDENTITY_AUTO_DISCOVERY=false for unsigned local builds.
+
+mac:
+  category: public.app-category.productivity
+  # identity: null disables ad-hoc/Developer ID code signing for local builds.
+  # To sign for release, set CSC_LINK + CSC_KEY_PASSWORD env vars.
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  # icon: omitted - electron-builder uses default Electron icon.
+  # Add build/icon.icns when a custom icon is ready (follow-up task).
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+
+dmg:
+  title: ${productName}
+  artifactName: ${productName}-${version}-${arch}.dmg
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
