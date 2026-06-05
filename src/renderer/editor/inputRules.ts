@@ -38,6 +38,35 @@ function markInputRule(regex: RegExp, markType: MarkType): InputRule {
 }
 
 // ---------------------------------------------------------------------------
+// Math inline input rule helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Create an InputRule that converts $...$  (typed inline) to a math_inline
+ * node. Fires when the closing $ is typed.
+ *
+ * Regex: /\$([^$\n]+)\$$/ - matches a $ immediately followed by non-dollar,
+ * non-newline content, followed by a closing $. Group 1 is the LaTeX content.
+ *
+ * We exclude $$ (double dollar) by requiring the inner content is non-empty
+ * and doesn't start with $, ensuring $$ doesn't accidentally trigger this.
+ */
+function mathInlineInputRule(schema: Schema): InputRule {
+  const mathInlineType = schema.nodes['math_inline']
+  if (!mathInlineType) return new InputRule(/(?!)/, () => null) // no-op if missing
+
+  return new InputRule(
+    /\$([^$\n]+)\$$/,
+    (state, match: RegExpMatchArray, start, end) => {
+      const latex = match[1]
+      if (!latex) return null
+      const node = mathInlineType.create({ latex: latex.trim() })
+      return state.tr.replaceWith(start, end, node)
+    },
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Horizontal rule helper
 // ---------------------------------------------------------------------------
 
@@ -127,6 +156,11 @@ export function buildInputRules(schema: Schema): Plugin {
     markInputRule(/`([^`]+)`$/, schema.marks['code']!),
     // strikethrough: ~~x~~
     markInputRule(/~~([^~]+)~~$/, schema.marks['strikethrough']!),
+
+    // Inline math: $...$  (typing the closing $ triggers the rule)
+    // The regex captures non-empty content between the two dollars.
+    // Does not capture $$ (double dollar) to avoid conflicting with block math.
+    mathInlineInputRule(schema),
   ]
 
   return inputRules({ rules })

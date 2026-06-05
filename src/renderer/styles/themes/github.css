@@ -20,6 +20,7 @@
  *   9. Find/Replace (highlights + overlay)
  *  10. Source mode (CodeMirror)
  *  11. Scrollbars
+ *  12. Math (KaTeX inline + block)
  */
 
 /* ===========================================================================
@@ -691,4 +692,126 @@
 .editor-pane::-webkit-scrollbar-thumb:hover,
 .sidebar__content::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.25);
+}
+
+/* ===========================================================================
+ * 12. Math (KaTeX inline + block)
+ * =========================================================================== */
+
+/* ---- Inline math ---- */
+
+/* The NodeView outer wrapper */
+.editor-pane .ProseMirror span.math-inline {
+  display: inline;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+}
+
+/* The rendered KaTeX output area */
+.editor-pane .ProseMirror span.math-inline .math-render {
+  display: inline;
+}
+
+/* Edit mode: input field */
+.editor-pane .ProseMirror span.math-inline .math-edit {
+  display: inline-flex;
+  align-items: center;
+}
+
+.editor-pane .ProseMirror span.math-inline input.math-source {
+  font-family: var(--gh-font-mono);
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border: 1px solid var(--gh-border-light);
+  border-radius: 3px;
+  background: var(--gh-code-bg-inline);
+  color: var(--gh-text);
+  outline: none;
+  min-width: 8ch;
+}
+
+.editor-pane .ProseMirror span.math-inline input.math-source:focus {
+  border-color: var(--gh-link);
+  box-shadow: 0 0 0 2px rgba(65, 131, 196, 0.2);
+}
+
+/* ---- Block math ---- */
+
+/* The NodeView outer wrapper */
+.editor-pane .ProseMirror div.math-block {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* The rendered KaTeX output area */
+.editor-pane .ProseMirror div.math-block .math-render {
+  display: block;
+}
+
+/* Edit mode container */
+.editor-pane .ProseMirror div.math-block .math-edit {
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  text-align: left;
+}
+
+/* Source textarea */
+.editor-pane .ProseMirror div.math-block textarea.math-source {
+  font-family: var(--gh-font-mono);
+  font-size: 0.85em;
+  padding: 6px 8px;
+  border: 1px solid var(--gh-border-light);
+  border-radius: 4px;
+  background: var(--gh-code-bg);
+  color: var(--gh-text);
+  resize: vertical;
+  outline: none;
+  min-height: 80px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editor-pane .ProseMirror div.math-block textarea.math-source:focus {
+  border-color: var(--gh-link);
+  box-shadow: 0 0 0 2px rgba(65, 131, 196, 0.2);
+}
+
+/* Live preview panel below the textarea */
+.editor-pane .ProseMirror div.math-block .math-preview {
+  min-height: 1.5em;
+  text-align: center;
+  padding: 4px 0;
+  border-top: 1px dashed var(--gh-border);
+  color: var(--gh-text);
+}
+
+/* ---- Placeholder (empty math) ---- */
+
+.editor-pane .ProseMirror .math-placeholder {
+  color: var(--gh-text-muted);
+  font-style: italic;
+  font-family: var(--gh-font-mono);
+  font-size: 0.9em;
+}
+
+/* ---- KaTeX error styling ---- */
+
+.editor-pane .ProseMirror .katex-error {
+  color: #cb2431;
+  font-family: var(--gh-font-mono);
+  font-size: 0.85em;
+}
+
+/* ---- Selected math node highlight ---- */
+
+.editor-pane .ProseMirror .ProseMirror-selectednode span.math-inline,
+.editor-pane .ProseMirror .ProseMirror-selectednode div.math-block {
+  outline: 2px solid var(--gh-link);
+  border-radius: 2px;
 }

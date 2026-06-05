@@ -10,6 +10,7 @@ import { TextSelection } from 'prosemirror-state'
 import { createEditorState } from './createState'
 import { serializeMarkdown } from './serializer'
 import { taskItemNodeView } from './taskItem'
+import { mathInlineNodeView, mathBlockNodeView } from './mathNodeView'
 import { editorCommandMap } from './editorCommands'
 import { schema } from './schema'
 import {
@@ -120,6 +121,8 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
         state: createEditorState(markdown),
         nodeViews: {
           task_item: taskItemNodeView,
+          math_inline: mathInlineNodeView,
+          math_block: mathBlockNodeView,
         },
         dispatchTransaction(tr) {
           const newState = view.state.apply(tr)
