@@ -77,9 +77,13 @@ async function launchApp(): Promise<{ app: ElectronApplication; win: Page }> {
     cwd: PROJECT_ROOT,
     // Keep NODE_ENV as 'production' so the app loads out/renderer/index.html
     // rather than attempting to connect to a dev server.
+    // LEKHA_DISABLE_QUIT_GUARD disables the unsaved-changes dialog so
+    // ElectronApplication.close() in afterAll does not hang waiting on a
+    // native prompt. This flag must never be set in a real user launch.
     env: {
       ...process.env,
       NODE_ENV: 'production',
+      LEKHA_DISABLE_QUIT_GUARD: '1',
     },
     timeout: 30_000,
   })

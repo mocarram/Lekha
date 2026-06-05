@@ -29,18 +29,15 @@ function getWindow(): BrowserWindow | null {
 // ---------------------------------------------------------------------------
 // Close-guard state machine
 //
-// Four variables track whether the window may be closed safely:
+// Three variables track whether the window may be closed safely:
 //
 //   documentDirty  - mirrors the renderer's isDirty flag. Updated on every
 //                    setDocumentState message so the close handler always sees
 //                    the current state without an extra IPC round-trip.
 //
 //   forceClose     - set to true when the user picks "Don't Save" in the close
-//                    dialog, or when the app is quitting programmatically (so
-//                    the close event is a side-effect of app.quit() rather than
-//                    an explicit user action on the window). The close handler
-//                    sees this flag and lets the next win.close() call through
-//                    without re-prompting.
+//                    dialog. The close handler sees this flag and lets the next
+//                    win.close() call through without re-prompting.
 //
 //   pendingClose   - set to true when the user picks "Save" in the close dialog.
 //                    We send a 'save' command to the renderer and wait. When the
@@ -50,20 +47,25 @@ function getWindow(): BrowserWindow | null {
 //                    Save As dialog the doc stays dirty; the window stays open and
 //                    pendingClose is reset so a subsequent close will re-prompt.
 //
-//   appIsQuitting  - set to true in the 'before-quit' handler, which fires when
-//                    app.quit() is called (e.g. Cmd+Q, File > Quit, or the
-//                    Playwright test runner calling ElectronApplication.close()).
-//                    When the app is quitting, individual window closes are a
-//                    side-effect of the quit, not a user window action, so the
-//                    close guard is bypassed to avoid blocking the quit with a
-//                    synchronous dialog. The 'before-quit' path is also guarded
-//                    separately if needed in the future.
+// Cmd+Q coverage: Electron fires 'before-quit' then each window's 'close' event
+// when the user presses Cmd+Q or chooses File > Quit. Because we no longer bypass
+// the close handler on quit, the SAME guard that protects the red-button close
+// also protects Cmd+Q - unsaved changes will always prompt the user regardless
+// of how the close was initiated.
+//
+// Test-mode bypass (LEKHA_DISABLE_QUIT_GUARD=1): automated e2e teardown calls
+// ElectronApplication.close() which would hang waiting on the native dialog.
+// Setting this env flag disables the prompt so test runs exit cleanly. This flag
+// must NEVER be set in a real production launch.
 // ---------------------------------------------------------------------------
+
+// LEKHA_DISABLE_QUIT_GUARD=1 skips the unsaved-changes prompt entirely.
+// Used ONLY by the e2e test harness so teardown does not hang on a native dialog.
+const QUIT_GUARD_DISABLED = process.env['LEKHA_DISABLE_QUIT_GUARD'] === '1'
 
 let documentDirty = false
 let forceClose = false
 let pendingClose = false
-let appIsQuitting = false
 
 // ---------------------------------------------------------------------------
 // Minimum sane window dimensions to guard against corrupt saved bounds.
@@ -242,11 +244,13 @@ void app.whenReady().then(async () => {
       void settings.set({ windowBounds: { x: b.x, y: b.y, width: b.width, height: b.height } })
     }
 
-    // Allow the close if there are no unsaved changes, if we already
-    // confirmed via the dialog (forceClose flag), or if the close is a
-    // side-effect of app.quit() (appIsQuitting) - e.g. Cmd+Q or the
-    // test runner's ElectronApplication.close().
-    if (!documentDirty || forceClose || appIsQuitting) {
+    // Allow the close if:
+    //   - no unsaved changes, OR
+    //   - the user already confirmed "Don't Save" (forceClose), OR
+    //   - the test-mode env flag disables the guard (e2e teardown only).
+    // Note: Cmd+Q reaches here too (Electron fires 'close' for each window
+    // after 'before-quit'), so this guard fires for ALL close paths.
+    if (!documentDirty || forceClose || QUIT_GUARD_DISABLED) {
       forceClose = false // reset for any future window re-use
       return
     }
@@ -285,14 +289,6 @@ void app.whenReady().then(async () => {
       createWindow()
     }
   })
-})
-
-app.on('before-quit', () => {
-  // Mark that the app is being quit programmatically (Cmd+Q, File > Quit,
-  // or test-runner app.close()). This bypasses the window close-guard so the
-  // quit is not blocked by a synchronous dialog on each window. The guard
-  // fires only when the user explicitly closes an individual window (red button).
-  appIsQuitting = true
 })
 
 app.on('window-all-closed', () => {
