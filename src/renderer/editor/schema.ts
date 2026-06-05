@@ -31,9 +31,24 @@ const taskList: NodeSpec = {
   // checkbox items. With `task_item+` the plain items fail validation and the
   // WHOLE list is silently dropped (data loss). Allowing both keeps it intact.
   content: '(task_item | list_item)+',
-  parseDOM: [{ tag: 'ul.contains-task-list' }],
-  toDOM(): DOMOutputSpec {
-    return ['ul', { class: 'contains-task-list' }, 0]
+  attrs: { tight: { default: false } },
+  parseDOM: [
+    {
+      tag: 'ul.contains-task-list',
+      getAttrs(dom: HTMLElement) {
+        return { tight: dom.hasAttribute('data-tight') }
+      },
+    },
+  ],
+  toDOM(node): DOMOutputSpec {
+    return [
+      'ul',
+      {
+        class: 'contains-task-list',
+        'data-tight': node.attrs['tight'] ? 'true' : null,
+      },
+      0,
+    ]
   },
 }
 
