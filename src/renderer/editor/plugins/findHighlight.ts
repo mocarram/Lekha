@@ -13,8 +13,8 @@
  *   gets `find-match--current`.
  *
  * The plugin state is kept in sync after every transaction via the `apply`
- * hook, which maps existing match positions through the transaction's step
- * maps and recomputes matches if the doc changed.
+ * hook, which fully recomputes matches via `findMatches` whenever the doc
+ * changes (rather than mapping old positions through step maps).
  */
 
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state'

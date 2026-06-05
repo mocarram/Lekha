@@ -81,8 +81,9 @@ export function FindReplace({ open, mode, editorRef, onClose }: FindReplaceProps
   }, [editorRef, refreshMatchInfo])
 
   const handleReplaceCurrent = useCallback(() => {
+    // replaceCurrent already advances to the next match internally.
+    // Do NOT call findNext() here - that would skip a match.
     editorRef.current?.replaceCurrent(replaceValue)
-    editorRef.current?.findNext()
     refreshMatchInfo()
   }, [editorRef, replaceValue, refreshMatchInfo])
 

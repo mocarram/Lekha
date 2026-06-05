@@ -177,18 +177,26 @@ describe('FindReplace - navigation', () => {
 // ---------------------------------------------------------------------------
 
 describe('FindReplace - replace actions', () => {
-  it('clicking Replace calls replaceCurrent then findNext', () => {
+  it('clicking Replace calls replaceCurrent exactly once and does NOT call findNext', () => {
+    // CONTRACT: replaceCurrent (in the plugin) owns the single advance to the
+    // next match. FindReplace.tsx must NOT call findNext() after replaceCurrent,
+    // or the advance would happen twice, skipping a match.
     const { editorRef, replaceCurrent, findNext } = makeMockHandle()
     render(
       <FindReplace open={true} mode="replace" editorRef={editorRef} onClose={vi.fn()} />,
     )
-    // Type a replace value
     const replaceInput = screen.getByLabelText('Replace with')
     fireEvent.change(replaceInput, { target: { value: 'world' } })
 
     fireEvent.click(screen.getByLabelText('Replace current'))
+
+    // replaceCurrent must be called exactly once with the replacement value.
+    expect(replaceCurrent).toHaveBeenCalledTimes(1)
     expect(replaceCurrent).toHaveBeenCalledWith('world')
-    expect(findNext).toHaveBeenCalled()
+
+    // findNext must NOT be called by the component - the advance is owned by
+    // replaceCurrent inside the plugin. A second call here would skip a match.
+    expect(findNext).not.toHaveBeenCalled()
   })
 
   it('clicking Replace All calls replaceAll with the current query and replacement', () => {
