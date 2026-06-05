@@ -31,7 +31,29 @@ function makeMockEditor(initialMarkdown = '# X') {
   const focus = vi.fn()
   const scrollToPos = vi.fn()
   const runCommand = vi.fn(() => false)
-  const handle: EditorPaneHandle = { getMarkdown, setMarkdown, getMode, toggleMode, focus, scrollToPos, runCommand }
+  const setFind = vi.fn(() => 0)
+  const findNext = vi.fn()
+  const findPrev = vi.fn()
+  const replaceCurrent = vi.fn()
+  const replaceAll = vi.fn(() => 0)
+  const clearFind = vi.fn()
+  const getMatchInfo = vi.fn(() => ({ current: 0, count: 0 }))
+  const handle: EditorPaneHandle = {
+    getMarkdown,
+    setMarkdown,
+    getMode,
+    toggleMode,
+    focus,
+    scrollToPos,
+    runCommand,
+    setFind,
+    findNext,
+    findPrev,
+    replaceCurrent,
+    replaceAll,
+    clearFind,
+    getMatchInfo,
+  }
   return { handle, setMarkdown, getMarkdown }
 }
 

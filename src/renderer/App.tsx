@@ -9,6 +9,7 @@ import { countWords } from '@renderer/editor/wordCount'
 import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { Sidebar } from '@renderer/components/Sidebar'
+import { FindReplace } from '@renderer/components/FindReplace'
 
 // ---------------------------------------------------------------------------
 // Welcome document shown on first launch (no file open)
@@ -39,9 +40,8 @@ export default function App() {
   const editorRef = useRef<EditorPaneHandle>(null)
   const fileOps = useFileOps(editorRef)
 
-  // Find/Replace overlay state - the actual UI overlay is built in M13.
-  // For now App just holds the open/mode state so useCommands has a target.
-  const [, setFindState] = useState<{
+  // Find/Replace overlay state
+  const [findState, setFindState] = useState<{
     open: boolean
     mode: 'find' | 'replace'
   }>({ open: false, mode: 'find' })
@@ -107,6 +107,13 @@ export default function App() {
       </div>
 
       <StatusBar onToggleSource={handleToggleSource} />
+
+      <FindReplace
+        open={findState.open}
+        mode={findState.mode}
+        editorRef={editorRef}
+        onClose={() => setFindState((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   )
 }

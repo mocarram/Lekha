@@ -12,6 +12,7 @@ import { SourceView, type SourceHandle } from './SourceView'
 import { parseMarkdown } from './parser'
 import { serializeMarkdown } from './serializer'
 import type { AppCommand } from '@shared/commands'
+import type { FindOptions } from './find'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -42,6 +43,29 @@ export interface EditorPaneHandle {
    * its own undo/redo via keymap; no duplication needed).
    */
   runCommand(cmd: AppCommand): boolean
+
+  // --- Find/replace (WYSIWYG mode only; no-op in source mode) ---
+
+  /** Set the active search query. Returns the number of matches. */
+  setFind(query: string, opts: FindOptions): number
+  /** Advance to the next match (wraps around). */
+  findNext(): void
+  /** Go to the previous match (wraps around). */
+  findPrev(): void
+  /** Replace the current match, then advance to next. */
+  replaceCurrent(replacement: string): void
+  /**
+   * Replace all matches of `query` with `replacement`.
+   * Returns the number of replacements made.
+   */
+  replaceAll(query: string, replacement: string, opts: FindOptions): number
+  /** Clear the active query and all highlights. */
+  clearFind(): void
+  /**
+   * Return information about the current match state.
+   * `current` is 1-based (0 when there are no matches).
+   */
+  getMatchInfo(): { current: number; count: number }
 }
 
 interface EditorPaneProps {
@@ -171,6 +195,35 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           // caller knows the command was not handled.
           if (mode !== 'wysiwyg') return false
           return wysiwygRef.current?.runCommand(cmd) ?? false
+        },
+
+        setFind(query: string, opts: FindOptions): number {
+          if (mode !== 'wysiwyg') return 0
+          return wysiwygRef.current?.setFind(query, opts) ?? 0
+        },
+        findNext() {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.findNext()
+        },
+        findPrev() {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.findPrev()
+        },
+        replaceCurrent(replacement: string) {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.replaceCurrent(replacement)
+        },
+        replaceAll(query: string, replacement: string, opts: FindOptions): number {
+          if (mode !== 'wysiwyg') return 0
+          return wysiwygRef.current?.replaceAll(query, replacement, opts) ?? 0
+        },
+        clearFind() {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.clearFind()
+        },
+        getMatchInfo(): { current: number; count: number } {
+          if (mode !== 'wysiwyg') return { current: 0, count: 0 }
+          return wysiwygRef.current?.getMatchInfo() ?? { current: 0, count: 0 }
         },
       }),
       [mode, markdown, toggleMode],

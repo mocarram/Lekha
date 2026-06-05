@@ -10,20 +10,22 @@ import { parseMarkdown } from './parser'
 import { buildInputRules } from './inputRules'
 import { buildKeymap } from './keymap'
 import { highlightPlugin } from './plugins/highlight'
+import { findHighlightPlugin } from './plugins/findHighlight'
 
 /**
  * Create a fully-configured EditorState from a Markdown string.
  *
  * Plugin order (matters for event handling priority):
- *   1. buildInputRules  - inline/block input rule transforms
- *   2. buildKeymap      - Lekha-specific shortcuts (Mod-b, headings, lists...)
- *   3. keymap(baseKeymap) - prosemirror baseline (Enter, Backspace, etc.)
- *   4. dropCursor       - visual drop position indicator
- *   5. gapCursor        - keyboard navigation past un-enterable nodes
- *   6. history          - undo/redo (exactly once - no duplicate)
- *   7. columnResizing   - table column drag-to-resize (must precede tableEditing)
- *   8. tableEditing     - GFM table cell navigation and commands
- *   9. highlightPlugin  - syntax highlighting decorations for code blocks
+ *   1. buildInputRules   - inline/block input rule transforms
+ *   2. buildKeymap       - Lekha-specific shortcuts (Mod-b, headings, lists...)
+ *   3. keymap(baseKeymap)- prosemirror baseline (Enter, Backspace, etc.)
+ *   4. dropCursor        - visual drop position indicator
+ *   5. gapCursor         - keyboard navigation past un-enterable nodes
+ *   6. history           - undo/redo (exactly once - no duplicate)
+ *   7. columnResizing    - table column drag-to-resize (must precede tableEditing)
+ *   8. tableEditing      - GFM table cell navigation and commands
+ *   9. highlightPlugin   - syntax highlighting decorations for code blocks
+ *  10. findHighlightPlugin - find/replace match decorations
  */
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
@@ -38,6 +40,7 @@ export function createEditorState(markdown: string): EditorState {
       columnResizing(),
       tableEditing(),
       highlightPlugin(),
+      findHighlightPlugin(),
     ],
   })
 }

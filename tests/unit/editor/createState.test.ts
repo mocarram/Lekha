@@ -20,8 +20,9 @@ describe('createEditorState', () => {
   it('includes plugins (inputRules, keymap, history, etc.)', () => {
     const state = createEditorState('hello')
     // The plugin array should be non-empty; exact count depends on
-    // prosemirror internals but should be >= 7 (our 7 configured plugins).
-    expect(state.plugins.length).toBeGreaterThanOrEqual(7)
+    // prosemirror internals but should be >= 8 (our 10 configured plugins,
+    // some of which register sub-plugins internally).
+    expect(state.plugins.length).toBeGreaterThanOrEqual(8)
   })
 
   it('parses a paragraph', () => {

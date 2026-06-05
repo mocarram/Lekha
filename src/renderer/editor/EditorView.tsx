@@ -12,6 +12,16 @@ import { serializeMarkdown } from './serializer'
 import { taskItemNodeView } from './taskItem'
 import { editorCommandMap } from './editorCommands'
 import { schema } from './schema'
+import {
+  setFindQuery,
+  findNext as _findNext,
+  findPrev as _findPrev,
+  replaceCurrent as _replaceCurrent,
+  clearFind as _clearFind,
+  findHighlightKey,
+} from './plugins/findHighlight'
+import { replaceAllTr } from './find'
+import type { FindOptions } from './find'
 import type { AppCommand } from '@shared/commands'
 
 // ---------------------------------------------------------------------------
@@ -40,6 +50,30 @@ export interface EditorHandle {
    * such as file ops or find/replace are not in the map and return false).
    */
   runCommand(cmd: AppCommand): boolean
+
+  // --- Find/replace ---
+
+  /** Set the active search query. Returns the number of matches. */
+  setFind(query: string, opts: FindOptions): number
+  /** Advance to the next match (wraps around). */
+  findNext(): void
+  /** Go to the previous match (wraps around). */
+  findPrev(): void
+  /** Replace the current match with `replacement`, then advance to next. */
+  replaceCurrent(replacement: string): void
+  /**
+   * Replace all matches of the current query with `replacement`.
+   * Returns the number of replacements made.
+   */
+  replaceAll(query: string, replacement: string, opts: FindOptions): number
+  /** Clear the active query and all highlights. */
+  clearFind(): void
+  /**
+   * Return information about the current match state.
+   * `current` is 1-based (0 when there are no matches).
+   * `count` is the total number of matches.
+   */
+  getMatchInfo(): { current: number; count: number }
 }
 
 // Build the command map once per module (schema is a singleton)
@@ -145,6 +179,53 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
             view.focus()
           }
           return handled
+        },
+
+        setFind(query: string, opts: FindOptions): number {
+          const view = viewRef.current
+          if (!view) return 0
+          return setFindQuery(view, query, opts)
+        },
+        findNext() {
+          const view = viewRef.current
+          if (!view) return
+          _findNext(view)
+        },
+        findPrev() {
+          const view = viewRef.current
+          if (!view) return
+          _findPrev(view)
+        },
+        replaceCurrent(replacement: string) {
+          const view = viewRef.current
+          if (!view) return
+          _replaceCurrent(view, replacement)
+        },
+        replaceAll(query: string, replacement: string, opts: FindOptions): number {
+          const view = viewRef.current
+          if (!view) return 0
+          const { tr, count } = replaceAllTr(view.state, query, replacement, opts)
+          if (count > 0) {
+            view.dispatch(tr)
+          }
+          return count
+        },
+        clearFind() {
+          const view = viewRef.current
+          if (!view) return
+          _clearFind(view)
+        },
+        getMatchInfo(): { current: number; count: number } {
+          const view = viewRef.current
+          if (!view) return { current: 0, count: 0 }
+          const pluginState = findHighlightKey.getState(view.state)
+          if (!pluginState || pluginState.matches.length === 0) {
+            return { current: 0, count: 0 }
+          }
+          return {
+            current: pluginState.current + 1,
+            count: pluginState.matches.length,
+          }
         },
       }),
       [],
