@@ -9,6 +9,7 @@ import { schema } from './schema'
 import { parseMarkdown } from './parser'
 import { buildInputRules } from './inputRules'
 import { buildKeymap } from './keymap'
+import { highlightPlugin } from './plugins/highlight'
 
 /**
  * Create a fully-configured EditorState from a Markdown string.
@@ -21,6 +22,7 @@ import { buildKeymap } from './keymap'
  *   5. gapCursor        - keyboard navigation past un-enterable nodes
  *   6. history          - undo/redo (exactly once - no duplicate)
  *   7. tableEditing     - GFM table cell navigation and commands
+ *   8. highlightPlugin  - syntax highlighting decorations for code blocks
  */
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
@@ -33,6 +35,7 @@ export function createEditorState(markdown: string): EditorState {
       gapCursor(),
       history(),
       tableEditing(),
+      highlightPlugin(),
     ],
   })
 }
