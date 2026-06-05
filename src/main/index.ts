@@ -4,6 +4,7 @@ import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
 import { registerExportHandlers } from '@main/ipc/export'
+import { registerImageHandlers } from '@main/ipc/images'
 import { buildMenuTemplate } from '@main/menu'
 import { IPC } from '@shared/ipc-channels'
 import { THEMES } from '@shared/types'
@@ -252,6 +253,10 @@ void app.whenReady().then(async () => {
   )
 
   registerExportHandlers(getWindow)
+
+  // Register image-save IPC handler. Passes the user-data path at call time
+  // so it always reflects the current Electron data directory.
+  registerImageHandlers(() => app.getPath('userData'))
 
   // Create the window with restored bounds (or defaults if none saved).
   const win = createWindow(initialSettings.windowBounds)

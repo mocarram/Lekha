@@ -54,6 +54,20 @@ export interface LekhaAPI {
   exportDocx(args: { markdown: string; suggestedName: string }): Promise<void>
   /** Returns true if pandoc is available on the system PATH. */
   pandocAvailable(): Promise<boolean>
+
+  // --- Images ---
+  /**
+   * Write image bytes to disk and return the path to insert into Markdown.
+   * When `docPath` is set, the image is written next to the document in an
+   * `assets/` subfolder and a POSIX-relative `assets/<filename>` is returned.
+   * When `docPath` is null (unsaved doc), the image is written to the user-data
+   * images dir and an absolute `file://` URI is returned.
+   */
+  saveImage(args: {
+    data: ArrayBuffer
+    ext: string
+    docPath: string | null
+  }): Promise<{ insertPath: string }>
 }
 
 declare global {

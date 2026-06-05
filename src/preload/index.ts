@@ -99,6 +99,10 @@ const api: LekhaAPI = {
   pandocAvailable(): Promise<boolean> {
     return ipcRenderer.invoke(IPC.pandocAvailable) as Promise<boolean>
   },
+
+  saveImage(args: { data: ArrayBuffer; ext: string; docPath: string | null }): Promise<{ insertPath: string }> {
+    return ipcRenderer.invoke(IPC.saveImage, args) as Promise<{ insertPath: string }>
+  },
 }
 
 contextBridge.exposeInMainWorld('lekha', Object.freeze(api))

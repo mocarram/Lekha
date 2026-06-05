@@ -14,6 +14,8 @@ import { mathInlineNodeView, mathBlockNodeView } from './mathNodeView'
 import { codeBlockNodeView } from './codeBlockNodeView'
 import { editorCommandMap } from './editorCommands'
 import { schema } from './schema'
+import { imageEditorProps } from './imagePaste'
+import { useEditorStore } from '../store/editorStore'
 import {
   setFindQuery,
   findNext as _findNext,
@@ -118,6 +120,14 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
     useEffect(() => {
       if (!mountRef.current) return
 
+      // Build image paste/drop props once, capturing the store reference.
+      // getDocPath reads the store at the moment each image is processed so
+      // it always reflects the latest saved path (e.g. if the user saves the
+      // doc after pasting but before the async write completes).
+      const { handlePaste, handleDrop } = imageEditorProps(
+        () => useEditorStore.getState().path,
+      )
+
       const view = new ProseMirrorView(mountRef.current, {
         state: createEditorState(markdown),
         nodeViews: {
@@ -126,6 +136,8 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           math_block: mathBlockNodeView,
           code_block: codeBlockNodeView,
         },
+        handlePaste,
+        handleDrop,
         dispatchTransaction(tr) {
           const newState = view.state.apply(tr)
           view.updateState(newState)

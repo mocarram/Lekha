@@ -28,4 +28,6 @@ export const IPC = {
   exportPdf: 'export:pdf',
   exportDocx: 'export:docx',
   pandocAvailable: 'export:pandocAvailable',
+  // Image channels
+  saveImage: 'fs:saveImage',
 } as const

@@ -125,6 +125,7 @@ function stubLekha(): void {
     exportPdf: vi.fn(() => Promise.resolve()),
     exportDocx: vi.fn(() => Promise.resolve()),
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
+    saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/image-000001.png' })),
   }
   vi.stubGlobal('lekha', mockLekha)
 }
