@@ -11,6 +11,7 @@ import { createEditorState } from './createState'
 import { serializeMarkdown } from './serializer'
 import { taskItemNodeView } from './taskItem'
 import { mathInlineNodeView, mathBlockNodeView } from './mathNodeView'
+import { codeBlockNodeView } from './codeBlockNodeView'
 import { editorCommandMap } from './editorCommands'
 import { schema } from './schema'
 import {
@@ -123,6 +124,7 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           task_item: taskItemNodeView,
           math_inline: mathInlineNodeView,
           math_block: mathBlockNodeView,
+          code_block: codeBlockNodeView,
         },
         dispatchTransaction(tr) {
           const newState = view.state.apply(tr)

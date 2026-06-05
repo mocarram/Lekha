@@ -815,3 +815,83 @@
   outline: 2px solid var(--gh-link);
   border-radius: 2px;
 }
+
+/* ===========================================================================
+ * 13. Diagrams (Mermaid live preview)
+ * =========================================================================== */
+
+/*
+ * Wrapper div that holds both the editable source (<pre class="code-block">)
+ * and the rendered diagram preview (.diagram-preview) stacked vertically.
+ */
+.editor-pane .ProseMirror .code-block-wrapper {
+  margin: 0 0 1em;
+}
+
+/*
+ * The editable source pre element. Reuses the existing fenced-code-block
+ * visual style but removes its bottom margin so the preview sits flush.
+ */
+.editor-pane .ProseMirror .code-block-wrapper pre.code-block {
+  background-color: var(--gh-code-bg);
+  border-radius: 6px 6px 0 0;
+  padding: 12px 16px;
+  margin: 0;
+  overflow-x: auto;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--gh-border);
+}
+
+.editor-pane .ProseMirror .code-block-wrapper pre.code-block code {
+  font-family: var(--gh-font-mono);
+  font-size: 0.85em;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--gh-text);
+}
+
+/*
+ * Diagram preview panel.
+ * Centered content, light background, top border that visually separates it
+ * from the source. Rounded bottom corners to pair with the source's top rounding.
+ */
+.editor-pane .ProseMirror .diagram-preview {
+  background-color: var(--gh-surface);
+  border: 1px solid var(--gh-border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 16px;
+  text-align: center;
+  overflow-x: auto;
+  min-height: 2em;
+}
+
+/* SVG diagrams rendered by mermaid - cap width and center */
+.editor-pane .ProseMirror .diagram-preview svg {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+
+/* Error box: subtle red background, monospaced text */
+.editor-pane .ProseMirror .diagram-preview .diagram-error {
+  background-color: #fff0f0;
+  border: 1px solid #ffa0a0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #cb2431;
+  font-family: var(--gh-font-mono);
+  font-size: 0.82em;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Muted placeholder shown before the first render completes */
+.editor-pane .ProseMirror .diagram-preview .diagram-placeholder {
+  color: var(--gh-text-muted);
+  font-style: italic;
+  font-size: 0.9em;
+  font-family: var(--gh-font-ui);
+}
