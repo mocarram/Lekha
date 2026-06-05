@@ -31,13 +31,9 @@
  * --- Status-bar mode text note ---
  *
  *   The mode button text (WYSIWYG / Source) is driven by `useEditorStore`.
- *   The store update in App.handleToggleSource reads `editorRef.current.getMode()`
- *   synchronously after `toggleMode()`, but the EditorPane's `mode` state has
- *   not yet committed (React schedules async batching), so the store receives
- *   the stale mode and the button text lags one toggle behind. This is a
- *   known cosmetic issue; the editor DOES switch correctly (cm-editor / PM
- *   appear/disappear). Tests therefore assert DOM editor presence, not button
- *   text, for the source-toggle flow.
+ *   toggleMode() now returns the new mode synchronously, so the store is
+ *   updated with the correct value immediately - no stale-read lag.
+ *   Tests assert both the DOM editor presence AND the button text label.
  *
  * Screenshots (written to tests/e2e/screenshots/) are artifacts for human
  * visual review of the GitHub-theme WYSIWYG look.
@@ -150,6 +146,17 @@ test('window opens with ProseMirror editor and welcome document heading', async 
   // Status bar is present (confirms full layout rendered)
   await expect(win.locator('.status-bar')).toBeVisible()
 
+  // Bug 1 fix: the status bar must show non-zero word count on initial load.
+  // Before the fix, the count was "0 words" because the mount effect was missing.
+  const countEl = win.locator('.status-bar__counts')
+  await expect(countEl).toBeVisible()
+  const countText = await countEl.textContent()
+  // Extract the word count number from e.g. "42 words · 180 chars"
+  const wordMatch = /(\d+) words/.exec(countText ?? '')
+  expect(wordMatch).not.toBeNull()
+  const wordCount = parseInt(wordMatch?.[1] ?? '0', 10)
+  expect(wordCount).toBeGreaterThan(0)
+
   // Capture the main welcome screenshot.
   await win.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'main-welcome.png'),
@@ -205,6 +212,11 @@ test('source mode toggle shows CodeMirror editor and toggles back to WYSIWYG', a
   await expect(win.locator('.cm-editor')).toBeVisible()
   await expect(win.locator('.ProseMirror')).not.toBeVisible()
 
+  // Bug 2 fix: status bar label must immediately show "Source" (no lag).
+  // Before the fix, getMode() was called after toggleMode() but before React
+  // re-rendered, so the label stayed "WYSIWYG" after switching to source.
+  await expect(modeBtn).toHaveText('Source')
+
   // Capture source-mode screenshot.
   await win.screenshot({
     path: path.join(SCREENSHOTS_DIR, 'source-mode.png'),
@@ -216,6 +228,9 @@ test('source mode toggle shows CodeMirror editor and toggles back to WYSIWYG', a
 
   await expect(win.locator('.ProseMirror')).toBeVisible()
   await expect(win.locator('.cm-editor')).not.toBeVisible()
+
+  // Mode label must revert to "WYSIWYG" immediately.
+  await expect(modeBtn).toHaveText('WYSIWYG')
 })
 
 // ---------------------------------------------------------------------------

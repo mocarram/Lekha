@@ -27,7 +27,8 @@ function makeMockEditor(initialMarkdown = '# X') {
   const getMarkdown = vi.fn(() => initialMarkdown)
   const setMarkdown = vi.fn()
   const getMode = vi.fn(() => 'wysiwyg' as const)
-  const toggleMode = vi.fn()
+  // toggleMode now returns the new EditorMode synchronously
+  const toggleMode = vi.fn(() => 'source' as const)
   const focus = vi.fn()
   const scrollToPos = vi.fn()
   const runCommand = vi.fn(() => false)

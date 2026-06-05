@@ -11,6 +11,7 @@ import {
 } from '../../../src/renderer/editor/EditorPane'
 import { serializeMarkdown } from '../../../src/renderer/editor/serializer'
 import { parseMarkdown } from '../../../src/renderer/editor/parser'
+import type { EditorMode } from '../../../src/shared/types'
 
 afterEach(() => {
   cleanup()
@@ -53,6 +54,22 @@ describe('EditorPane component', () => {
       ref.current!.toggleMode()
     })
 
+    expect(ref.current!.getMode()).toBe('source')
+  })
+
+  it('toggleMode() returns the new mode synchronously (no stale read)', () => {
+    const ref = createRef<EditorPaneHandle>()
+    render(<EditorPane initialMarkdown={SAMPLE_MD} ref={ref} />)
+
+    let returned: EditorMode | undefined
+    act(() => {
+      returned = ref.current!.toggleMode()
+    })
+
+    // The returned value must be the new mode, allowing callers to sync the
+    // store without a stale read of getMode() (which would still show 'wysiwyg'
+    // before React re-renders).
+    expect(returned).toBe('source')
     expect(ref.current!.getMode()).toBe('source')
   })
 

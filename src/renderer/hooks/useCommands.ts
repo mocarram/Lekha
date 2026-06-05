@@ -101,10 +101,12 @@ export function useCommands(
       // Source mode toggle (editor pane + store sync)
       // ------------------------------------------------------------------
       if (cmd === 'toggleSource') {
-        editorRef.current?.toggleMode()
-        // Sync new mode into the editor store so StatusBar reflects the change.
-        const newMode = editorRef.current?.getMode() ?? 'wysiwyg'
-        useEditorStore.getState().setMode(newMode)
+        // toggleMode() returns the new mode synchronously so we can sync the
+        // store without a stale read (React state hasn't re-rendered yet).
+        const next = editorRef.current?.toggleMode()
+        if (next !== undefined) {
+          useEditorStore.getState().setMode(next)
+        }
         return
       }
 

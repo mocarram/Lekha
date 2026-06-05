@@ -20,8 +20,9 @@ import type { FindOptions } from './find'
 
 /** Imperative handle exposed via React ref. */
 export interface EditorPaneHandle {
-  /** Toggle between 'wysiwyg' and 'source' modes, handing off content. */
-  toggleMode(): void
+  /** Toggle between 'wysiwyg' and 'source' modes, handing off content.
+   *  Returns the NEW mode so callers can sync the store without a stale read. */
+  toggleMode(): EditorMode
   /** Return the current active mode. */
   getMode(): EditorMode
   /** Return the current markdown content from whichever editor is active. */
@@ -129,30 +130,31 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
       onChangeRef.current?.(value)
     }, [])
 
-    const toggleMode = useCallback(() => {
-      setMode((prev) => {
-        if (prev === 'wysiwyg') {
-          // Capture latest PM content before unmounting. We read synchronously
-          // so SourceView mounts with the current text.
-          const current = wysiwygRef.current?.getMarkdown()
-          if (current !== undefined) {
-            setMarkdownState(current)
-          }
-          return 'source'
-        } else {
-          // Capture latest CM text before unmounting. After state settles,
-          // push it into the already-existing (or freshly mounted) EditorView.
-          const current = sourceRef.current?.getValue()
-          if (current !== undefined) {
-            setMarkdownState(current)
-            // EditorView is remounted when mode changes; it picks up `markdown`
-            // state as its `markdown` prop. No setTimeout needed because
-            // EditorView accepts `markdown` prop on mount.
-          }
-          return 'wysiwyg'
+    const toggleMode = useCallback((): EditorMode => {
+      // Compute the next mode eagerly so we can return it synchronously.
+      // The setMode call uses the same value - no stale-closure risk.
+      const nextMode: EditorMode = mode === 'wysiwyg' ? 'source' : 'wysiwyg'
+      if (nextMode === 'source') {
+        // Capture latest PM content before unmounting. We read synchronously
+        // so SourceView mounts with the current text.
+        const current = wysiwygRef.current?.getMarkdown()
+        if (current !== undefined) {
+          setMarkdownState(current)
         }
-      })
-    }, [])
+      } else {
+        // Capture latest CM text before unmounting. After state settles,
+        // push it into the already-existing (or freshly mounted) EditorView.
+        const current = sourceRef.current?.getValue()
+        if (current !== undefined) {
+          setMarkdownState(current)
+          // EditorView is remounted when mode changes; it picks up `markdown`
+          // state as its `markdown` prop. No setTimeout needed because
+          // EditorView accepts `markdown` prop on mount.
+        }
+      }
+      setMode(nextMode)
+      return nextMode
+    }, [mode])
 
     // Expose the imperative handle
     useImperativeHandle(

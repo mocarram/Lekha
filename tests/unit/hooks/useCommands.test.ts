@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { createRef } from 'react'
 import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
+import { useEditorStore } from '../../../src/renderer/store/editorStore'
 import { useCommands } from '../../../src/renderer/hooks/useCommands'
 import type { EditorPaneHandle } from '../../../src/renderer/editor/EditorPane'
 import type { FileOps } from '../../../src/renderer/hooks/useFileOps'
@@ -34,7 +35,8 @@ interface MockEditorResult {
 
 function makeMockEditor(): MockEditorResult {
   const runCommand = vi.fn((_cmd: AppCommand) => true)
-  const toggleMode = vi.fn()
+  // toggleMode now returns the new EditorMode synchronously
+  const toggleMode = vi.fn(() => 'source' as const)
   const getMode = vi.fn(() => 'wysiwyg' as const)
   const getMarkdown = vi.fn(() => '')
   const setMarkdown = vi.fn()
@@ -289,6 +291,22 @@ describe('useCommands - sidebar and mode routing', () => {
     act(() => { capturedDispatch!('toggleSource') })
 
     expect(toggleMode).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "toggleSource" syncs the store mode from the returned value (no stale read)', () => {
+    // toggleMode mock returns 'source' (the new mode after the first toggle)
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    useEditorStore.setState({ mode: 'wysiwyg' })
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    act(() => { capturedDispatch!('toggleSource') })
+
+    // The store must reflect the NEW mode returned by toggleMode(), not a stale read.
+    expect(useEditorStore.getState().mode).toBe('source')
   })
 })
 
