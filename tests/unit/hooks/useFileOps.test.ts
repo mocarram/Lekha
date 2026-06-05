@@ -87,6 +87,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     addRecentFile: vi.fn(() => Promise.resolve()),
     setDocumentState: vi.fn(),
     onCommand: vi.fn(() => () => undefined),
+    onOpenPath: vi.fn(() => () => undefined),
     ...overrides,
   }
 }

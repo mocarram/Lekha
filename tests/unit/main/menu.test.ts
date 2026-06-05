@@ -256,3 +256,102 @@ describe('buildMenuTemplate - role items use Electron roles (no send)', () => {
     expect(leaves.length).toBeGreaterThan(10)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Open Recent submenu tests
+// ---------------------------------------------------------------------------
+
+describe('buildMenuTemplate - Open Recent submenu', () => {
+  /**
+   * Find the "Open Recent" submenu from the File menu.
+   */
+  function findOpenRecentSubmenu(
+    template: MenuItemConstructorOptions[],
+  ): MenuItemConstructorOptions[] | undefined {
+    const fileMenu = template.find((t) => t.label === 'File')
+    if (!fileMenu) return undefined
+    const fileItems = fileMenu.submenu as MenuItemConstructorOptions[]
+    const openRecent = fileItems.find((i) => i.label === 'Open Recent')
+    if (!openRecent?.submenu) return undefined
+    return openRecent.submenu as MenuItemConstructorOptions[]
+  }
+
+  it('File menu contains an "Open Recent" submenu', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send, [], vi.fn())
+    const fileMenu = template.find((t) => t.label === 'File')
+    expect(fileMenu).toBeDefined()
+    const fileItems = fileMenu!.submenu as MenuItemConstructorOptions[]
+    const labels = fileItems.map((i) => i.label)
+    expect(labels).toContain('Open Recent')
+  })
+
+  it('shows "No Recent Files" (disabled) when recentFiles is empty', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send, [], vi.fn())
+    const items = findOpenRecentSubmenu(template)
+    expect(items).toBeDefined()
+    expect(items).toHaveLength(1)
+    expect(items![0]!.label).toBe('No Recent Files')
+    expect(items![0]!.enabled).toBe(false)
+  })
+
+  it('lists recent files by basename when recentFiles are provided', () => {
+    const send = vi.fn()
+    const recentFiles = ['/home/user/docs/note.md', '/home/user/projects/readme.md']
+    const template = buildMenuTemplate(send, recentFiles, vi.fn())
+    const items = findOpenRecentSubmenu(template)
+    expect(items).toBeDefined()
+    expect(items).toHaveLength(2)
+    expect(items![0]!.label).toBe('note.md')
+    expect(items![1]!.label).toBe('readme.md')
+  })
+
+  it('clicking a recent item calls openPath with the full path', () => {
+    const send = vi.fn()
+    const openPath = vi.fn()
+    const recentFiles = ['/home/user/docs/note.md', '/home/user/projects/readme.md']
+    const template = buildMenuTemplate(send, recentFiles, openPath)
+    const items = findOpenRecentSubmenu(template)
+    expect(items).toBeDefined()
+
+    // Click the first item (note.md -> full path /home/user/docs/note.md)
+    // @ts-expect-error calling with no args is safe - handler ignores Electron args
+    items![0]!.click()
+    expect(openPath).toHaveBeenCalledWith('/home/user/docs/note.md')
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('clicking the second recent item calls openPath with that full path', () => {
+    const send = vi.fn()
+    const openPath = vi.fn()
+    const recentFiles = ['/a/first.md', '/b/second.md', '/c/third.md']
+    const template = buildMenuTemplate(send, recentFiles, openPath)
+    const items = findOpenRecentSubmenu(template)
+    expect(items).toBeDefined()
+
+    // @ts-expect-error calling with no args is safe
+    items![1]!.click()
+    expect(openPath).toHaveBeenCalledWith('/b/second.md')
+  })
+
+  it('caps the Open Recent list at 10 entries', () => {
+    const send = vi.fn()
+    const recentFiles = Array.from({ length: 15 }, (_, i) => `/files/file${i}.md`)
+    const template = buildMenuTemplate(send, recentFiles, vi.fn())
+    const items = findOpenRecentSubmenu(template)
+    expect(items).toBeDefined()
+    expect(items!.length).toBe(10)
+  })
+
+  it('does not call send when a recent item is clicked (separate channel)', () => {
+    const send = vi.fn()
+    const openPath = vi.fn()
+    const template = buildMenuTemplate(send, ['/docs/note.md'], openPath)
+    const items = findOpenRecentSubmenu(template)
+    // @ts-expect-error calling with no args is safe
+    items![0]!.click()
+    expect(send).not.toHaveBeenCalled()
+    expect(openPath).toHaveBeenCalledWith('/docs/note.md')
+  })
+})

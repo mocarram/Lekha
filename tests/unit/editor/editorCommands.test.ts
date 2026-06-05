@@ -210,6 +210,48 @@ describe('editorCommandMap - list and wrap commands', () => {
     })
     expect(found).toBe(true)
   })
+
+  // ------------------------------------------------------------------
+  // taskList - must produce task_list > task_item (not list_item)
+  // ------------------------------------------------------------------
+
+  it('taskList wraps a paragraph in a task_list', () => {
+    const state = stateWithText('my task')
+    const next = applyCmd(state, cmdMap['taskList']!)
+    expect(next).not.toBeNull()
+    let found = false
+    next!.doc.descendants((node) => {
+      if (node.type.name === 'task_list') found = true
+    })
+    expect(found).toBe(true)
+  })
+
+  it('taskList produces task_item children (not list_item)', () => {
+    const state = stateWithText('my task')
+    const next = applyCmd(state, cmdMap['taskList']!)
+    expect(next).not.toBeNull()
+    let taskItemCount = 0
+    let listItemCount = 0
+    next!.doc.descendants((node) => {
+      if (node.type.name === 'task_item') taskItemCount++
+      if (node.type.name === 'list_item') listItemCount++
+    })
+    expect(taskItemCount).toBeGreaterThan(0)
+    expect(listItemCount).toBe(0)
+  })
+
+  it('taskList task_item has checked=false by default', () => {
+    const state = stateWithText('my task')
+    const next = applyCmd(state, cmdMap['taskList']!)
+    expect(next).not.toBeNull()
+    let checkedFalseCount = 0
+    next!.doc.descendants((node) => {
+      if (node.type.name === 'task_item' && node.attrs['checked'] === false) {
+        checkedFalseCount++
+      }
+    })
+    expect(checkedFalseCount).toBeGreaterThan(0)
+  })
 })
 
 // ---------------------------------------------------------------------------

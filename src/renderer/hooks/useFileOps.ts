@@ -154,6 +154,8 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     const tree = await window.lekha.readDir(dir)
     workspaceStore.getState().setRootFolder(dir)
     workspaceStore.getState().setFileTree(tree)
+    // Persist the chosen folder so it can be restored on next launch.
+    await window.lekha.setSettings({ lastFolder: dir })
   }, [workspaceStore])
 
   return { open, openPath, save, saveAs, newFile, openFolder }

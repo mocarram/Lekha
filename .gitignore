@@ -6,3 +6,4 @@ release/
 *.tsbuildinfo
 .DS_Store
 tests/e2e/screenshots/
+test-results/

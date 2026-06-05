@@ -62,6 +62,14 @@ const api: LekhaAPI = {
     ipcRenderer.on(IPC.command, listener)
     return () => ipcRenderer.removeListener(IPC.command, listener)
   },
+
+  // Subscribes to open-path messages from main (Open Recent menu).
+  // Returns an unsubscribe function for cleanup on unmount.
+  onOpenPath(cb: (path: string) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, path: string) => cb(path)
+    ipcRenderer.on(IPC.openPath, listener)
+    return () => ipcRenderer.removeListener(IPC.openPath, listener)
+  },
 }
 
 contextBridge.exposeInMainWorld('lekha', Object.freeze(api))

@@ -28,6 +28,13 @@ export interface LekhaAPI {
    * Returns an unsubscribe function that removes the listener.
    */
   onCommand(cb: (cmd: AppCommand) => void): () => void
+
+  /**
+   * Subscribe to open-path messages from the main process (Open Recent menu).
+   * The callback receives the full file path to open.
+   * Returns an unsubscribe function that removes the listener.
+   */
+  onOpenPath(cb: (path: string) => void): () => void
 }
 
 declare global {

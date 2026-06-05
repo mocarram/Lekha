@@ -23,10 +23,17 @@ function safeHandle<T>(
 /**
  * Registers IPC handlers for filesystem and settings operations.
  * Also handles the window document-state update (title bar, dirty dot, represented file).
+ *
+ * @param onRecentAdded - Optional callback invoked after a file is added to
+ *   recents. The main process uses this to rebuild the Open Recent menu so it
+ *   stays in sync with the persisted list without an extra IPC round-trip.
+ *   The callback may be async (returning a Promise); the Promise is awaited
+ *   inside the IPC handler which already runs in an async context.
  */
 export function registerFileHandlers(
   settings: SettingsStore,
   getWindow: () => BrowserWindow | null,
+  onRecentAdded?: () => Promise<void> | void,
 ): void {
   // --- Filesystem ---
 
@@ -53,9 +60,11 @@ export function registerFileHandlers(
 
   safeHandle(IPC.getRecentFiles, async () => settings.getRecentFiles())
 
-  safeHandle(IPC.addRecentFile, async (path) =>
-    settings.addRecentFile(String(path)),
-  )
+  safeHandle(IPC.addRecentFile, async (path) => {
+    await settings.addRecentFile(String(path))
+    // Notify the main process so it can rebuild the Open Recent menu.
+    await onRecentAdded?.()
+  })
 
   // --- Window document state ---
   // Renderer sends { title, dirty, path } to update the title bar decoration.

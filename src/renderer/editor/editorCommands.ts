@@ -6,12 +6,75 @@
  * native menu / useCommands hook) consume the same map so there is ONE place
  * to add, change, or remove a command.
  */
-import { type Schema } from 'prosemirror-model'
-import { type Command } from 'prosemirror-state'
+import { type Schema, type NodeType, type Node as ProseMirrorNode } from 'prosemirror-model'
+import { type Command, type Transaction } from 'prosemirror-state'
 import { toggleMark, setBlockType, wrapIn } from 'prosemirror-commands'
 import { undo, redo } from 'prosemirror-history'
 import { wrapInList } from 'prosemirror-schema-list'
 import type { AppCommand } from '@shared/commands'
+
+// ---------------------------------------------------------------------------
+// taskList helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a command that wraps the selected block(s) in a task_list whose
+ * children are task_item nodes (checked: false) rather than plain list_items.
+ *
+ * Strategy:
+ *   1. Collect the set of top-level blocks that overlap the selection.
+ *   2. Wrap each block's content in a task_item node.
+ *   3. Wrap the resulting task_items in a single task_list node.
+ *   4. Replace the original block range with the new task_list.
+ *
+ * This is intentionally simpler than prosemirror-schema-list's wrapInList
+ * (which doesn't know about task_item). It handles the common "wrap a
+ * paragraph as a task item" case well; edge cases like nested lists are left
+ * for future refinement.
+ */
+function wrapInTaskList(schema: Schema): Command {
+  return (state, dispatch) => {
+    const taskListType: NodeType | undefined = schema.nodes['task_list']
+    const taskItemType: NodeType | undefined = schema.nodes['task_item']
+    if (!taskListType || !taskItemType) return false
+
+    const { from, to } = state.selection
+    const { doc } = state
+
+    // Gather all top-level blocks that touch the selection range.
+    const blocks: { node: ProseMirrorNode; start: number; end: number }[] = []
+    doc.nodesBetween(from, to, (node, pos) => {
+      if (node.isBlock && !node.isTextblock && node.type !== taskListType) {
+        // Skip container blocks - we want their children (the actual text blocks).
+        return true
+      }
+      if (node.isTextblock || (node.isBlock && node.isLeaf)) {
+        blocks.push({ node, start: pos, end: pos + node.nodeSize })
+        return false // don't descend further
+      }
+      return true
+    })
+
+    if (blocks.length === 0) return false
+    if (!dispatch) return true
+
+    // Build task_item nodes wrapping each collected block's content.
+    const taskItems = blocks.map(({ node }) =>
+      taskItemType.create({ checked: false }, node.content),
+    )
+
+    // Build the task_list containing all task_items.
+    const taskList = taskListType.create(null, taskItems)
+
+    // Replace the range spanning all collected blocks with the new task_list.
+    const rangeStart = blocks[0]!.start
+    const rangeEnd = blocks[blocks.length - 1]!.end
+
+    const tr: Transaction = state.tr.replaceWith(rangeStart, rangeEnd, taskList)
+    dispatch(tr.scrollIntoView())
+    return true
+  }
+}
 
 // ---------------------------------------------------------------------------
 // horizontalRule helper
@@ -79,10 +142,10 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   const orderedList = wrapInList(schema.nodes['ordered_list']!)
   const blockquote = wrapIn(schema.nodes['blockquote']!)
 
-  // taskList: wrap in task_list. The task_list node accepts (task_item | list_item)+
-  // so the newly wrapped items will be plain list_items initially (correct for
-  // a basic toggle; a richer UX converting items to task_items is future work).
-  const taskList = wrapInList(schema.nodes['task_list']!)
+  // taskList: wrap the selected block(s) in a task_list of task_item nodes
+  // (checked: false). Uses a custom command rather than wrapInList because
+  // wrapInList wraps in list_item by default and doesn't know about task_item.
+  const taskList = wrapInTaskList(schema)
 
   // -------------------------------------------------------------------------
   // Horizontal rule

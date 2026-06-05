@@ -2,6 +2,7 @@ import { useRef, useCallback, useState, useEffect } from 'react'
 import { EditorPane, type EditorPaneHandle } from '@renderer/editor/EditorPane'
 import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
+import { useStartup } from '@renderer/hooks/useStartup'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { parseMarkdown } from '@renderer/editor/parser'
 import { getOutline } from '@renderer/editor/outline'
@@ -51,6 +52,9 @@ export default function App() {
   const editorRef = useRef<EditorPaneHandle>(null)
   const fileOps = useFileOps(editorRef)
 
+  // Restore persisted settings on mount and persist sidebar/folder changes.
+  useStartup(fileOps)
+
   // Find/Replace overlay state
   const [findState, setFindState] = useState<{
     open: boolean
@@ -62,6 +66,17 @@ export default function App() {
     onFind: () => { setFindState({ open: true, mode: 'find' }) },
     onReplace: () => { setFindState({ open: true, mode: 'replace' }) },
   })
+
+  // Subscribe to Open Recent path messages from the main process.
+  // The main menu sends IPC.openPath with a full file path; we route it
+  // through the same openPath() handler as any other file open.
+  useEffect(() => {
+    if (typeof window.lekha === 'undefined') return undefined
+    const unsubscribe = window.lekha.onOpenPath((path) => {
+      void fileOps.openPath(path)
+    })
+    return unsubscribe
+  }, [fileOps])
 
   // Debounce timer ref - used to delay outline/count recomputation so we
   // don't parse on every keystroke. Cleared on unmount to avoid a setState

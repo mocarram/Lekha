@@ -110,6 +110,7 @@ function stubLekha(): void {
       capturedDispatch = cb
       return unsubscribeMock
     }),
+    onOpenPath: vi.fn(() => () => undefined),
   }
   vi.stubGlobal('lekha', mockLekha)
 }

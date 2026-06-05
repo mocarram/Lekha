@@ -6,6 +6,7 @@
  * Menu.buildFromTemplate / Menu.setApplicationMenu calls live in index.ts
  * which is the runtime entry point.
  */
+import { basename } from 'node:path'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { AppCommand } from '@shared/commands'
 
@@ -31,19 +32,57 @@ function item(
 const sep: MenuItemConstructorOptions = { type: 'separator' }
 
 // ---------------------------------------------------------------------------
+// buildOpenRecentSubmenu
+// ---------------------------------------------------------------------------
+
+/** Maximum number of recent files shown in the Open Recent submenu. */
+const MAX_RECENT_MENU = 10
+
+/**
+ * Build the "Open Recent" submenu items.
+ *
+ * Each item shows the basename of the path as the label and calls
+ * openPath(fullPath) when clicked. If there are no recent files, a single
+ * disabled "No Recent Files" item is shown instead.
+ */
+function buildOpenRecentSubmenu(
+  recentFiles: string[],
+  openPath: (path: string) => void,
+): MenuItemConstructorOptions[] {
+  const shown = recentFiles.slice(0, MAX_RECENT_MENU)
+
+  if (shown.length === 0) {
+    return [{ label: 'No Recent Files', enabled: false }]
+  }
+
+  return shown.map((filePath) => ({
+    label: basename(filePath),
+    click: () => { openPath(filePath) },
+  }))
+}
+
+// ---------------------------------------------------------------------------
 // buildMenuTemplate
 // ---------------------------------------------------------------------------
 
 /**
  * Build the full application menu template.
  *
- * @param send - Called with an AppCommand whenever the user activates a menu
- *   item. In production this is `(cmd) => win.webContents.send(IPC.command, cmd)`.
- *   In tests it is a vi.fn() so click callbacks can be asserted without a live
- *   Electron instance.
+ * @param send        - Called with an AppCommand whenever the user activates a
+ *   command menu item. In production this is
+ *   `(cmd) => win.webContents.send(IPC.command, cmd)`. In tests it is a
+ *   vi.fn() so click callbacks can be asserted without a live Electron instance.
+ * @param recentFiles - Current list of recently-opened file paths (most-recent
+ *   first). Used to populate the Open Recent submenu. Defaults to empty.
+ * @param openPath    - Called with the full path when the user picks a recent
+ *   file. In production this sends IPC.openPath to the renderer. Defaults to
+ *   a no-op so callers can omit it when they don't need recents (e.g. tests
+ *   that only care about the command items).
  */
 export function buildMenuTemplate(
   send: (cmd: AppCommand) => void,
+  recentFiles: string[] = [],
+  openPath: (path: string) => void = () => { /* no-op - no recents caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -76,6 +115,10 @@ export function buildMenuTemplate(
       item('New',           'CmdOrCtrl+N',       'new',        send),
       item('Open…',         'CmdOrCtrl+O',       'open',       send),
       item('Open Folder…',  'CmdOrCtrl+Shift+O', 'openFolder', send),
+      {
+        label: 'Open Recent',
+        submenu: buildOpenRecentSubmenu(recentFiles, openPath),
+      },
       sep,
       item('Save',          'CmdOrCtrl+S',       'save',       send),
       item('Save As…',      'CmdOrCtrl+Shift+S', 'saveAs',     send),

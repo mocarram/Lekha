@@ -85,4 +85,42 @@ describe('createSettingsStore', () => {
       expect(files).toContain('/doc.md')
     })
   })
+
+  describe('windowBounds', () => {
+    it('round-trips windowBounds via set/get', async () => {
+      const store = createSettingsStore(tmpDir)
+      const bounds = { x: 100, y: 200, width: 1280, height: 800 }
+      await store.set({ windowBounds: bounds })
+
+      const result = await store.get()
+      expect(result.windowBounds).toEqual(bounds)
+    })
+
+    it('persists windowBounds across a fresh store instance', async () => {
+      const store = createSettingsStore(tmpDir)
+      const bounds = { x: 50, y: 75, width: 1440, height: 900 }
+      await store.set({ windowBounds: bounds })
+
+      const store2 = createSettingsStore(tmpDir)
+      const result = await store2.get()
+      expect(result.windowBounds).toEqual(bounds)
+    })
+
+    it('windowBounds is absent by default (not in DEFAULTS)', async () => {
+      const store = createSettingsStore(tmpDir)
+      const result = await store.get()
+      expect(result.windowBounds).toBeUndefined()
+    })
+
+    it('set() preserves other settings when updating windowBounds', async () => {
+      const store = createSettingsStore(tmpDir)
+      await store.set({ sidebarVisible: false, lastFolder: '/my/folder' })
+      await store.set({ windowBounds: { x: 0, y: 0, width: 800, height: 600 } })
+
+      const result = await store.get()
+      expect(result.sidebarVisible).toBe(false)
+      expect(result.lastFolder).toBe('/my/folder')
+      expect(result.windowBounds).toEqual({ x: 0, y: 0, width: 800, height: 600 })
+    })
+  })
 })

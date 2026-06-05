@@ -11,4 +11,6 @@ export const IPC = {
   setSettings: 'settings:set',
   setDocumentState: 'window:setDocumentState',
   command: 'app:command',
+  /** Main -> renderer: open a specific file path (from the Open Recent menu). */
+  openPath: 'app:openPath',
 } as const
