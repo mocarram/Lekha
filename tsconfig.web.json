@@ -23,6 +23,8 @@
     "tests/unit/components/**/*.tsx",
     "tests/unit/smoke.test.ts",
     // Export tests run in happy-dom (renderer-side buildExportHtml).
-    "tests/unit/export/**/*.ts"
+    "tests/unit/export/**/*.ts",
+    // Theme tests: themes.test.ts uses happy-dom (document.documentElement).
+    "tests/unit/themes/themes.test.ts"
   ]
 }

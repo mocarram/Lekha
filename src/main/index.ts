@@ -6,6 +6,7 @@ import { registerFileHandlers } from '@main/ipc/files'
 import { registerExportHandlers } from '@main/ipc/export'
 import { buildMenuTemplate } from '@main/menu'
 import { IPC } from '@shared/ipc-channels'
+import { THEMES } from '@shared/types'
 import type { Settings } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -99,18 +100,32 @@ function isSaneBounds(b: Settings['windowBounds']): b is NonNullable<Settings['w
 
 /**
  * Rebuild and apply the native application menu.
- * Called on startup and after every addRecentFile IPC call so the Open Recent
- * submenu stays in sync with persisted recents.
+ *
+ * Called on startup and after every addRecentFile IPC call (Open Recent sync)
+ * and after the renderer notifies main that the theme changed (so the radio
+ * check in the Theme submenu reflects the new active theme).
+ *
+ * @param recentFiles - Current recent-files list for the Open Recent submenu.
+ * @param currentTheme - The currently active theme id for the radio check.
  */
-function applyMenu(recentFiles: string[]): void {
+function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void {
   const send = (cmd: AppCommand): void => {
     getWindow()?.webContents.send(IPC.command, cmd)
   }
   const openPath = (p: string): void => {
     getWindow()?.webContents.send(IPC.openPath, p)
   }
+  // Forward the chosen theme id to the renderer via the value-carrying
+  // IPC.setTheme channel. The renderer applies + persists the theme and the
+  // next setSettings call will trigger another applyMenu rebuild so the radio
+  // check stays current.
+  const setTheme = (id: string): void => {
+    getWindow()?.webContents.send(IPC.setTheme, id)
+  }
   Menu.setApplicationMenu(
-    Menu.buildFromTemplate(buildMenuTemplate(send, recentFiles, openPath)),
+    Menu.buildFromTemplate(
+      buildMenuTemplate(send, recentFiles, openPath, { themes: THEMES, current: currentTheme }, setTheme),
+    ),
   )
 }
 
@@ -202,14 +217,20 @@ void app.whenReady().then(async () => {
   registerDialogHandlers(getWindow)
 
   // Wrap registerFileHandlers so we can rebuild the menu whenever a recent
-  // file is added (keeping Open Recent in sync without a full IPC round-trip).
-  // Also pass onDocumentState so the close-guard state machine stays current.
+  // file is added (keeping Open Recent in sync) or whenever settings change
+  // (keeping the Theme radio check in sync). Also pass onDocumentState so the
+  // close-guard state machine stays current.
   registerFileHandlers(
     settings,
     getWindow,
     async () => {
-      const recents = await settings.getRecentFiles()
-      applyMenu(recents)
+      // Rebuild menu after a recent file is added. Read current theme from
+      // settings so the Theme radio stays correct during the rebuild.
+      const [recents, allSettings] = await Promise.all([
+        settings.getRecentFiles(),
+        settings.get(),
+      ])
+      applyMenu(recents, allSettings.theme)
     },
     (state) => {
       documentDirty = state.dirty
@@ -220,6 +241,13 @@ void app.whenReady().then(async () => {
         forceClose = true
         getWindow()?.close()
       }
+    },
+    async (updated) => {
+      // Rebuild menu after any settings change. This fires when the renderer
+      // calls setSettings({ theme }) so the native Theme menu radio updates
+      // to reflect the newly chosen theme without any extra IPC round-trip.
+      const recents = await settings.getRecentFiles()
+      applyMenu(recents, updated.theme)
     },
   )
 
@@ -284,8 +312,8 @@ void app.whenReady().then(async () => {
     // response === 2 ("Cancel"): do nothing - the window stays open.
   })
 
-  // Set up the native application menu with the persisted recent files.
-  applyMenu(initialSettings.recentFiles)
+  // Set up the native application menu with the persisted recent files and theme.
+  applyMenu(initialSettings.recentFiles, initialSettings.theme)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

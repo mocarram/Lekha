@@ -11,6 +11,7 @@ import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { Sidebar } from '@renderer/components/Sidebar'
 import { FindReplace } from '@renderer/components/FindReplace'
+import { applyTheme } from '@renderer/themes/index'
 
 // ---------------------------------------------------------------------------
 // Welcome document shown on first launch (no file open)
@@ -77,6 +78,23 @@ export default function App() {
     })
     return unsubscribe
   }, [fileOps])
+
+  // Subscribe to set-theme messages from the main process (Theme menu).
+  //
+  // Flow: user picks a theme in the native menu -> main sends IPC.setTheme ->
+  // this handler (1) applies the CSS token switch immediately via applyTheme,
+  // (2) persists the choice via setSettings so it survives restart, and
+  // (3) calls window.lekha.setSettings which returns the full updated settings;
+  // main rebuilds the menu on each setSettings call (see registerFileHandlers)
+  // so the radio check updates automatically - no extra IPC hop needed.
+  useEffect(() => {
+    if (typeof window.lekha === 'undefined') return undefined
+    const unsubscribe = window.lekha.onSetTheme((id: string) => {
+      applyTheme(id)
+      void window.lekha.setSettings({ theme: id })
+    })
+    return unsubscribe
+  }, [])
 
   // Debounce timer ref - used to delay outline/count recomputation so we
   // don't parse on every keystroke. Cleared on unmount to avoid a setState

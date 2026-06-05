@@ -16,6 +16,13 @@ export const IPC = {
   command: 'app:command',
   /** Main -> renderer: open a specific file path (from the Open Recent menu). */
   openPath: 'app:openPath',
+  /**
+   * Main -> renderer: the user picked a theme from the native Themes menu.
+   * Value-carrying (like openPath): the IPC message carries the theme id string.
+   * The renderer applies + persists the theme and replies so main can rebuild
+   * the menu with the updated radio check.
+   */
+  setTheme: 'app:setTheme',
   // Export channels
   exportHtml: 'export:html',
   exportPdf: 'export:pdf',

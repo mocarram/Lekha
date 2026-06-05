@@ -16,6 +16,7 @@
  */
 import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { applyTheme } from '@renderer/themes/index'
 import type { FileOps } from './useFileOps'
 
 // Debounce interval (ms) for persisting sidebar state changes.
@@ -51,6 +52,10 @@ export function useStartup(_fileOps: FileOps): void {
 
       // Apply recent files list.
       useWorkspaceStore.getState().setRecentFiles(s.recentFiles)
+
+      // Restore persisted theme. applyTheme sets data-theme on <html> so all
+      // CSS theme token overrides take effect immediately.
+      applyTheme(s.theme)
 
       // Restore last folder if one was persisted. A missing/deleted folder
       // is silently ignored to avoid noisy startup errors.

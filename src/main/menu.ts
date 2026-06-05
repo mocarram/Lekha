@@ -9,6 +9,7 @@
 import { basename } from 'node:path'
 import type { MenuItemConstructorOptions } from 'electron'
 import type { AppCommand } from '@shared/commands'
+import type { ThemeDef } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // DRY helpers
@@ -30,6 +31,42 @@ function item(
 
 /** A separator entry. */
 const sep: MenuItemConstructorOptions = { type: 'separator' }
+
+// ---------------------------------------------------------------------------
+// buildThemeSubmenu
+// ---------------------------------------------------------------------------
+
+/** Shape of the themeMenu argument passed to buildMenuTemplate. */
+export interface ThemeMenuConfig {
+  /** All available themes (from the renderer theme registry). */
+  themes: ThemeDef[]
+  /** Id of the currently active theme. */
+  current: string
+}
+
+/**
+ * Build the native Themes submenu from the ThemeMenuConfig.
+ *
+ * Each item is type:'radio' so Electron renders a filled radio bullet next to
+ * the active theme. The checked state is computed from themeMenu.current so
+ * the menu always reflects the live setting.
+ *
+ * Clicking an item calls setTheme(id). setTheme is the main-process side of
+ * the value-carrying IPC.setTheme channel: it forwards the id to the renderer
+ * (window.webContents.send(IPC.setTheme, id)), which applies+persists the
+ * theme and then notifies main to rebuild the menu so the radio updates.
+ */
+function buildThemeSubmenu(
+  themeMenu: ThemeMenuConfig,
+  setTheme: (id: string) => void,
+): MenuItemConstructorOptions[] {
+  return themeMenu.themes.map((theme) => ({
+    label: theme.label,
+    type: 'radio' as const,
+    checked: theme.id === themeMenu.current,
+    click: () => { setTheme(theme.id) },
+  }))
+}
 
 // ---------------------------------------------------------------------------
 // buildOpenRecentSubmenu
@@ -78,11 +115,19 @@ function buildOpenRecentSubmenu(
  *   file. In production this sends IPC.openPath to the renderer. Defaults to
  *   a no-op so callers can omit it when they don't need recents (e.g. tests
  *   that only care about the command items).
+ * @param themeMenu   - Optional config for the Themes submenu. When omitted the
+ *   Theme menu item is not added (backward-compatible for existing callers and
+ *   tests that do not exercise theme switching).
+ * @param setTheme    - Called with the chosen theme id when the user picks a
+ *   theme from the native Themes menu. In production this sends IPC.setTheme
+ *   to the renderer. Defaults to a no-op when themeMenu is omitted.
  */
 export function buildMenuTemplate(
   send: (cmd: AppCommand) => void,
   recentFiles: string[] = [],
   openPath: (path: string) => void = () => { /* no-op - no recents caller */ },
+  themeMenu?: ThemeMenuConfig,
+  setTheme: (id: string) => void = () => { /* no-op - no theme caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -207,6 +252,20 @@ export function buildMenuTemplate(
       { role: 'togglefullscreen' },
     ],
   })
+
+  // -------------------------------------------------------------------------
+  // Theme menu (optional - only added when themeMenu config is supplied).
+  //
+  // Added as a top-level menu so it is easy to find. The radio check updates
+  // each time the menu is rebuilt (index.ts calls applyMenu again after the
+  // renderer persists the new theme and sends a notification to main).
+  // -------------------------------------------------------------------------
+  if (themeMenu !== undefined) {
+    template.push({
+      label: 'Theme',
+      submenu: buildThemeSubmenu(themeMenu, setTheme),
+    })
+  }
 
   return template
 }

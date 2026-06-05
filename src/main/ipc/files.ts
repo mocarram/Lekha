@@ -24,21 +24,26 @@ function safeHandle<T>(
  * Registers IPC handlers for filesystem and settings operations.
  * Also handles the window document-state update (title bar, dirty dot, represented file).
  *
- * @param onRecentAdded    - Optional callback invoked after a file is added to
+ * @param onRecentAdded      - Optional callback invoked after a file is added to
  *   recents. The main process uses this to rebuild the Open Recent menu so it
  *   stays in sync with the persisted list without an extra IPC round-trip.
  *   The callback may be async (returning a Promise); the Promise is awaited
  *   inside the IPC handler which already runs in an async context.
- * @param onDocumentState  - Optional callback invoked every time the renderer
+ * @param onDocumentState    - Optional callback invoked every time the renderer
  *   sends a setDocumentState message. The main process (index.ts) uses this to
  *   track the latest dirty flag for the close-guard state machine without
  *   duplicating the ipcMain.on registration.
+ * @param onSettingsChanged  - Optional callback invoked after every setSettings
+ *   call, receiving the full updated Settings. The main process uses this to
+ *   rebuild the menu when the theme changes so the radio check stays current.
+ *   The callback may be async (returning a Promise); the Promise is awaited.
  */
 export function registerFileHandlers(
   settings: SettingsStore,
   getWindow: () => BrowserWindow | null,
   onRecentAdded?: () => Promise<void> | void,
   onDocumentState?: (state: { title: string; dirty: boolean; path: string | null }) => void,
+  onSettingsChanged?: (updated: Settings) => Promise<void> | void,
 ): void {
   // --- Filesystem ---
 
@@ -59,9 +64,13 @@ export function registerFileHandlers(
 
   safeHandle(IPC.getSettings, async () => settings.get())
 
-  safeHandle(IPC.setSettings, async (patch) =>
-    settings.set(patch as Partial<Settings>),
-  )
+  safeHandle(IPC.setSettings, async (patch) => {
+    const updated = await settings.set(patch as Partial<Settings>)
+    // Notify index.ts so it can rebuild the menu (e.g. to update the Theme
+    // radio check) after the renderer persists a settings change.
+    await onSettingsChanged?.(updated)
+    return updated
+  })
 
   safeHandle(IPC.getRecentFiles, async () => settings.getRecentFiles())
 

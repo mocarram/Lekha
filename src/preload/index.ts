@@ -75,6 +75,14 @@ const api: LekhaAPI = {
     return () => ipcRenderer.removeListener(IPC.openPath, listener)
   },
 
+  // Subscribes to set-theme messages from main (Theme menu).
+  // Returns an unsubscribe function for cleanup on unmount.
+  onSetTheme(cb: (id: string) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, id: string) => cb(id)
+    ipcRenderer.on(IPC.setTheme, listener)
+    return () => ipcRenderer.removeListener(IPC.setTheme, listener)
+  },
+
   // --- Export ---
   exportHtml(args: { html: string; suggestedName: string }): Promise<void> {
     return ipcRenderer.invoke(IPC.exportHtml, args) as Promise<void>

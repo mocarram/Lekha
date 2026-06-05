@@ -38,6 +38,13 @@ export interface LekhaAPI {
    */
   onOpenPath(cb: (path: string) => void): () => void
 
+  /**
+   * Subscribe to set-theme messages from the main process (Theme menu).
+   * The callback receives the chosen theme id string.
+   * Returns an unsubscribe function that removes the listener.
+   */
+  onSetTheme(cb: (id: string) => void): () => void
+
   // --- Export ---
   /** Save an HTML string to a .html file chosen by a save dialog. */
   exportHtml(args: { html: string; suggestedName: string }): Promise<void>

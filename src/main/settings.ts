@@ -16,6 +16,7 @@ const DEFAULTS: Settings = {
   lastFolder: null,
   sidebarVisible: true,
   sidebarTab: 'files',
+  theme: 'github',
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {
