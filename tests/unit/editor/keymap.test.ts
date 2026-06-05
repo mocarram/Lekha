@@ -214,33 +214,49 @@ describe('keymapBindings - table cell navigation', () => {
     }).not.toThrow()
   })
 
-  it('Tab still sinks list item in a plain list (falls through table check)', () => {
-    // bullet_list > list_item > paragraph
-    const item = schema.node('list_item', null, [
-      schema.node('paragraph', null, [schema.text('nested')]),
+  it('Tab sinks a list item under its preceding sibling in a plain list', () => {
+    // Build: bullet_list > [ list_item("a"), list_item("b") ]
+    // Cursor inside item "b". sinkListItem requires a preceding sibling, so it
+    // will nest "b" under "a", producing:
+    //   bullet_list > list_item("a", bullet_list > list_item("b"))
+    const itemA = schema.node('list_item', null, [
+      schema.node('paragraph', null, [schema.text('a')]),
     ])
-    const outer = schema.node('list_item', null, [
-      schema.node('paragraph', null, [schema.text('parent')]),
-      schema.node('bullet_list', null, [item]),
+    const itemB = schema.node('list_item', null, [
+      schema.node('paragraph', null, [schema.text('b')]),
     ])
-    const list = schema.node('bullet_list', null, [outer])
+    const list = schema.node('bullet_list', null, [itemA, itemB])
     const doc = schema.node('doc', null, [list])
 
-    // cursor inside the nested item's paragraph
-    // pos: doc(0) > bullet_list(1) > list_item(2) > para(3) > text(4)
-    //      > bullet_list(11) > list_item(12) > para(13) > text(14)
-    const innerParaPos = 13
-    const sel = TextSelection.create(doc, innerParaPos)
+    // Position map (each node contributes 2 tokens + children):
+    //   pos 0: before bullet_list | 1: in bullet_list
+    //   pos 2: in list_item_a | 3: in para_a | 4: text "a" | 5: after para_a
+    //   pos 6: after list_item_a | 7: in list_item_b | 8: in para_b
+    //   pos 9: text "b"
+    const sel = TextSelection.create(doc, 8) // inside para_b of item "b"
     const state = EditorState.create({ schema, doc, selection: sel })
 
-    let dispatched = false
-    bindings['Tab']!(state, () => {
-      dispatched = true
+    let nextState: EditorState | null = null
+    const dispatched = bindings['Tab']!(state, (tr) => {
+      nextState = state.apply(tr)
     })
-    // In a nested list, sinkListItem has nothing to sink further (already deepest),
-    // so it may decline; goToNextCell also declines outside a table.
-    // Key assertion: the command is callable and doesn't throw.
-    // (Whether it dispatched depends on whether there's a deeper nesting target.)
-    expect(typeof dispatched).toBe('boolean')
+
+    // The command must have fired and the transaction dispatched
+    expect(dispatched).toBe(true)
+    expect(nextState).not.toBeNull()
+
+    // The top-level bullet_list should now have exactly ONE child (item "a")
+    const topList = nextState!.doc.firstChild! // bullet_list
+    expect(topList.childCount).toBe(1)
+
+    // That child (item "a") must contain a nested bullet_list
+    const outerItem = topList.child(0) // list_item("a", bullet_list(...))
+    expect(outerItem.childCount).toBe(2) // paragraph + nested bullet_list
+    expect(outerItem.child(1).type.name).toBe('bullet_list')
+
+    // The nested bullet_list must contain item "b"
+    const nestedList = outerItem.child(1)
+    expect(nestedList.childCount).toBe(1)
+    expect(nestedList.child(0).child(0).textContent).toBe('b')
   })
 })

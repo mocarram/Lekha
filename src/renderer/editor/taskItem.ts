@@ -65,13 +65,16 @@ export function taskItemNodeView(
   checkbox.type = 'checkbox'
   checkbox.checked = node.attrs['checked'] as boolean
 
-  // Toggle on click: dispatch the command through the live EditorView
-  checkbox.addEventListener('click', (e) => {
+  // Toggle on click: dispatch the command through the live EditorView.
+  // Kept as a named reference so destroy() can remove the same listener.
+  const handleClick = (e: MouseEvent): void => {
     e.preventDefault()
     const pos = getPos()
     if (pos === undefined) return
     toggleTaskItem(pos)(view.state, view.dispatch)
-  })
+  }
+
+  checkbox.addEventListener('click', handleClick)
 
   checkboxWrapper.appendChild(checkbox)
   dom.appendChild(checkboxWrapper)
@@ -95,6 +98,11 @@ export function taskItemNodeView(
       // Keep checkbox in sync with the latest `checked` attr
       checkbox.checked = updatedNode.attrs['checked'] as boolean
       return true
+    },
+
+    /** Remove the click listener when ProseMirror tears down this NodeView. */
+    destroy(): void {
+      checkbox.removeEventListener('click', handleClick)
     },
   }
 }
