@@ -16,6 +16,7 @@
 
 import type { EditorView } from 'prosemirror-view'
 import { schema } from './schema'
+import { extFromMime } from '@shared/image'
 
 // ---------------------------------------------------------------------------
 // Minimal typed interfaces for clipboard / dataTransfer items.
@@ -60,24 +61,6 @@ function collectFromDTItems(items: DataTransferItemList | null | undefined): Ima
     }
   }
   return files
-}
-
-/** Derive extension string from a MIME type (mirrors extFromMime in main). */
-function extFromMime(mime: string): string {
-  const clean = mime.split(';')[0]?.trim().toLowerCase() ?? ''
-  const map: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/svg+xml': 'svg',
-    'image/bmp': 'bmp',
-    'image/tiff': 'tiff',
-    'image/avif': 'avif',
-    'image/heic': 'heic',
-  }
-  return map[clean] ?? 'png'
 }
 
 /**

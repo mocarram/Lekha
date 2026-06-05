@@ -11,8 +11,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { extFromMime } from '../../../src/shared/image'
 import {
-  extFromMime,
   resolveImageTarget,
   saveImageToDisk,
   _resetCounter,
@@ -204,5 +204,43 @@ describe('saveImageToDisk', () => {
     // Second write should use counter 2
     const r2 = await saveImageToDisk({ data: bytes, ext: 'png', docPath }, tmpDir)
     expect(r2.insertPath).toBe('assets/image-000002.png')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveImageTarget - path-traversal guard (security)
+// ---------------------------------------------------------------------------
+
+describe('resolveImageTarget - extension sanitization', () => {
+  const userData = '/var/userData'
+
+  it('strips path-traversal characters from the extension', () => {
+    // A crafted ext like '../../etc/evil' must not escape the assets/ dir.
+    const target = resolveImageTarget('/notes/doc.md', '../../etc/evil', 1, userData)
+
+    // The resulting dir must stay within the document's assets/ sibling.
+    const expectedDir = join('/notes', 'assets')
+    expect(target.dir).toBe(expectedDir)
+
+    // The insertPath must not contain any '..' components.
+    expect(target.insertPath).not.toContain('..')
+
+    // The extension is reduced to alphanumerics only ('etcevil').
+    expect(target.filename).toMatch(/^image-000001\.[a-zA-Z0-9]+$/)
+    expect(target.insertPath).toMatch(/^assets\/image-000001\.[a-zA-Z0-9]+$/)
+  })
+
+  it('falls back to "png" when the sanitized extension is empty', () => {
+    // An ext composed entirely of non-alphanumeric chars becomes empty after
+    // sanitization, so the fallback 'png' must be used.
+    const target = resolveImageTarget('/notes/doc.md', '...//\\', 1, userData)
+    expect(target.filename).toBe('image-000001.png')
+    expect(target.insertPath).toBe('assets/image-000001.png')
+  })
+
+  it('truncates extensions longer than 10 characters', () => {
+    const target = resolveImageTarget('/notes/doc.md', 'averylongextension', 1, userData)
+    // 'averylonge' is the first 10 chars of 'averylongextension'
+    expect(target.filename).toBe('image-000001.averylonge')
   })
 })

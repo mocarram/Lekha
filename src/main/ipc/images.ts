@@ -20,28 +20,10 @@ import { ipcMain } from 'electron'
 import { mkdir, writeFile, access } from 'node:fs/promises'
 import { dirname, join, posix } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
+import { extFromMime } from '@shared/image'
 
-// ---------------------------------------------------------------------------
-// Pure helpers (unit-tested without any filesystem access)
-// ---------------------------------------------------------------------------
-
-/** Map common image MIME types to their canonical file extension. */
-export function extFromMime(mime: string): string {
-  const clean = mime.split(';')[0]?.trim().toLowerCase() ?? ''
-  const map: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/svg+xml': 'svg',
-    'image/bmp': 'bmp',
-    'image/tiff': 'tiff',
-    'image/avif': 'avif',
-    'image/heic': 'heic',
-  }
-  return map[clean] ?? 'png'
-}
+// Re-export so existing test imports from this module continue to work.
+export { extFromMime }
 
 /** Zero-pad a number to at least `width` digits. */
 function zeroPad(n: number, width: number): string {
@@ -73,9 +55,12 @@ export function resolveImageTarget(
   docPath: string | null,
   ext: string,
   counter: number,
-  userData: string,
+  userData: string = '',
 ): ImageTarget {
-  const filename = `image-${zeroPad(counter, 6)}.${ext}`
+  // Sanitize the renderer-supplied extension so a crafted value like
+  // '../../etc/evil' cannot escape the target directory.
+  const safeExt = ext.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || 'png'
+  const filename = `image-${zeroPad(counter, 6)}.${safeExt}`
 
   if (docPath !== null) {
     // Document is saved - use an assets/ sibling folder.
