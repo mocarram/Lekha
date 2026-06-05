@@ -8,11 +8,16 @@
     "noEmit": true
   },
   "include": [
+    // Renderer code runs in the browser/DOM context.
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
-    "src/main/**/*.ts",
+    // Shared types are consumed by both main and renderer.
     "src/shared/**/*.ts",
-    "tests/unit/**/*.ts",
-    "tests/unit/**/*.tsx"
+    // Renderer/editor tests and shared smoke test run under happy-dom.
+    // Main-process tests (tests/unit/main/**) are intentionally excluded here;
+    // they live in tsconfig.node.json to prevent accidental DOM usage in Node code.
+    "tests/unit/editor/**/*.ts",
+    "tests/unit/editor/**/*.tsx",
+    "tests/unit/smoke.test.ts"
   ]
 }

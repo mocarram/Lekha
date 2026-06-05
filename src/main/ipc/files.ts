@@ -43,17 +43,18 @@ export function registerFileHandlers(
   })
 
   // --- Settings ---
+  // Routed through safeHandle for consistent clean-Error behavior on failure.
 
-  ipcMain.handle(IPC.getSettings, () => settings.get())
+  safeHandle(IPC.getSettings, async () => settings.get())
 
-  ipcMain.handle(IPC.setSettings, (_event, patch: Partial<Settings>) =>
-    settings.set(patch),
+  safeHandle(IPC.setSettings, async (patch) =>
+    settings.set(patch as Partial<Settings>),
   )
 
-  ipcMain.handle(IPC.getRecentFiles, () => settings.getRecentFiles())
+  safeHandle(IPC.getRecentFiles, async () => settings.getRecentFiles())
 
-  ipcMain.handle(IPC.addRecentFile, (_event, path: string) =>
-    settings.addRecentFile(path),
+  safeHandle(IPC.addRecentFile, async (path) =>
+    settings.addRecentFile(String(path)),
   )
 
   // --- Window document state ---

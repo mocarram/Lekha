@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, readdir } from 'node:fs/promises'
+import { readFile, writeFile, rename, unlink, readdir } from 'node:fs/promises'
 import { join, extname } from 'node:path'
 import type { FileNode } from '@shared/types'
 
@@ -52,7 +52,18 @@ export async function buildFileTree(dir: string): Promise<FileNode[]> {
 export async function writeFileAtomic(path: string, content: string): Promise<void> {
   const tmp = `${path}.tmp`
   await writeFile(tmp, content, 'utf8')
-  await rename(tmp, path)
+  // If rename fails (e.g. cross-device), clean up the orphaned .tmp file
+  // best-effort (swallow unlink errors) and rethrow the original error.
+  try {
+    await rename(tmp, path)
+  } catch (renameErr) {
+    try {
+      await unlink(tmp)
+    } catch {
+      // Best-effort: ignore unlink failure, tmp cleanup is not critical.
+    }
+    throw renameErr
+  }
 }
 
 /** Reads a file as UTF-8 text. */
