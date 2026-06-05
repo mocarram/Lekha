@@ -1,0 +1,92 @@
+/*
+ * themes/night.css - Dark "Night" theme for Lekha
+ *
+ * Overrides all universal design tokens defined in github.css for a dark
+ * background, light text, and adjusted syntax highlight palette. Component
+ * CSS rules are not redeclared - they inherit the new token values automatically.
+ *
+ * Activation: set document.documentElement.dataset.theme = "night"
+ * (done by applyTheme('night') in src/renderer/themes/index.ts)
+ *
+ * Color choices:
+ *   Background  #1e1e1e  (VS Code dark default, easy on the eyes)
+ *   Surface     #252526  (slightly lighter for panels/sidebars)
+ *   Border      #3e3e42  (VS Code border)
+ *   Text        #d4d4d4  (VS Code default text)
+ *   Accent/link #4fc3f7  (bright blue that pops on dark bg)
+ *   Code bg     #2d2d2d  (slightly lighter than bg for code blocks)
+ *   hljs palette: VS Code dark+ inspired colors
+ *
+ * KaTeX: KaTeX uses currentColor for math symbols, so it inherits --text
+ * (#d4d4d4) automatically. No special KaTeX overrides are needed.
+ *
+ * Mermaid: Mermaid diagrams render as SVG with hard-coded colors from the
+ * default mermaid theme. They remain legible in dark mode (white bg SVG on
+ * dark surface) but do not fully adapt to the theme - noted as a follow-up.
+ *
+ * Scrollbars: use rgba(255,255,255,...) tints instead of black tints.
+ */
+
+[data-theme="night"] {
+  /* --- Surface --- */
+  --bg:           #1e1e1e;
+  --surface:      #252526;
+  --border:       #3e3e42;
+  --border-light: #4a4a4f;
+
+  /* --- Text --- */
+  --text:       #d4d4d4;
+  --text-muted: #858585;
+  --text-sub:   #9d9d9d;
+  --text-dark:  #e8e8e8;
+  --text-file:  #cccccc;
+  --heading:    #e8e8e8;
+
+  /* --- Accent / link --- */
+  --link:   #4fc3f7;
+  --accent: #4fc3f7;
+
+  /* --- Editor content --- */
+  --selection:       #264f78;
+  --code-bg:         #2d2d2d;
+  --code-bg-inline:  #2d2d2d;
+  --code-text:       #d4d4d4;
+  --blockquote-text: #9d9d9d;
+  --blockquote-border: #4a4a4f;
+  --table-border:    #3e3e42;
+  --table-header-bg: #2d2d30;
+  --hr-color:        #3e3e42;
+
+  /* --- Sidebar / chrome --- */
+  --sidebar-bg:     #252526;
+  --sidebar-active: #094771;
+  --sidebar-hover:  #2a2d2e;
+  --titlebar-bg:    #252526;
+  --statusbar-text: #858585;
+
+  /* --- Find highlights --- */
+  /* Warm yellow works in dark too; slightly more saturated current match */
+  --find-match:         #3d3817;
+  --find-match-current: #7c4f0a;
+
+  /* --- Syntax highlighting (VS Code dark+ palette) --- */
+  --hljs-keyword:   #c586c0;   /* pink/purple - keywords */
+  --hljs-string:    #ce9178;   /* orange-brown - strings */
+  --hljs-comment:   #6a9955;   /* green - comments */
+  --hljs-function:  #dcdcaa;   /* yellow - functions */
+  --hljs-number:    #b5cea8;   /* light green - numbers */
+  --hljs-tag:       #4ec9b0;   /* teal - HTML tags */
+  --hljs-attribute: #9cdcfe;   /* light blue - attributes/variables */
+  --hljs-section:   #569cd6;   /* blue - section headers */
+}
+
+/* Scrollbar overrides: use white-tinted thumbs in dark mode */
+[data-theme="night"] .editor-pane::-webkit-scrollbar-thumb,
+[data-theme="night"] .sidebar__content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="night"] .editor-pane::-webkit-scrollbar-thumb:hover,
+[data-theme="night"] .sidebar__content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.22);
+}

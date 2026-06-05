@@ -1,0 +1,71 @@
+/*
+ * themes/sepia.css - Warm "Sepia" theme for Lekha
+ *
+ * A warm, parchment-toned light theme inspired by vintage paper. Easy on the
+ * eyes for long reading/writing sessions. All component CSS rules are inherited
+ * from github.css - only the design tokens are overridden here.
+ *
+ * Activation: set document.documentElement.dataset.theme = "sepia"
+ * (done by applyTheme('sepia') in src/renderer/themes/index.ts)
+ *
+ * Color choices:
+ *   Background  #f4ecd8  (warm cream / old-book parchment)
+ *   Surface     #ede4cf  (slightly darker cream for panels)
+ *   Border      #d5c9aa  (warm tan border)
+ *   Text        #433422  (dark brown body text)
+ *   Accent/link #6b4226  (warm brown links)
+ *   Code bg     #e8dcc4  (slightly off the page for code)
+ *   hljs palette: desaturated warm tones
+ */
+
+[data-theme="sepia"] {
+  /* --- Surface --- */
+  --bg:           #f4ecd8;
+  --surface:      #ede4cf;
+  --border:       #d5c9aa;
+  --border-light: #c9bc99;
+
+  /* --- Text --- */
+  --text:       #433422;
+  --text-muted: #9e8e72;
+  --text-sub:   #7a6848;
+  --text-dark:  #2c1f10;
+  --text-file:  #5c4a30;
+  --heading:    #2c1f10;
+
+  /* --- Accent / link --- */
+  --link:   #6b4226;
+  --accent: #6b4226;
+
+  /* --- Editor content --- */
+  --selection:       #d9c9a3;
+  --code-bg:         #e8dcc4;
+  --code-bg-inline:  #ede4cf;
+  --code-text:       #433422;
+  --blockquote-text: #7a6848;
+  --blockquote-border: #b8a882;
+  --table-border:    #c9bc99;
+  --table-header-bg: #e8dcc4;
+  --hr-color:        #c9bc99;
+
+  /* --- Sidebar / chrome --- */
+  --sidebar-bg:     #ede4cf;
+  --sidebar-active: #d9c9a3;
+  --sidebar-hover:  #e4d9c1;
+  --titlebar-bg:    #ede4cf;
+  --statusbar-text: #9e8e72;
+
+  /* --- Find highlights --- */
+  --find-match:         #e8c96e;
+  --find-match-current: #cc8833;
+
+  /* --- Syntax highlighting (warm desaturated tones) --- */
+  --hljs-keyword:   #8b2500;   /* dark red - keywords */
+  --hljs-string:    #3d6b00;   /* dark green - strings */
+  --hljs-comment:   #8c7a5e;   /* warm gray - comments */
+  --hljs-function:  #5c3e99;   /* muted purple - functions */
+  --hljs-number:    #00519e;   /* dark blue - numbers */
+  --hljs-tag:       #1a6633;   /* forest green - tags */
+  --hljs-attribute: #994d00;   /* warm orange - attributes */
+  --hljs-section:   #00519e;   /* dark blue - sections */
+}
