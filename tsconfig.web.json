@@ -18,6 +18,8 @@
     // they live in tsconfig.node.json to prevent accidental DOM usage in Node code.
     "tests/unit/editor/**/*.ts",
     "tests/unit/editor/**/*.tsx",
+    "tests/unit/store/**/*.ts",
+    "tests/unit/hooks/**/*.ts",
     "tests/unit/smoke.test.ts"
   ]
 }

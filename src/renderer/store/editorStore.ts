@@ -1,0 +1,118 @@
+import { create } from 'zustand'
+import type { EditorMode, OutlineItem, DocCounts } from '@shared/types'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface EditorState {
+  path: string | null
+  title: string
+  isDirty: boolean
+  mode: EditorMode
+  markdown: string
+  outline: OutlineItem[]
+  wordCount: number
+  charCount: number
+}
+
+interface EditorActions {
+  /** Load a file: set path, derive title, replace markdown, clear dirty. */
+  openFile(path: string | null, markdown: string): void
+  /** Create a new blank document. */
+  newFile(): void
+  setMode(mode: EditorMode): void
+  setMarkdown(md: string): void
+  setOutline(items: OutlineItem[]): void
+  setCounts(counts: DocCounts): void
+  markDirty(): void
+  markClean(): void
+  /** Update path and re-derive title. */
+  setPath(path: string | null): void
+  /** Return all state to initial defaults. */
+  reset(): void
+}
+
+export type EditorStore = EditorState & EditorActions
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Extract the filename from a path that uses `/` or `\` separators. */
+function basename(p: string): string {
+  return p.replace(/[/\\]+$/, '').split(/[/\\]/).at(-1) ?? p
+}
+
+function deriveTitle(path: string | null): string {
+  return path !== null ? basename(path) : 'Untitled'
+}
+
+// ---------------------------------------------------------------------------
+// Initial state
+// ---------------------------------------------------------------------------
+
+const INITIAL_STATE: EditorState = {
+  path: null,
+  title: 'Untitled',
+  isDirty: false,
+  mode: 'wysiwyg',
+  markdown: '',
+  outline: [],
+  wordCount: 0,
+  charCount: 0,
+}
+
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
+
+export const useEditorStore = create<EditorStore>()((set) => ({
+  ...INITIAL_STATE,
+
+  openFile(path, markdown) {
+    set({
+      path,
+      title: deriveTitle(path),
+      markdown,
+      isDirty: false,
+      mode: 'wysiwyg',
+    })
+  },
+
+  newFile() {
+    set({ ...INITIAL_STATE })
+  },
+
+  setMode(mode) {
+    set({ mode })
+  },
+
+  setMarkdown(md) {
+    set({ markdown: md })
+  },
+
+  setOutline(items) {
+    set({ outline: items })
+  },
+
+  setCounts({ words, chars }) {
+    set({ wordCount: words, charCount: chars })
+  },
+
+  markDirty() {
+    set({ isDirty: true })
+  },
+
+  markClean() {
+    set({ isDirty: false })
+  },
+
+  setPath(path) {
+    set({ path, title: deriveTitle(path) })
+  },
+
+  reset() {
+    set({ ...INITIAL_STATE })
+  },
+}))
