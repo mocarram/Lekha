@@ -3,7 +3,7 @@ import {
   InputRule,
   textblockTypeInputRule,
 } from 'prosemirror-inputrules'
-import { MarkType, NodeType } from 'prosemirror-model'
+import { type MarkType, type NodeType } from 'prosemirror-model'
 import { schema } from './schema'
 
 /**

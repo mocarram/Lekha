@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { EditorState, TextSelection } from 'prosemirror-state'
-import { MarkType } from 'prosemirror-model'
+import { type MarkType } from 'prosemirror-model'
 import { schema } from '../../../src/renderer/editor/schema'
 import { markRules } from '../../../src/renderer/editor/inputRules'
 
@@ -122,7 +122,7 @@ function hasMarkOnText(
 // Tests: asterisk variants (regression guard — these worked before the fix)
 // ---------------------------------------------------------------------------
 
-describe('markInputRule — asterisk variants (regression guard)', () => {
+describe('markInputRule - asterisk variants (regression guard)', () => {
   it('applies strong mark for **bold**', () => {
     const view = mountView('**hello*')
     const updated = typeText(view, '*')
@@ -140,7 +140,7 @@ describe('markInputRule — asterisk variants (regression guard)', () => {
 // Tests: underscore variants (these are broken by the bug; fixed by the patch)
 // ---------------------------------------------------------------------------
 
-describe('markInputRule — underscore variants (bug fix)', () => {
+describe('markInputRule - underscore variants (bug fix)', () => {
   it('applies strong mark for __bold__', () => {
     const view = mountView('__hello_')
     const updated = typeText(view, '_')
@@ -155,10 +155,10 @@ describe('markInputRule — underscore variants (bug fix)', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Tests: single-group rules (code, strikethrough) — no regression
+// Tests: single-group rules (code, strikethrough) - no regression
 // ---------------------------------------------------------------------------
 
-describe('markInputRule — single-group rules (code and strikethrough)', () => {
+describe('markInputRule - single-group rules (code and strikethrough)', () => {
   it('applies code mark for `code`', () => {
     const view = mountView('`hello')
     const updated = typeText(view, '`')
