@@ -120,6 +120,17 @@ const serializer = new MarkdownSerializer(
       state.renderList(node, '  ', () => '- ')
     },
 
+    // Math: serialize back to the canonical dollar-fence syntax.
+    // Inline math: $latex$ - no surrounding spaces, raw LaTeX content.
+    math_inline(state, node) {
+      state.write('$' + (node.attrs['latex'] as string) + '$')
+    },
+    // Block math: $$\nlatex\n$$ with a trailing closeBlock for blank line.
+    math_block(state, node) {
+      state.write('$$\n' + (node.attrs['latex'] as string) + '\n$$')
+      state.closeBlock(node)
+    },
+
     table(state, node) {
       renderTable(state, node)
     },

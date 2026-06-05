@@ -41,16 +41,18 @@ const EXPECTED_NODES = [
   'table_row',
   'table_cell',
   'table_header',
+  'math_inline',
+  'math_block',
 ] as const
 
 const EXPECTED_MARKS = ['strong', 'em', 'code', 'link', 'strikethrough'] as const
 
 describe('schema nodes', () => {
-  it('defines all 18 nodes', () => {
+  it('defines all 20 nodes', () => {
     for (const name of EXPECTED_NODES) {
       expect(schema.nodes[name], `node "${name}" missing`).toBeDefined()
     }
-    expect(EXPECTED_NODES).toHaveLength(18)
+    expect(EXPECTED_NODES).toHaveLength(20)
   })
 
   it('heading carries a level attribute defaulting to 1', () => {
@@ -72,6 +74,26 @@ describe('schema nodes', () => {
 
   it('table nodes belong to the block group', () => {
     expect(nodeType('table').spec.group).toContain('block')
+  })
+
+  it('math_inline carries a latex attribute defaulting to empty string', () => {
+    expect(attrDefault(nodeType('math_inline'), 'latex')).toBe('')
+  })
+
+  it('math_block carries a latex attribute defaulting to empty string', () => {
+    expect(attrDefault(nodeType('math_block'), 'latex')).toBe('')
+  })
+
+  it('math_inline is inline and atom', () => {
+    const nt = nodeType('math_inline')
+    expect(nt.spec.inline).toBe(true)
+    expect(nt.spec.atom).toBe(true)
+  })
+
+  it('math_block is a block atom', () => {
+    const nt = nodeType('math_block')
+    expect(nt.spec.group).toContain('block')
+    expect(nt.spec.atom).toBe(true)
   })
 })
 

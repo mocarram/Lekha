@@ -5,6 +5,7 @@ import type Token from 'markdown-it/lib/token.mjs'
 import type { Nesting } from 'markdown-it/lib/token.mjs'
 import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 import taskLists from 'markdown-it-task-lists'
+import { mathPlugin } from './math-plugin'
 import { schema } from './schema'
 
 /**
@@ -226,6 +227,7 @@ function makeToken(
 const tokenizer = MarkdownIt('commonmark', { html: false })
   .enable(['strikethrough', 'table'])
   .use(taskLists, { label: true })
+  .use(mathPlugin)
 
 // Run AFTER markdown-it-task-lists' `github-task-lists` rule so the
 // `contains-task-list`/`task-list-item` classes it sets are present.
@@ -301,6 +303,12 @@ const tokens: Record<string, ParseSpec> = {
   td: { block: 'table_cell' },
   thead: { ignore: true },
   tbody: { ignore: true },
+
+  // Math nodes. The math plugin emits single-token (nesting=0) tokens;
+  // we use `node` (not `block`) so the parser creates a leaf node directly
+  // from the token's content attribute.
+  math_inline: { node: 'math_inline', getAttrs: (tok) => ({ latex: tok.content }) },
+  math_block: { node: 'math_block', getAttrs: (tok) => ({ latex: tok.content }) },
 
   // Marks.
   em: { mark: 'em' },

@@ -110,6 +110,53 @@ const codeBlock: NodeSpec = {
   },
 }
 
+/**
+ * Inline math node: stores LaTeX source in a `latex` attr.
+ * Rendered by the mathInlineNodeView as KaTeX output.
+ * Atom + inline + selectable: ProseMirror treats it as a single cursor stop.
+ */
+const mathInline: NodeSpec = {
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  attrs: { latex: { default: '' } },
+  parseDOM: [
+    {
+      tag: 'span.math-inline',
+      getAttrs(dom: HTMLElement): { latex: string } {
+        return { latex: dom.getAttribute('data-latex') ?? '' }
+      },
+    },
+  ],
+  toDOM(node): DOMOutputSpec {
+    return ['span', { class: 'math-inline', 'data-latex': node.attrs['latex'] as string }]
+  },
+}
+
+/**
+ * Block math node: stores LaTeX source in a `latex` attr.
+ * Rendered by the mathBlockNodeView as a display-mode KaTeX formula.
+ * Atom + selectable: treated as an opaque block.
+ */
+const mathBlock: NodeSpec = {
+  group: 'block',
+  atom: true,
+  selectable: true,
+  attrs: { latex: { default: '' } },
+  parseDOM: [
+    {
+      tag: 'div.math-block',
+      getAttrs(dom: HTMLElement): { latex: string } {
+        return { latex: dom.getAttribute('data-latex') ?? '' }
+      },
+    },
+  ],
+  toDOM(node): DOMOutputSpec {
+    return ['div', { class: 'math-block', 'data-latex': node.attrs['latex'] as string }]
+  },
+}
+
 // Start from the baseline node map, override code_block, then append the
 // WYSIWYG additions. baseSchema.spec.nodes is an OrderedMap whose
 // `append`/`update` keep ordering deterministic.
@@ -122,6 +169,8 @@ const nodes = baseSchema.spec.nodes
     table_row: tables.table_row,
     table_cell: tables.table_cell,
     table_header: tables.table_header,
+    math_inline: mathInline,
+    math_block: mathBlock,
   })
 
 const marks = baseSchema.spec.marks.append({ strikethrough })
