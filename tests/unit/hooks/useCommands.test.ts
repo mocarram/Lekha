@@ -7,11 +7,21 @@
  *   - editorRef.toggleMode() (toggleSource)
  *   - useWorkspaceStore.toggleSidebar() (toggleSidebar)
  *   - onFind / onReplace callbacks
+ *   - export commands (exportHtml, exportPdf, exportDocx)
  *
  * window.lekha.onCommand is mocked to capture the registered callback.
  * Cleanup (unsubscribe) is verified on unmount.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Mock mermaid before any import that pulls in buildHtml (via useCommands -> buildExportHtml).
+import { vi, describe, it, expect, beforeEach } from 'vitest'
+
+vi.mock('mermaid', () => ({
+  default: {
+    initialize: vi.fn(),
+    render: vi.fn().mockResolvedValue({ svg: '<svg>mock</svg>' }),
+  },
+}))
 import { renderHook, act } from '@testing-library/react'
 import { createRef } from 'react'
 import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
@@ -111,6 +121,10 @@ function stubLekha(): void {
       return unsubscribeMock
     }),
     onOpenPath: vi.fn(() => () => undefined),
+    exportHtml: vi.fn(() => Promise.resolve()),
+    exportPdf: vi.fn(() => Promise.resolve()),
+    exportDocx: vi.fn(() => Promise.resolve()),
+    pandocAvailable: vi.fn(() => Promise.resolve(false)),
   }
   vi.stubGlobal('lekha', mockLekha)
 }
@@ -338,5 +352,71 @@ describe('useCommands - find/replace routing', () => {
     act(() => { capturedDispatch!('replace') })
 
     expect(onReplace).toHaveBeenCalledOnce()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test: export command routing
+// ---------------------------------------------------------------------------
+
+describe('useCommands - export command routing', () => {
+  it('dispatching "exportHtml" calls window.lekha.exportHtml with html and suggestedName', async () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    // Make getMarkdown return something testable
+    const handle = ref.current!
+    vi.spyOn(handle, 'getMarkdown').mockReturnValue('# Hello')
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    act(() => { capturedDispatch!('exportHtml') })
+
+    // exportHtml is async (calls buildExportHtml then the mock). Flush promises.
+    await new Promise<void>((resolve) => setTimeout(resolve, 50))
+
+    // Destructure from the stubbed global so ESLint does not flag unbound-method.
+    const { exportHtml } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(exportHtml).toHaveBeenCalledOnce()
+    const firstCall = exportHtml?.mock.calls[0] as [{ html: string; suggestedName: string }] | undefined
+    const callArgs = firstCall?.[0]
+    expect(callArgs?.html).toContain('<!DOCTYPE html>')
+    expect(callArgs?.suggestedName).toMatch(/\.html$/)
+  })
+
+  it('dispatching "exportPdf" calls window.lekha.exportPdf', async () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    act(() => { capturedDispatch!('exportPdf') })
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 50))
+
+    const { exportPdf } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(exportPdf).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "exportDocx" calls window.lekha.exportDocx with markdown', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    const handle = ref.current!
+    vi.spyOn(handle, 'getMarkdown').mockReturnValue('# My Doc')
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    act(() => { capturedDispatch!('exportDocx') })
+
+    const { exportDocx } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(exportDocx).toHaveBeenCalledOnce()
+    const firstCall = exportDocx?.mock.calls[0] as [{ markdown: string; suggestedName: string }] | undefined
+    const callArgs = firstCall?.[0]
+    expect(callArgs?.markdown).toBe('# My Doc')
+    expect(callArgs?.suggestedName).toMatch(/\.docx$/)
   })
 })

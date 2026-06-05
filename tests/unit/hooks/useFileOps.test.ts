@@ -89,6 +89,10 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     setDocumentState: vi.fn(),
     onCommand: vi.fn(() => () => undefined),
     onOpenPath: vi.fn(() => () => undefined),
+    exportHtml: vi.fn(() => Promise.resolve()),
+    exportPdf: vi.fn(() => Promise.resolve()),
+    exportDocx: vi.fn(() => Promise.resolve()),
+    pandocAvailable: vi.fn(() => Promise.resolve(false)),
     ...overrides,
   }
 }

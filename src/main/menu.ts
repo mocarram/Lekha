@@ -122,6 +122,19 @@ export function buildMenuTemplate(
       sep,
       item('Save',          'CmdOrCtrl+S',       'save',       send),
       item('Save As…',      'CmdOrCtrl+Shift+S', 'saveAs',     send),
+      sep,
+      {
+        label: 'Export',
+        submenu: [
+          item('Export to HTML…', undefined, 'exportHtml', send),
+          item('Export to PDF…',  undefined, 'exportPdf',  send),
+          // Word export requires pandoc. The menu item is always shown;
+          // if pandoc is absent the IPC handler throws a friendly error
+          // that useCommands surfaces to the user. This keeps buildMenuTemplate
+          // synchronous (no async pandoc detection needed at menu-build time).
+          item('Export to Word (docx)…', undefined, 'exportDocx', send),
+        ],
+      },
     ],
   })
 

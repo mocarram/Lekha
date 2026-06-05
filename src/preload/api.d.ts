@@ -37,6 +37,16 @@ export interface LekhaAPI {
    * Returns an unsubscribe function that removes the listener.
    */
   onOpenPath(cb: (path: string) => void): () => void
+
+  // --- Export ---
+  /** Save an HTML string to a .html file chosen by a save dialog. */
+  exportHtml(args: { html: string; suggestedName: string }): Promise<void>
+  /** Render HTML to PDF via Electron printToPDF and save to a .pdf file. */
+  exportPdf(args: { html: string; suggestedName: string }): Promise<void>
+  /** Export markdown to .docx via pandoc. Rejects if pandoc is not installed. */
+  exportDocx(args: { markdown: string; suggestedName: string }): Promise<void>
+  /** Returns true if pandoc is available on the system PATH. */
+  pandocAvailable(): Promise<boolean>
 }
 
 declare global {

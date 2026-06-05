@@ -20,6 +20,7 @@ import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
+import { buildExportHtml } from '@renderer/export/buildHtml'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -119,6 +120,58 @@ export function useCommands(
       }
       if (cmd === 'replace') {
         o.onReplace()
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Export commands
+      //
+      // Get the current markdown from the active editor pane, build a
+      // standalone HTML document via buildExportHtml, then invoke the
+      // appropriate main-process handler.
+      //
+      // The document title (from the store) is used as the suggested
+      // filename (without extension - the save dialog adds it) and as
+      // the HTML document <title>.
+      //
+      // Errors from the IPC handlers (save dialog cancelled, pandoc
+      // missing, filesystem errors) are silently swallowed here because
+      // the main process shows its own error dialogs. Only unexpected
+      // errors are logged to the console.
+      // ------------------------------------------------------------------
+      if (cmd === 'exportHtml') {
+        const markdown = editorRef.current?.getMarkdown() ?? ''
+        const { title } = useEditorStore.getState()
+        const suggestedName = title.endsWith('.html') ? title : title + '.html'
+        void buildExportHtml(markdown, { title }).then((html) =>
+          window.lekha.exportHtml({ html, suggestedName }),
+        ).catch((err: unknown) => {
+          console.error('[export] HTML export failed:', err)
+        })
+        return
+      }
+
+      if (cmd === 'exportPdf') {
+        const markdown = editorRef.current?.getMarkdown() ?? ''
+        const { title } = useEditorStore.getState()
+        const suggestedName = title.endsWith('.pdf') ? title : title + '.pdf'
+        void buildExportHtml(markdown, { title }).then((html) =>
+          window.lekha.exportPdf({ html, suggestedName }),
+        ).catch((err: unknown) => {
+          console.error('[export] PDF export failed:', err)
+        })
+        return
+      }
+
+      if (cmd === 'exportDocx') {
+        const markdown = editorRef.current?.getMarkdown() ?? ''
+        const { title } = useEditorStore.getState()
+        const suggestedName = title.endsWith('.docx') ? title : title + '.docx'
+        void window.lekha.exportDocx({ markdown, suggestedName }).catch(
+          (err: unknown) => {
+            console.error('[export] Word export failed:', err)
+          },
+        )
         return
       }
 

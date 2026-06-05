@@ -1,0 +1,261 @@
+/**
+ * export.ts - Main-process IPC handlers for document export.
+ *
+ * Three export paths:
+ *
+ *   exportHtml  - Receives a rendered HTML string from the renderer.
+ *                 Shows a .html save dialog and writes the file to disk.
+ *                 Pure file write; no additional processing needed.
+ *
+ *   exportPdf   - Receives a rendered HTML string from the renderer.
+ *                 Creates an OFFSCREEN BrowserWindow (show:false), loads the
+ *                 HTML via a temporary file (more robust than data: URLs for
+ *                 large documents), waits for the 'did-finish-load' event,
+ *                 calls webContents.printToPDF({ printBackground:true,
+ *                 pageSize:'A4' }), writes the resulting Buffer to the path
+ *                 chosen by a .pdf save dialog, then destroys the offscreen
+ *                 window.
+ *
+ *                 Offscreen window notes:
+ *                   - sandbox:false is required for printToPDF to work in
+ *                     Electron's renderer process sandbox.
+ *                   - The window is always destroyed in a finally block even
+ *                     if printToPDF or the save dialog fail.
+ *                   - The temp file is removed after the PDF is written.
+ *
+ *   exportDocx  - Detects pandoc availability (cached after first check).
+ *                 Receives the raw markdown string. Shows a .docx save dialog.
+ *                 Spawns `pandoc -f markdown -t docx -o <outPath>` and pipes
+ *                 the markdown to stdin. Rejects with a user-friendly message
+ *                 if pandoc is absent.
+ *
+ *   pandocAvailable - Returns a boolean. Cached on first call so repeated menu
+ *                     queries do not spawn a new process each time.
+ *
+ * None of these handlers are unit-tested (they require Electron's BrowserWindow
+ * and dialog APIs, and child_process.spawn - all Electron-bound). The
+ * pandoc argument builder `buildPandocArgs` is a pure helper that IS testable.
+ */
+
+import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { writeFile, unlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { IPC } from '@shared/ipc-channels'
+
+// ---------------------------------------------------------------------------
+// Pandoc detection (cached)
+// ---------------------------------------------------------------------------
+
+/** Cached pandoc availability - null means "not yet checked". */
+let pandocAvailableCache: boolean | null = null
+
+/**
+ * Check if `pandoc` is on the system PATH.
+ *
+ * Runs `pandoc --version` and resolves true on exit code 0, false otherwise.
+ * The result is cached so the check only runs once per process lifetime.
+ */
+async function checkPandocAvailable(): Promise<boolean> {
+  if (pandocAvailableCache !== null) return pandocAvailableCache
+
+  return new Promise<boolean>((resolve) => {
+    const proc = spawn('pandoc', ['--version'], { stdio: 'ignore' })
+    proc.on('error', () => {
+      pandocAvailableCache = false
+      resolve(false)
+    })
+    proc.on('exit', (code) => {
+      pandocAvailableCache = code === 0
+      resolve(pandocAvailableCache)
+    })
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Pure pandoc arg builder (testable without Electron)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the pandoc argument array for a markdown -> docx conversion.
+ *
+ * Pure function; does not touch the filesystem or spawn anything.
+ * Extracted so it can be tested independently (the handler itself is
+ * Electron-bound and not unit-tested).
+ *
+ * @param outPath - Absolute path to write the .docx output to.
+ * @returns Array of CLI arguments to pass to `pandoc`.
+ */
+export function buildPandocArgs(outPath: string): string[] {
+  return ['-f', 'markdown', '-t', 'docx', '-o', outPath]
+}
+
+// ---------------------------------------------------------------------------
+// IPC handler registration
+// ---------------------------------------------------------------------------
+
+/**
+ * Register all export IPC handlers.
+ *
+ * @param getWindow - Returns the current main BrowserWindow (used as parent
+ *   for save dialogs so they are attached to the main window as sheets on
+ *   macOS). May return null if no window exists yet; handlers cope by passing
+ *   undefined to Electron's dialog APIs (which then show as floating dialogs).
+ */
+export function registerExportHandlers(
+  getWindow: () => BrowserWindow | null,
+): void {
+  // -------------------------------------------------------------------------
+  // export:html
+  // -------------------------------------------------------------------------
+
+  ipcMain.handle(
+    IPC.exportHtml,
+    async (_event, args: { html: string; suggestedName: string }): Promise<void> => {
+      const win = getWindow() ?? undefined
+      const result = await dialog.showSaveDialog(win!, {
+        defaultPath: args.suggestedName,
+        filters: [{ name: 'HTML Files', extensions: ['html'] }],
+      })
+
+      if (result.canceled || !result.filePath) return
+
+      await writeFile(result.filePath, args.html, 'utf-8')
+    },
+  )
+
+  // -------------------------------------------------------------------------
+  // export:pdf
+  //
+  // Offscreen BrowserWindow flow:
+  //   1. Write the HTML to a temp file (avoids data: URL length limits and
+  //      ensures relative resources inside the HTML work if any exist).
+  //   2. Create a hidden BrowserWindow with sandbox:false (required for
+  //      printToPDF to function correctly in Electron).
+  //   3. Load the temp file via loadFile() and await 'did-finish-load'.
+  //   4. Call printToPDF({ printBackground:true, pageSize:'A4' }).
+  //   5. Show the save dialog and write the PDF Buffer to disk.
+  //   6. Destroy the offscreen window and delete the temp file (finally).
+  // -------------------------------------------------------------------------
+
+  ipcMain.handle(
+    IPC.exportPdf,
+    async (_event, args: { html: string; suggestedName: string }): Promise<void> => {
+      // Write HTML to a temp file so loadFile() can read it (data: URLs have
+      // length limits that cause problems with large, CSS-inlined documents).
+      const tmpPath = join(tmpdir(), `lekha-export-${Date.now()}.html`)
+      await writeFile(tmpPath, args.html, 'utf-8')
+
+      // Create the offscreen window. sandbox:false is required for printToPDF
+      // to work - with sandbox:true Electron cannot access the printer backend.
+      const offscreen = new BrowserWindow({
+        show: false,
+        width: 1200,
+        height: 900,
+        webPreferences: {
+          sandbox: false,
+        },
+      })
+
+      try {
+        // Load the temp HTML and wait for the page to finish rendering.
+        await new Promise<void>((resolve, reject) => {
+          offscreen.webContents.once('did-finish-load', resolve)
+          offscreen.webContents.once('did-fail-load', (_e, code, desc) => {
+            reject(new Error(`Failed to load export HTML: ${desc} (${code})`))
+          })
+          void offscreen.loadFile(tmpPath)
+        })
+
+        // Render the page to a PDF buffer.
+        const pdfBuffer = await offscreen.webContents.printToPDF({
+          printBackground: true,
+          pageSize: 'A4',
+          margins: { marginType: 'default' },
+        })
+
+        // Ask the user where to save the PDF.
+        const win = getWindow() ?? undefined
+        const result = await dialog.showSaveDialog(win!, {
+          defaultPath: args.suggestedName,
+          filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+        })
+
+        if (result.canceled || !result.filePath) return
+
+        await writeFile(result.filePath, pdfBuffer)
+      } finally {
+        // Always clean up: destroy the offscreen window and remove the temp file.
+        offscreen.destroy()
+        await unlink(tmpPath).catch(() => { /* ignore if already gone */ })
+      }
+    },
+  )
+
+  // -------------------------------------------------------------------------
+  // export:docx
+  //
+  // Pandoc flow:
+  //   1. Check pandoc availability (cached).
+  //   2. Show the .docx save dialog.
+  //   3. Spawn `pandoc -f markdown -t docx -o <outPath>` and pipe the
+  //      markdown to stdin, then close stdin to signal EOF.
+  //   4. Collect stderr; on non-zero exit, reject with the stderr text.
+  // -------------------------------------------------------------------------
+
+  ipcMain.handle(
+    IPC.exportDocx,
+    async (_event, args: { markdown: string; suggestedName: string }): Promise<void> => {
+      const available = await checkPandocAvailable()
+      if (!available) {
+        throw new Error(
+          'Pandoc is not installed. Install pandoc (https://pandoc.org) to enable Word export.',
+        )
+      }
+
+      const win = getWindow() ?? undefined
+      const result = await dialog.showSaveDialog(win!, {
+        defaultPath: args.suggestedName,
+        filters: [{ name: 'Word Documents', extensions: ['docx'] }],
+      })
+
+      if (result.canceled || !result.filePath) return
+
+      const outPath = result.filePath
+      const pandocArgs = buildPandocArgs(outPath)
+
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('pandoc', pandocArgs, { stdio: ['pipe', 'ignore', 'pipe'] })
+        const stderrChunks: Buffer[] = []
+
+        proc.stderr?.on('data', (chunk: Buffer) => stderrChunks.push(chunk))
+
+        proc.on('error', (err) => {
+          reject(new Error(`Failed to spawn pandoc: ${err.message}`))
+        })
+
+        proc.on('exit', (code) => {
+          if (code === 0) {
+            resolve()
+          } else {
+            const stderr = Buffer.concat(stderrChunks).toString('utf-8').trim()
+            reject(new Error(`pandoc exited with code ${code}: ${stderr}`))
+          }
+        })
+
+        // Write markdown to stdin and close to signal EOF.
+        proc.stdin?.write(args.markdown, 'utf-8')
+        proc.stdin?.end()
+      })
+    },
+  )
+
+  // -------------------------------------------------------------------------
+  // export:pandocAvailable
+  // -------------------------------------------------------------------------
+
+  ipcMain.handle(IPC.pandocAvailable, async (): Promise<boolean> => {
+    return checkPandocAvailable()
+  })
+}

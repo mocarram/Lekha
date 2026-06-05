@@ -74,6 +74,23 @@ const api: LekhaAPI = {
     ipcRenderer.on(IPC.openPath, listener)
     return () => ipcRenderer.removeListener(IPC.openPath, listener)
   },
+
+  // --- Export ---
+  exportHtml(args: { html: string; suggestedName: string }): Promise<void> {
+    return ipcRenderer.invoke(IPC.exportHtml, args) as Promise<void>
+  },
+
+  exportPdf(args: { html: string; suggestedName: string }): Promise<void> {
+    return ipcRenderer.invoke(IPC.exportPdf, args) as Promise<void>
+  },
+
+  exportDocx(args: { markdown: string; suggestedName: string }): Promise<void> {
+    return ipcRenderer.invoke(IPC.exportDocx, args) as Promise<void>
+  },
+
+  pandocAvailable(): Promise<boolean> {
+    return ipcRenderer.invoke(IPC.pandocAvailable) as Promise<boolean>
+  },
 }
 
 contextBridge.exposeInMainWorld('lekha', Object.freeze(api))

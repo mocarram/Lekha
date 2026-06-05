@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
+import { registerExportHandlers } from '@main/ipc/export'
 import { buildMenuTemplate } from '@main/menu'
 import { IPC } from '@shared/ipc-channels'
 import type { Settings } from '@shared/types'
@@ -221,6 +222,8 @@ void app.whenReady().then(async () => {
       }
     },
   )
+
+  registerExportHandlers(getWindow)
 
   // Create the window with restored bounds (or defaults if none saved).
   const win = createWindow(initialSettings.windowBounds)

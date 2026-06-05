@@ -355,3 +355,73 @@ describe('buildMenuTemplate - Open Recent submenu', () => {
     expect(openPath).toHaveBeenCalledWith('/docs/note.md')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Export submenu tests
+// ---------------------------------------------------------------------------
+
+describe('buildMenuTemplate - Export submenu', () => {
+  function findExportSubmenu(
+    template: MenuItemConstructorOptions[],
+  ): MenuItemConstructorOptions[] | undefined {
+    const fileMenu = template.find((t) => t.label === 'File')
+    if (!fileMenu) return undefined
+    const fileItems = fileMenu.submenu as MenuItemConstructorOptions[]
+    const exportItem = fileItems.find((i) => i.label === 'Export')
+    if (!exportItem?.submenu) return undefined
+    return exportItem.submenu as MenuItemConstructorOptions[]
+  }
+
+  it('File menu contains an Export submenu', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const fileMenu = template.find((t) => t.label === 'File')
+    const fileItems = fileMenu!.submenu as MenuItemConstructorOptions[]
+    const labels = fileItems.map((i) => i.label)
+    expect(labels).toContain('Export')
+  })
+
+  it('Export submenu has HTML, PDF, and Word items', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const items = findExportSubmenu(template)
+    expect(items).toBeDefined()
+    const labels = items!.map((i) => i.label)
+    expect(labels).toContain('Export to HTML…')
+    expect(labels).toContain('Export to PDF…')
+    expect(labels).toContain('Export to Word (docx)…')
+  })
+
+  it('Export to HTML… fires send("exportHtml")', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const items = findExportSubmenu(template)
+    const htmlItem = items!.find((i) => i.label === 'Export to HTML…')
+    expect(htmlItem).toBeDefined()
+    // @ts-expect-error calling with no args is safe for our generated handlers
+    htmlItem!.click()
+    expect(send).toHaveBeenCalledWith('exportHtml')
+  })
+
+  it('Export to PDF… fires send("exportPdf")', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const items = findExportSubmenu(template)
+    const pdfItem = items!.find((i) => i.label === 'Export to PDF…')
+    expect(pdfItem).toBeDefined()
+    // @ts-expect-error calling with no args is safe for our generated handlers
+    pdfItem!.click()
+    expect(send).toHaveBeenCalledWith('exportPdf')
+  })
+
+  it('Export to Word (docx)… fires send("exportDocx")', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const items = findExportSubmenu(template)
+    const docxItem = items!.find((i) => i.label === 'Export to Word (docx)…')
+    expect(docxItem).toBeDefined()
+    // @ts-expect-error calling with no args is safe for our generated handlers
+    docxItem!.click()
+    expect(send).toHaveBeenCalledWith('exportDocx')
+  })
+})
