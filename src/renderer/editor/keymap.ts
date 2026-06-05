@@ -8,6 +8,7 @@ import {
   sinkListItem,
   liftListItem,
 } from 'prosemirror-schema-list'
+import { goToNextCell } from 'prosemirror-tables'
 
 // ---------------------------------------------------------------------------
 // keymapBindings
@@ -22,16 +23,21 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
   const listItemType = schema.nodes['list_item']!
   const taskItemType = schema.nodes['task_item']!
 
-  // DRY: chain the same command across both item types so one binding handles both
+  // DRY: chain the same command across both item types so one binding handles both.
+  // Tab/Shift-Tab: try table-cell navigation first (goToNextCell), then fall
+  // back to list indent/outdent. This lets Tab move between table cells while
+  // still indenting list items outside a table context.
   const enterCmd = chainCommands(
     splitListItem(listItemType),
     splitListItem(taskItemType),
   )
   const tabCmd = chainCommands(
+    goToNextCell(1),
     sinkListItem(listItemType),
     sinkListItem(taskItemType),
   )
   const shiftTabCmd = chainCommands(
+    goToNextCell(-1),
     liftListItem(listItemType),
     liftListItem(taskItemType),
   )

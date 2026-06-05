@@ -4,7 +4,7 @@ import { gapCursor } from 'prosemirror-gapcursor'
 import { history } from 'prosemirror-history'
 import { keymap } from 'prosemirror-keymap'
 import { baseKeymap } from 'prosemirror-commands'
-import { tableEditing } from 'prosemirror-tables'
+import { tableEditing, columnResizing } from 'prosemirror-tables'
 import { schema } from './schema'
 import { parseMarkdown } from './parser'
 import { buildInputRules } from './inputRules'
@@ -21,8 +21,9 @@ import { highlightPlugin } from './plugins/highlight'
  *   4. dropCursor       - visual drop position indicator
  *   5. gapCursor        - keyboard navigation past un-enterable nodes
  *   6. history          - undo/redo (exactly once - no duplicate)
- *   7. tableEditing     - GFM table cell navigation and commands
- *   8. highlightPlugin  - syntax highlighting decorations for code blocks
+ *   7. columnResizing   - table column drag-to-resize (must precede tableEditing)
+ *   8. tableEditing     - GFM table cell navigation and commands
+ *   9. highlightPlugin  - syntax highlighting decorations for code blocks
  */
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
@@ -34,6 +35,7 @@ export function createEditorState(markdown: string): EditorState {
       dropCursor(),
       gapCursor(),
       history(),
+      columnResizing(),
       tableEditing(),
       highlightPlugin(),
     ],

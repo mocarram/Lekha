@@ -8,6 +8,7 @@ import { EditorView as ProseMirrorView } from 'prosemirror-view'
 import { type Node } from 'prosemirror-model'
 import { createEditorState } from './createState'
 import { serializeMarkdown } from './serializer'
+import { taskItemNodeView } from './taskItem'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -64,6 +65,9 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
 
       const view = new ProseMirrorView(mountRef.current, {
         state: createEditorState(markdown),
+        nodeViews: {
+          task_item: taskItemNodeView,
+        },
         dispatchTransaction(tr) {
           const newState = view.state.apply(tr)
           view.updateState(newState)
