@@ -28,3 +28,6 @@ export type AppCommand =
   | 'horizontalRule'
   | 'undo'
   | 'redo'
+  | 'exportHtml'
+  | 'exportPdf'
+  | 'exportDocx'

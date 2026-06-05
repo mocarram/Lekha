@@ -16,4 +16,9 @@ export const IPC = {
   command: 'app:command',
   /** Main -> renderer: open a specific file path (from the Open Recent menu). */
   openPath: 'app:openPath',
+  // Export channels
+  exportHtml: 'export:html',
+  exportPdf: 'export:pdf',
+  exportDocx: 'export:docx',
+  pandocAvailable: 'export:pandocAvailable',
 } as const
