@@ -1,6 +1,7 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useState } from 'react'
 import { EditorPane, type EditorPaneHandle } from '@renderer/editor/EditorPane'
 import { useFileOps } from '@renderer/hooks/useFileOps'
+import { useCommands } from '@renderer/hooks/useCommands'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { parseMarkdown } from '@renderer/editor/parser'
 import { getOutline } from '@renderer/editor/outline'
@@ -37,6 +38,19 @@ Start typing to edit this document. Your changes are tracked automatically.
 export default function App() {
   const editorRef = useRef<EditorPaneHandle>(null)
   const fileOps = useFileOps(editorRef)
+
+  // Find/Replace overlay state - the actual UI overlay is built in M13.
+  // For now App just holds the open/mode state so useCommands has a target.
+  const [, setFindState] = useState<{
+    open: boolean
+    mode: 'find' | 'replace'
+  }>({ open: false, mode: 'find' })
+
+  // Wire native menu commands to editor / file ops / sidebar / find
+  useCommands(editorRef, fileOps, {
+    onFind: () => { setFindState({ open: true, mode: 'find' }) },
+    onReplace: () => { setFindState({ open: true, mode: 'replace' }) },
+  })
 
   // Debounce timer ref - used to delay outline/count recomputation so we
   // don't parse on every keystroke. Cleaned up on unmount via useCallback.

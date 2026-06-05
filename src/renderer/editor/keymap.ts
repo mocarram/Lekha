@@ -1,14 +1,14 @@
 import { type Schema } from 'prosemirror-model'
 import { keymap } from 'prosemirror-keymap'
 import { type Plugin, type Command } from 'prosemirror-state'
-import { toggleMark, setBlockType, chainCommands } from 'prosemirror-commands'
-import { undo, redo } from 'prosemirror-history'
+import { chainCommands } from 'prosemirror-commands'
 import {
   splitListItem,
   sinkListItem,
   liftListItem,
 } from 'prosemirror-schema-list'
 import { goToNextCell } from 'prosemirror-tables'
+import { editorCommandMap } from './editorCommands'
 
 // ---------------------------------------------------------------------------
 // keymapBindings
@@ -16,9 +16,19 @@ import { goToNextCell } from 'prosemirror-tables'
 
 /**
  * Return the full keymap bindings record for Lekha.
+ *
+ * Inline mark toggles, block type setters, and history commands are sourced
+ * from editorCommandMap so the menu/command path and keymap share ONE
+ * implementation (DRY). Only the list-navigation bindings (Enter, Tab,
+ * Shift-Tab) that chain across list_item and task_item live here because they
+ * are structural key-handling concerns, not simple command wrappers.
+ *
  * Exported separately so tests can call commands directly without a live view.
  */
 export function keymapBindings(schema: Schema): Record<string, Command> {
+  // Shared command implementations from editorCommandMap (single source of truth)
+  const cmds = editorCommandMap(schema)
+
   // List node types - both list_item and task_item get the same Enter/Tab/Shift-Tab
   const listItemType = schema.nodes['list_item']!
   const taskItemType = schema.nodes['task_item']!
@@ -43,16 +53,16 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
   )
 
   const bindings: Record<string, Command> = {
-    // Inline mark toggles
-    'Mod-b': toggleMark(schema.marks['strong']!),
-    'Mod-i': toggleMark(schema.marks['em']!),
-    'Mod-Shift-x': toggleMark(schema.marks['strikethrough']!),
-    'Mod-`': toggleMark(schema.marks['code']!),
+    // Inline mark toggles - pulled from editorCommandMap (shared with menu)
+    'Mod-b': cmds.bold!,
+    'Mod-i': cmds.italic!,
+    'Mod-Shift-x': cmds.strikethrough!,
+    'Mod-`': cmds.inlineCode!,
 
-    // History
-    'Mod-z': undo,
-    'Mod-y': redo,
-    'Mod-Shift-z': redo,
+    // History - pulled from editorCommandMap (shared with menu)
+    'Mod-z': cmds.undo!,
+    'Mod-y': cmds.redo!,
+    'Mod-Shift-z': cmds.redo!,
 
     // List navigation (chained across list_item and task_item)
     Enter: enterCmd,
@@ -60,14 +70,13 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     'Shift-Tab': shiftTabCmd,
 
     // Block type shortcuts: Mod-Alt-0 = paragraph, Mod-Alt-1..6 = headings
-    'Mod-Alt-0': setBlockType(schema.nodes['paragraph']!),
+    // Also pulled from editorCommandMap (shared with menu)
+    'Mod-Alt-0': cmds.paragraph!,
   }
 
   // Add Mod-Alt-1 through Mod-Alt-6 for heading levels
   for (let level = 1; level <= 6; level++) {
-    bindings[`Mod-Alt-${level}`] = setBlockType(schema.nodes['heading']!, {
-      level,
-    })
+    bindings[`Mod-Alt-${level}`] = cmds[`heading${level}` as keyof typeof cmds]!
   }
 
   return bindings

@@ -30,7 +30,8 @@ function makeMockEditor(initialMarkdown = '# X') {
   const toggleMode = vi.fn()
   const focus = vi.fn()
   const scrollToPos = vi.fn()
-  const handle: EditorPaneHandle = { getMarkdown, setMarkdown, getMode, toggleMode, focus, scrollToPos }
+  const runCommand = vi.fn(() => false)
+  const handle: EditorPaneHandle = { getMarkdown, setMarkdown, getMode, toggleMode, focus, scrollToPos, runCommand }
   return { handle, setMarkdown, getMarkdown }
 }
 

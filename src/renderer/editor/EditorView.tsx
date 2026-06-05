@@ -10,6 +10,9 @@ import { TextSelection } from 'prosemirror-state'
 import { createEditorState } from './createState'
 import { serializeMarkdown } from './serializer'
 import { taskItemNodeView } from './taskItem'
+import { editorCommandMap } from './editorCommands'
+import { schema } from './schema'
+import type { AppCommand } from '@shared/commands'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -30,7 +33,17 @@ export interface EditorHandle {
    * Used by the Outline panel to jump to a heading.
    */
   scrollToPos(pos: number): void
+  /**
+   * Run an AppCommand against the ProseMirror editor.
+   * Looks up the command in editorCommandMap, executes it, and focuses.
+   * Returns true if the command was handled, false otherwise (no-op commands
+   * such as file ops or find/replace are not in the map and return false).
+   */
+  runCommand(cmd: AppCommand): boolean
 }
+
+// Build the command map once per module (schema is a singleton)
+const cmdMap = editorCommandMap(schema)
 
 interface EditorViewProps {
   /** Initial Markdown content. */
@@ -120,6 +133,18 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           const tr = view.state.tr.setSelection(selection).scrollIntoView()
           view.dispatch(tr)
           view.focus()
+        },
+        runCommand(cmd: AppCommand): boolean {
+          const view = viewRef.current
+          if (!view) return false
+          const command = cmdMap[cmd]
+          if (!command) return false
+          const handled = command(view.state, view.dispatch, view)
+          if (handled) {
+            // Return focus to the editor so subsequent keystrokes work
+            view.focus()
+          }
+          return handled
         },
       }),
       [],

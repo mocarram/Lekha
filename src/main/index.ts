@@ -1,8 +1,10 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, Menu } from 'electron'
 import { join } from 'node:path'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
+import { buildMenuTemplate } from '@main/menu'
+import { IPC } from '@shared/ipc-channels'
 
 // Last-resort handlers so a stray rejection or throw in the main process is
 // logged instead of taking the app down silently.
@@ -71,6 +73,16 @@ void app.whenReady().then(() => {
   registerFileHandlers(settings, getWindow)
 
   createWindow()
+
+  // Set up the native application menu. The send callback broadcasts each
+  // AppCommand to the renderer via IPC so useCommands can handle it.
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      buildMenuTemplate((cmd) => {
+        getWindow()?.webContents.send(IPC.command, cmd)
+      }),
+    ),
+  )
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

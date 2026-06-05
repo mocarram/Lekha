@@ -11,6 +11,7 @@ import { EditorView, type EditorHandle } from './EditorView'
 import { SourceView, type SourceHandle } from './SourceView'
 import { parseMarkdown } from './parser'
 import { serializeMarkdown } from './serializer'
+import type { AppCommand } from '@shared/commands'
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -33,6 +34,14 @@ export interface EditorPaneHandle {
    * No-op when in source mode (position semantics don't map to CodeMirror).
    */
   scrollToPos(pos: number): void
+  /**
+   * Run an AppCommand against the active editor.
+   * In WYSIWYG mode: delegates to EditorHandle.runCommand which looks up the
+   * command in editorCommandMap.
+   * In source mode: returns false for formatting commands (CodeMirror handles
+   * its own undo/redo via keymap; no duplication needed).
+   */
+  runCommand(cmd: AppCommand): boolean
 }
 
 interface EditorPaneProps {
@@ -155,6 +164,13 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           if (mode === 'wysiwyg') {
             wysiwygRef.current?.scrollToPos(pos)
           }
+        },
+        runCommand(cmd: AppCommand): boolean {
+          // In source mode, formatting commands are no-ops - CodeMirror handles
+          // its own undo/redo via its internal keymap. Return false so the
+          // caller knows the command was not handled.
+          if (mode !== 'wysiwyg') return false
+          return wysiwygRef.current?.runCommand(cmd) ?? false
         },
       }),
       [mode, markdown, toggleMode],
