@@ -5,3 +5,4 @@ release/
 .superpowers/
 *.tsbuildinfo
 .DS_Store
+tests/e2e/screenshots/

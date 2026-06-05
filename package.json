@@ -23,6 +23,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretest:e2e": "electron-vite build",
     "test:e2e": "playwright test",
     "dist:mac": "npm run build && electron-builder --mac"
   },

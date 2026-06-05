@@ -14,6 +14,8 @@
     "src/shared/**/*.ts",
     // Main-process unit tests run under the Node environment.
     "tests/unit/main/**/*.ts",
+    // E2E tests run under Node (Playwright Electron) environment.
+    "tests/e2e/**/*.ts",
     // Build/tooling configs live in Node.
     "electron.vite.config.ts",
     "vitest.config.ts",
