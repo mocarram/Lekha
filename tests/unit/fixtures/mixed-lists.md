@@ -1,0 +1,4 @@
+- a plain bullet
+- another plain bullet
+- [x] a completed task
+- [ ] a pending task
