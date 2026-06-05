@@ -20,7 +20,7 @@ export interface FileOps {
   /** Show the OS save-as dialog and write to the chosen path. */
   saveAs(): Promise<void>
   /** Create a fresh blank document. */
-  newFile(): void
+  newFile(): Promise<void>
   /** Show the OS folder picker and populate the workspace file tree. */
   openFolder(): Promise<void>
 }
@@ -103,21 +103,6 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // always defined before they are referenced.
   // -------------------------------------------------------------------------
 
-  const openPath = useCallback(
-    async (path: string): Promise<void> => {
-      const md = await window.lekha.readFile(path)
-      await loadInto(path, md)
-    },
-    [loadInto],
-  )
-
-  const open = useCallback(async (): Promise<void> => {
-    const path = await window.lekha.openFileDialog()
-    if (path !== null) {
-      await openPath(path)
-    }
-  }, [openPath])
-
   // saveAs must be declared before save so save can reference it.
   const saveAs = useCallback(async (): Promise<void> => {
     const currentTitle = editorStore.getState().title
@@ -141,12 +126,65 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     await persist(path)
   }, [editorStore, persist, saveAs])
 
-  const newFile = useCallback((): void => {
+  /**
+   * Guard against discarding unsaved changes.
+   *
+   * Returns true  - it is safe to proceed (clean, saved, or user chose "Don't Save").
+   * Returns false - the operation should be aborted (user cancelled, or Save As was cancelled).
+   *
+   * Flow:
+   *   not dirty         -> return true immediately (no dialog needed).
+   *   dirty + 'save'    -> await save(); if still dirty (Save As cancelled) -> false; else true.
+   *   dirty + 'dontSave'-> return true (discard, proceed).
+   *   dirty + 'cancel'  -> return false (abort the operation).
+   */
+  const guardUnsaved = useCallback(async (): Promise<boolean> => {
+    if (!editorStore.getState().isDirty) return true
+
+    const choice = await window.lekha.confirmUnsaved()
+
+    if (choice === 'dontSave') return true
+
+    if (choice === 'save') {
+      await save()
+      // If the store is still dirty, the user cancelled the Save As dialog.
+      // Abort the pending operation so the document is not discarded.
+      return !editorStore.getState().isDirty
+    }
+
+    // choice === 'cancel'
+    return false
+  }, [editorStore, save])
+
+  const openPath = useCallback(
+    async (path: string): Promise<void> => {
+      if (!(await guardUnsaved())) return
+      const md = await window.lekha.readFile(path)
+      await loadInto(path, md)
+    },
+    [guardUnsaved, loadInto],
+  )
+
+  const open = useCallback(async (): Promise<void> => {
+    if (!(await guardUnsaved())) return
+    const path = await window.lekha.openFileDialog()
+    if (path !== null) {
+      // openPath's own guardUnsaved would re-prompt; call loadInto directly
+      // since we already confirmed above.
+      const md = await window.lekha.readFile(path)
+      await loadInto(path, md)
+    }
+  }, [guardUnsaved, loadInto])
+
+  const newFile = useCallback(async (): Promise<void> => {
+    if (!(await guardUnsaved())) return
     editorRef.current?.setMarkdown('')
     editorStore.getState().newFile()
     window.lekha.setDocumentState({ title: 'Untitled', dirty: false, path: null })
-  }, [editorRef, editorStore])
+  }, [editorRef, editorStore, guardUnsaved])
 
+  // openFolder does NOT replace the current document, so it does not need
+  // the unsaved-changes guard.
   const openFolder = useCallback(async (): Promise<void> => {
     const dir = await window.lekha.openFolderDialog()
     if (dir === null) return
@@ -154,8 +192,8 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     const tree = await window.lekha.readDir(dir)
     workspaceStore.getState().setRootFolder(dir)
     workspaceStore.getState().setFileTree(tree)
-    // Persist the chosen folder so it can be restored on next launch.
-    await window.lekha.setSettings({ lastFolder: dir })
+    // Note: lastFolder is persisted by the useStartup subscriber that watches
+    // workspaceStore.rootFolder - no explicit setSettings call needed here.
   }, [workspaceStore])
 
   return { open, openPath, save, saveAs, newFile, openFolder }

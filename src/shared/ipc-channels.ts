@@ -2,6 +2,9 @@ export const IPC = {
   openFileDialog: 'dialog:openFile',
   openFolderDialog: 'dialog:openFolder',
   saveAsDialog: 'dialog:saveAs',
+  /** Renderer -> main: ask the user whether to save unsaved changes.
+   *  Returns 'save' | 'dontSave' | 'cancel'. */
+  confirmUnsaved: 'dialog:confirmUnsaved',
   readFile: 'fs:readFile',
   writeFile: 'fs:writeFile',
   readDir: 'fs:readDir',

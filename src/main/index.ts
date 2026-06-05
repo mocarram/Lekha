@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, Menu } from 'electron'
+import { app, BrowserWindow, dialog, shell, Menu } from 'electron'
 import { join } from 'node:path'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
@@ -25,6 +25,45 @@ let mainWindow: BrowserWindow | null = null
 function getWindow(): BrowserWindow | null {
   return mainWindow
 }
+
+// ---------------------------------------------------------------------------
+// Close-guard state machine
+//
+// Four variables track whether the window may be closed safely:
+//
+//   documentDirty  - mirrors the renderer's isDirty flag. Updated on every
+//                    setDocumentState message so the close handler always sees
+//                    the current state without an extra IPC round-trip.
+//
+//   forceClose     - set to true when the user picks "Don't Save" in the close
+//                    dialog, or when the app is quitting programmatically (so
+//                    the close event is a side-effect of app.quit() rather than
+//                    an explicit user action on the window). The close handler
+//                    sees this flag and lets the next win.close() call through
+//                    without re-prompting.
+//
+//   pendingClose   - set to true when the user picks "Save" in the close dialog.
+//                    We send a 'save' command to the renderer and wait. When the
+//                    renderer subsequently reports dirty:false via setDocumentState
+//                    while pendingClose is true, we set forceClose=true and call
+//                    win.close() to complete the close. If the user cancels the
+//                    Save As dialog the doc stays dirty; the window stays open and
+//                    pendingClose is reset so a subsequent close will re-prompt.
+//
+//   appIsQuitting  - set to true in the 'before-quit' handler, which fires when
+//                    app.quit() is called (e.g. Cmd+Q, File > Quit, or the
+//                    Playwright test runner calling ElectronApplication.close()).
+//                    When the app is quitting, individual window closes are a
+//                    side-effect of the quit, not a user window action, so the
+//                    close guard is bypassed to avoid blocking the quit with a
+//                    synchronous dialog. The 'before-quit' path is also guarded
+//                    separately if needed in the future.
+// ---------------------------------------------------------------------------
+
+let documentDirty = false
+let forceClose = false
+let pendingClose = false
+let appIsQuitting = false
 
 // ---------------------------------------------------------------------------
 // Minimum sane window dimensions to guard against corrupt saved bounds.
@@ -161,10 +200,25 @@ void app.whenReady().then(async () => {
 
   // Wrap registerFileHandlers so we can rebuild the menu whenever a recent
   // file is added (keeping Open Recent in sync without a full IPC round-trip).
-  registerFileHandlers(settings, getWindow, async () => {
-    const recents = await settings.getRecentFiles()
-    applyMenu(recents)
-  })
+  // Also pass onDocumentState so the close-guard state machine stays current.
+  registerFileHandlers(
+    settings,
+    getWindow,
+    async () => {
+      const recents = await settings.getRecentFiles()
+      applyMenu(recents)
+    },
+    (state) => {
+      documentDirty = state.dirty
+      // If a save triggered by the close guard just completed (pendingClose)
+      // and the document is now clean, proceed with closing the window.
+      if (pendingClose && !state.dirty) {
+        pendingClose = false
+        forceClose = true
+        getWindow()?.close()
+      }
+    },
+  )
 
   // Create the window with restored bounds (or defaults if none saved).
   const win = createWindow(initialSettings.windowBounds)
@@ -178,13 +232,49 @@ void app.whenReady().then(async () => {
   win.on('move',   () => { scheduleBoundsSave(win, saveBounds) })
 
   // On close, do a final synchronous-ish save of bounds before the window
-  // goes away. We use the 'close' event (before 'closed') so the window is
-  // still accessible via getBounds().
-  win.on('close', () => {
+  // goes away, and intercept when there are unsaved changes.
+  // We use the 'close' event (before 'closed') so the window is still
+  // accessible via getBounds() and we can call e.preventDefault().
+  win.on('close', (e) => {
+    // Always persist window bounds first (before we might preventDefault).
     if (!win.isMinimized() && !win.isFullScreen()) {
       const b = win.getBounds()
       void settings.set({ windowBounds: { x: b.x, y: b.y, width: b.width, height: b.height } })
     }
+
+    // Allow the close if there are no unsaved changes, if we already
+    // confirmed via the dialog (forceClose flag), or if the close is a
+    // side-effect of app.quit() (appIsQuitting) - e.g. Cmd+Q or the
+    // test runner's ElectronApplication.close().
+    if (!documentDirty || forceClose || appIsQuitting) {
+      forceClose = false // reset for any future window re-use
+      return
+    }
+
+    // Unsaved changes - prompt the user with a synchronous dialog so the
+    // event loop does not advance while the dialog is open.
+    e.preventDefault()
+
+    const response = dialog.showMessageBoxSync(win, {
+      type: 'warning',
+      buttons: ['Save', "Don't Save", 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+      message: 'Do you want to save the changes you made?',
+      detail: "Your changes will be lost if you don't save them.",
+    })
+
+    if (response === 1) {
+      // "Don't Save": mark forceClose so the next win.close() goes through.
+      forceClose = true
+      win.close()
+    } else if (response === 0) {
+      // "Save": ask the renderer to save, then close when dirty goes false.
+      // The onDocumentState callback above handles the follow-through.
+      pendingClose = true
+      win.webContents.send(IPC.command, 'save')
+    }
+    // response === 2 ("Cancel"): do nothing - the window stays open.
   })
 
   // Set up the native application menu with the persisted recent files.
@@ -195,6 +285,14 @@ void app.whenReady().then(async () => {
       createWindow()
     }
   })
+})
+
+app.on('before-quit', () => {
+  // Mark that the app is being quit programmatically (Cmd+Q, File > Quit,
+  // or test-runner app.close()). This bypasses the window close-guard so the
+  // quit is not blocked by a synchronous dialog on each window. The guard
+  // fires only when the user explicitly closes an individual window (red button).
+  appIsQuitting = true
 })
 
 app.on('window-all-closed', () => {

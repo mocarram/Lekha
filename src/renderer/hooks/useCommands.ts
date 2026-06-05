@@ -69,7 +69,7 @@ export function useCommands(
       // File operations
       // ------------------------------------------------------------------
       if (cmd === 'new') {
-        fo.newFile()
+        void fo.newFile()
         return
       }
       if (cmd === 'open') {

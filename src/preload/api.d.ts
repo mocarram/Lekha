@@ -7,6 +7,8 @@ export interface LekhaAPI {
   openFileDialog(): Promise<string | null>
   openFolderDialog(): Promise<string | null>
   saveAsDialog(suggestedName?: string): Promise<string | null>
+  /** Show the native "unsaved changes" dialog. Returns the user's choice. */
+  confirmUnsaved(): Promise<'save' | 'dontSave' | 'cancel'>
 
   // --- Filesystem ---
   readFile(path: string): Promise<string>

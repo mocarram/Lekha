@@ -64,6 +64,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     openFileDialog: vi.fn(() => Promise.resolve(null as string | null)),
     openFolderDialog: vi.fn(() => Promise.resolve(null as string | null)),
     saveAsDialog: vi.fn(() => Promise.resolve(null as string | null)),
+    confirmUnsaved: vi.fn(() => Promise.resolve('cancel' as const)),
     readFile: vi.fn((_p: string) => Promise.resolve('# Loaded')),
     writeFile: vi.fn(() => Promise.resolve()),
     readDir: vi.fn(() => Promise.resolve([] as FileNode[])),
@@ -280,20 +281,20 @@ describe('useFileOps - saveAs()', () => {
 // ---------------------------------------------------------------------------
 
 describe('useFileOps - newFile()', () => {
-  it('clears the editor and resets the store to an untitled blank document', () => {
+  it('clears the editor and resets the store to an untitled blank document when clean', async () => {
     const { handle, setMarkdown } = makeMockEditor()
     const setDocumentState = vi.fn()
     const mockLekha = makeMockLekha({ setDocumentState })
     vi.stubGlobal('lekha', mockLekha)
 
+    // Start clean (no dirty flag set).
     useEditorStore.getState().openFile('/old/file.md', '# Old')
-    useEditorStore.getState().markDirty()
 
     const editorRef = createRef<EditorPaneHandle>()
     ;(editorRef as { current: EditorPaneHandle }).current = handle
 
     const { result } = renderHook(() => useFileOps(editorRef))
-    act(() => { result.current.newFile() })
+    await act(async () => { await result.current.newFile() })
 
     expect(setMarkdown).toHaveBeenCalledWith('')
     expect(useEditorStore.getState().path).toBeNull()
@@ -304,6 +305,43 @@ describe('useFileOps - newFile()', () => {
       dirty: false,
       path: null,
     })
+  })
+
+  it('does NOT call confirmUnsaved when document is clean', async () => {
+    const { handle } = makeMockEditor()
+    const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
+    const mockLekha = makeMockLekha({ confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    // Store is clean (fresh reset in beforeEach).
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.newFile() })
+
+    expect(confirmUnsaved).not.toHaveBeenCalled()
+  })
+
+  it('aborts when dirty and user cancels', async () => {
+    const { handle, setMarkdown } = makeMockEditor()
+    const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
+    const mockLekha = makeMockLekha({ confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useEditorStore.getState().openFile('/file.md', '# Dirty')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.newFile() })
+
+    // Should NOT have cleared the editor.
+    expect(setMarkdown).not.toHaveBeenCalled()
+    expect(useEditorStore.getState().path).toBe('/file.md')
   })
 })
 
@@ -349,5 +387,124 @@ describe('useFileOps - openFolder()', () => {
 
     expect(readDir).not.toHaveBeenCalled()
     expect(useWorkspaceStore.getState().rootFolder).toBeNull()
+  })
+
+  it('does NOT call setSettings directly (lastFolder persisted via useStartup subscriber)', async () => {
+    const { handle } = makeMockEditor()
+    const tree: FileNode[] = []
+    const openFolderDialog = vi.fn(() => Promise.resolve('/proj' as string | null))
+    const readDir = vi.fn((_d: string) => Promise.resolve(tree))
+    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const }))
+    const mockLekha = makeMockLekha({ openFolderDialog, readDir, setSettings })
+    vi.stubGlobal('lekha', mockLekha)
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.openFolder() })
+
+    // useFileOps.openFolder must NOT call setSettings - the useStartup
+    // subscriber already handles persisting lastFolder when rootFolder changes.
+    expect(setSettings).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// guardUnsaved - via open() and newFile()
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - guardUnsaved (via open())', () => {
+  it('does NOT call confirmUnsaved when document is clean', async () => {
+    const { handle, setMarkdown } = makeMockEditor()
+    const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
+    const readFile = vi.fn((_p: string) => Promise.resolve('# Note'))
+    const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
+    const mockLekha = makeMockLekha({ openFileDialog, readFile, confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    // Store is clean (fresh reset in beforeEach).
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.open() })
+
+    expect(confirmUnsaved).not.toHaveBeenCalled()
+    expect(setMarkdown).toHaveBeenCalledWith('# Note')
+  })
+
+  it('proceeds and discards when dirty and user picks "Don\'t Save"', async () => {
+    const { handle, setMarkdown } = makeMockEditor()
+    const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
+    const readFile = vi.fn((_p: string) => Promise.resolve('# Note'))
+    const confirmUnsaved = vi.fn(() => Promise.resolve('dontSave' as const))
+    const mockLekha = makeMockLekha({ openFileDialog, readFile, confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useEditorStore.getState().openFile('/old.md', '# Old')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.open() })
+
+    expect(confirmUnsaved).toHaveBeenCalledOnce()
+    expect(readFile).toHaveBeenCalledWith('/docs/note.md')
+    expect(setMarkdown).toHaveBeenCalledWith('# Note')
+    expect(useEditorStore.getState().path).toBe('/docs/note.md')
+  })
+
+  it('aborts when dirty and user picks "Cancel"', async () => {
+    const { handle, setMarkdown } = makeMockEditor()
+    const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
+    const readFile = vi.fn((_p: string) => Promise.resolve('# Note'))
+    const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
+    const mockLekha = makeMockLekha({ openFileDialog, readFile, confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useEditorStore.getState().openFile('/old.md', '# Old')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.open() })
+
+    expect(confirmUnsaved).toHaveBeenCalledOnce()
+    // readFile must NOT be called - the operation was aborted.
+    expect(readFile).not.toHaveBeenCalled()
+    expect(setMarkdown).not.toHaveBeenCalled()
+    // Store path must remain unchanged.
+    expect(useEditorStore.getState().path).toBe('/old.md')
+  })
+
+  it('saves and then proceeds when dirty and user picks "Save"', async () => {
+    const { handle, setMarkdown } = makeMockEditor('# Old')
+    const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
+    const readFile = vi.fn((_p: string) => Promise.resolve('# New'))
+    const writeFile = vi.fn(() => Promise.resolve())
+    const confirmUnsaved = vi.fn(() => Promise.resolve('save' as const))
+    const mockLekha = makeMockLekha({ openFileDialog, readFile, writeFile, confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useEditorStore.getState().openFile('/old.md', '# Old')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.open() })
+
+    // The save must have been called (writeFile).
+    expect(writeFile).toHaveBeenCalledWith('/old.md', '# Old')
+    // And then the open proceeded.
+    expect(readFile).toHaveBeenCalledWith('/docs/note.md')
+    expect(setMarkdown).toHaveBeenCalledWith('# New')
   })
 })
