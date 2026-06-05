@@ -10,6 +10,7 @@
   "include": [
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
+    "src/main/**/*.ts",
     "src/shared/**/*.ts",
     "tests/unit/**/*.ts",
     "tests/unit/**/*.tsx"

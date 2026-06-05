@@ -1,5 +1,8 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
+import { createSettingsStore } from '@main/settings'
+import { registerDialogHandlers } from '@main/ipc/dialog'
+import { registerFileHandlers } from '@main/ipc/files'
 
 // Last-resort handlers so a stray rejection or throw in the main process is
 // logged instead of taking the app down silently.
@@ -11,6 +14,13 @@ process.on('uncaughtException', (err) => {
 })
 
 app.setName('Lekha')
+
+// Single reference to the main window - updated every time a new window is created.
+let mainWindow: BrowserWindow | null = null
+
+function getWindow(): BrowserWindow | null {
+  return mainWindow
+}
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -24,6 +34,12 @@ function createWindow(): BrowserWindow {
       sandbox: true,
       preload: join(__dirname, '../preload/index.cjs'),
     },
+  })
+
+  mainWindow = win
+
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
   })
 
   win.on('ready-to-show', () => {
@@ -46,6 +62,14 @@ function createWindow(): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  // Settings store backed by the OS user-data directory.
+  const settings = createSettingsStore(app.getPath('userData'))
+
+  // Register IPC handlers before creating the window so they are ready
+  // the moment the renderer sends its first message.
+  registerDialogHandlers(getWindow)
+  registerFileHandlers(settings, getWindow)
+
   createWindow()
 
   app.on('activate', () => {
