@@ -1,16 +1,98 @@
+import { useRef, useCallback } from 'react'
+import { EditorPane, type EditorPaneHandle } from '@renderer/editor/EditorPane'
+import { useFileOps } from '@renderer/hooks/useFileOps'
+import { useEditorStore } from '@renderer/store/editorStore'
+import { parseMarkdown } from '@renderer/editor/parser'
+import { getOutline } from '@renderer/editor/outline'
+import { countWords } from '@renderer/editor/wordCount'
+import { TitleBar } from '@renderer/components/TitleBar'
+import { StatusBar } from '@renderer/components/StatusBar'
+import { Sidebar } from '@renderer/components/Sidebar'
+
+// ---------------------------------------------------------------------------
+// Welcome document shown on first launch (no file open)
+// ---------------------------------------------------------------------------
+
+const WELCOME_MARKDOWN = `# Welcome to Lekha
+
+Lekha is a WYSIWYG-style WYSIWYG Markdown editor.
+
+## Getting started
+
+- Open a file with **File > Open** or press \`Cmd+O\`
+- Open a folder with **File > Open Folder** to browse your notes
+- Toggle between **WYSIWYG** and **Source** view at any time
+
+## Editing
+
+Start typing to edit this document. Your changes are tracked automatically.
+
+> Lekha renders Markdown as you write - no preview step needed.
+`
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+
 export default function App() {
+  const editorRef = useRef<EditorPaneHandle>(null)
+  const fileOps = useFileOps(editorRef)
+
+  // Debounce timer ref - used to delay outline/count recomputation so we
+  // don't parse on every keystroke. Cleaned up on unmount via useCallback.
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleChange = useCallback((markdown: string) => {
+    // 1. Update store markdown and mark dirty immediately.
+    const store = useEditorStore.getState()
+    store.setMarkdown(markdown)
+    store.markDirty()
+
+    // 2. Sync the OS window title-bar dirty state if the bridge is available.
+    if (typeof window.lekha !== 'undefined') {
+      const { title, path } = store
+      window.lekha.setDocumentState({ title, dirty: true, path })
+    }
+
+    // 3. Debounce the heavier parse + outline/count recomputation (~150ms).
+    //    Cancels any pending timer so rapid keystrokes only trigger one parse.
+    if (debounceTimer.current !== null) {
+      clearTimeout(debounceTimer.current)
+    }
+    debounceTimer.current = setTimeout(() => {
+      debounceTimer.current = null
+      const doc = parseMarkdown(markdown)
+      useEditorStore.getState().setOutline(getOutline(doc))
+      useEditorStore.getState().setCounts(countWords(doc))
+    }, 150)
+  }, [])
+
+  const handleToggleSource = useCallback(() => {
+    editorRef.current?.toggleMode()
+    // Sync the new mode back to the store so StatusBar reflects the change.
+    const newMode = editorRef.current?.getMode() ?? 'wysiwyg'
+    useEditorStore.getState().setMode(newMode)
+  }, [])
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#333',
-      }}
-    >
-      <h1>Lekha</h1>
+    <div className="app">
+      <TitleBar />
+
+      <div className="workspace">
+        <Sidebar
+          onSelectFile={(path) => { void fileOps.openPath(path) }}
+          onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
+        />
+
+        <EditorPane
+          ref={editorRef}
+          initialMarkdown={WELCOME_MARKDOWN}
+          onChange={handleChange}
+          className="editor-pane"
+        />
+      </div>
+
+      <StatusBar onToggleSource={handleToggleSource} />
     </div>
   )
 }

@@ -28,6 +28,11 @@ export interface EditorPaneHandle {
   setMarkdown(md: string): void
   /** Focus the currently active editor. */
   focus(): void
+  /**
+   * Scroll the WYSIWYG editor to the given document position and focus.
+   * No-op when in source mode (position semantics don't map to CodeMirror).
+   */
+  scrollToPos(pos: number): void
 }
 
 interface EditorPaneProps {
@@ -142,6 +147,13 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
             wysiwygRef.current?.focus()
           } else {
             sourceRef.current?.focus()
+          }
+        },
+        scrollToPos(pos: number) {
+          // Only meaningful in WYSIWYG mode; source mode uses a different
+          // position space (CodeMirror character offsets), so we no-op there.
+          if (mode === 'wysiwyg') {
+            wysiwygRef.current?.scrollToPos(pos)
           }
         },
       }),

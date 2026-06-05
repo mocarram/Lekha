@@ -6,6 +6,7 @@ import {
 } from 'react'
 import { EditorView as ProseMirrorView } from 'prosemirror-view'
 import { type Node } from 'prosemirror-model'
+import { TextSelection } from 'prosemirror-state'
 import { createEditorState } from './createState'
 import { serializeMarkdown } from './serializer'
 import { taskItemNodeView } from './taskItem'
@@ -24,6 +25,11 @@ export interface EditorHandle {
   setMarkdown(md: string): void
   /** Focus the editor. */
   focus(): void
+  /**
+   * Scroll the editor to the given document position and focus.
+   * Used by the Outline panel to jump to a heading.
+   */
+  scrollToPos(pos: number): void
 }
 
 interface EditorViewProps {
@@ -103,6 +109,17 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
         },
         focus() {
           viewRef.current?.focus()
+        },
+        scrollToPos(pos: number) {
+          const view = viewRef.current
+          if (!view) return
+          const { doc } = view.state
+          // Clamp position to valid document range
+          const safePos = Math.min(Math.max(pos, 0), doc.content.size)
+          const selection = TextSelection.near(doc.resolve(safePos))
+          const tr = view.state.tr.setSelection(selection).scrollIntoView()
+          view.dispatch(tr)
+          view.focus()
         },
       }),
       [],

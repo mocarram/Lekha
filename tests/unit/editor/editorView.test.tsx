@@ -100,4 +100,17 @@ describe('EditorView component', () => {
     render(<EditorView markdown="hello" ref={ref} />)
     expect(() => ref.current!.focus()).not.toThrow()
   })
+
+  it('scrollToPos() can be called without throwing', () => {
+    const ref = createRef<EditorHandle>()
+    render(<EditorView markdown="# Hi\n\nParagraph" ref={ref} />)
+    expect(() => ref.current!.scrollToPos(0)).not.toThrow()
+  })
+
+  it('scrollToPos() clamps out-of-range positions without throwing', () => {
+    const ref = createRef<EditorHandle>()
+    render(<EditorView markdown="hello" ref={ref} />)
+    expect(() => ref.current!.scrollToPos(999999)).not.toThrow()
+    expect(() => ref.current!.scrollToPos(-1)).not.toThrow()
+  })
 })

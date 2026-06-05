@@ -29,7 +29,8 @@ function makeMockEditor(initialMarkdown = '# X') {
   const getMode = vi.fn(() => 'wysiwyg' as const)
   const toggleMode = vi.fn()
   const focus = vi.fn()
-  const handle: EditorPaneHandle = { getMarkdown, setMarkdown, getMode, toggleMode, focus }
+  const scrollToPos = vi.fn()
+  const handle: EditorPaneHandle = { getMarkdown, setMarkdown, getMode, toggleMode, focus, scrollToPos }
   return { handle, setMarkdown, getMarkdown }
 }
 

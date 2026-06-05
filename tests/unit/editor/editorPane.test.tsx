@@ -159,6 +159,21 @@ describe('EditorPane component', () => {
     expect(() => ref.current!.focus()).not.toThrow()
   })
 
+  it('scrollToPos() can be called without throwing in wysiwyg mode', () => {
+    const ref = createRef<EditorPaneHandle>()
+    render(<EditorPane initialMarkdown={SAMPLE_MD} ref={ref} />)
+    expect(() => ref.current!.scrollToPos(0)).not.toThrow()
+  })
+
+  it('scrollToPos() is a no-op (no throw) in source mode', () => {
+    const ref = createRef<EditorPaneHandle>()
+    render(<EditorPane initialMarkdown={SAMPLE_MD} ref={ref} />)
+    act(() => {
+      ref.current!.toggleMode()
+    })
+    expect(() => ref.current!.scrollToPos(0)).not.toThrow()
+  })
+
   it('onChange fires on construction from initial markdown state', () => {
     // onChange should NOT fire on mount (no change happened yet), only on edits
     const onChange = vi.fn()

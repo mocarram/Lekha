@@ -20,6 +20,7 @@
     "tests/unit/editor/**/*.tsx",
     "tests/unit/store/**/*.ts",
     "tests/unit/hooks/**/*.ts",
+    "tests/unit/components/**/*.tsx",
     "tests/unit/smoke.test.ts"
   ]
 }
