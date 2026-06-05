@@ -14,6 +14,10 @@ interface EditorState {
   outline: OutlineItem[]
   wordCount: number
   charCount: number
+  /** Focus mode: dims non-active top-level blocks (gated by CSS container class). */
+  focusMode: boolean
+  /** Typewriter mode: keeps the cursor line vertically centered in the viewport. */
+  typewriterMode: boolean
 }
 
 interface EditorActions {
@@ -31,6 +35,14 @@ interface EditorActions {
   setPath(path: string | null): void
   /** Return all state to initial defaults. */
   reset(): void
+  /** Toggle focus mode on/off. */
+  toggleFocusMode(): void
+  /** Toggle typewriter mode on/off. */
+  toggleTypewriterMode(): void
+  /** Set focus mode to an explicit value. */
+  setFocusMode(value: boolean): void
+  /** Set typewriter mode to an explicit value. */
+  setTypewriterMode(value: boolean): void
 }
 
 export type EditorStore = EditorState & EditorActions
@@ -61,6 +73,8 @@ const INITIAL_STATE: EditorState = {
   outline: [],
   wordCount: 0,
   charCount: 0,
+  focusMode: false,
+  typewriterMode: false,
 }
 
 // ---------------------------------------------------------------------------
@@ -114,5 +128,21 @@ export const useEditorStore = create<EditorStore>()((set) => ({
 
   reset() {
     set({ ...INITIAL_STATE })
+  },
+
+  toggleFocusMode() {
+    set((s) => ({ focusMode: !s.focusMode }))
+  },
+
+  toggleTypewriterMode() {
+    set((s) => ({ typewriterMode: !s.typewriterMode }))
+  },
+
+  setFocusMode(value) {
+    set({ focusMode: value })
+  },
+
+  setTypewriterMode(value) {
+    set({ typewriterMode: value })
   },
 }))

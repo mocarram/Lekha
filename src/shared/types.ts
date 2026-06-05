@@ -36,6 +36,10 @@ export interface Settings {
   windowBounds?: { x: number; y: number; width: number; height: number }
   /** Active theme id (corresponds to a ThemeDef id in the renderer theme registry). */
   theme: string
+  /** Focus mode: dims non-active top-level blocks so only the focused block is full-opacity. */
+  focusMode: boolean
+  /** Typewriter mode: keeps the cursor line vertically centered in the editor viewport. */
+  typewriterMode: boolean
 }
 
 export type EditorMode = 'wysiwyg' | 'source'

@@ -124,6 +124,28 @@ export function useCommands(
       }
 
       // ------------------------------------------------------------------
+      // Focus mode toggle (store + persist)
+      // Read the current value, toggle, then persist the new value.
+      // ------------------------------------------------------------------
+      if (cmd === 'toggleFocusMode') {
+        useEditorStore.getState().toggleFocusMode()
+        const { focusMode } = useEditorStore.getState()
+        void window.lekha.setSettings({ focusMode })
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Typewriter mode toggle (store + persist)
+      // Read the current value, toggle, then persist the new value.
+      // ------------------------------------------------------------------
+      if (cmd === 'toggleTypewriterMode') {
+        useEditorStore.getState().toggleTypewriterMode()
+        const { typewriterMode } = useEditorStore.getState()
+        void window.lekha.setSettings({ typewriterMode })
+        return
+      }
+
+      // ------------------------------------------------------------------
       // Export commands
       //
       // Get the current markdown from the active editor pane, build a

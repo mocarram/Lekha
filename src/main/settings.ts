@@ -17,6 +17,8 @@ const DEFAULTS: Settings = {
   sidebarVisible: true,
   sidebarTab: 'files',
   theme: 'github',
+  focusMode: false,
+  typewriterMode: false,
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

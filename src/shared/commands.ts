@@ -31,3 +31,5 @@ export type AppCommand =
   | 'exportHtml'
   | 'exportPdf'
   | 'exportDocx'
+  | 'toggleFocusMode'
+  | 'toggleTypewriterMode'

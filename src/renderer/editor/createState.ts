@@ -11,6 +11,8 @@ import { buildInputRules } from './inputRules'
 import { buildKeymap } from './keymap'
 import { highlightPlugin } from './plugins/highlight'
 import { findHighlightPlugin } from './plugins/findHighlight'
+import { focusModePlugin } from './plugins/focusMode'
+import { typewriterPlugin } from './plugins/typewriter'
 
 /**
  * Create a fully-configured EditorState from a Markdown string.
@@ -26,6 +28,8 @@ import { findHighlightPlugin } from './plugins/findHighlight'
  *   8. tableEditing      - GFM table cell navigation and commands
  *   9. highlightPlugin   - syntax highlighting decorations for code blocks
  *  10. findHighlightPlugin - find/replace match decorations
+ *  11. focusModePlugin   - node decoration marking the focused top-level block
+ *  12. typewriterPlugin  - view lifecycle that centers the caret line on scroll
  */
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
@@ -41,6 +45,8 @@ export function createEditorState(markdown: string): EditorState {
       tableEditing(),
       highlightPlugin(),
       findHighlightPlugin(),
+      focusModePlugin(),
+      typewriterPlugin(),
     ],
   })
 }

@@ -16,6 +16,7 @@
  */
 import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { useEditorStore } from '@renderer/store/editorStore'
 import { applyTheme } from '@renderer/themes/index'
 import type { FileOps } from './useFileOps'
 
@@ -56,6 +57,10 @@ export function useStartup(_fileOps: FileOps): void {
       // Restore persisted theme. applyTheme sets data-theme on <html> so all
       // CSS theme token overrides take effect immediately.
       applyTheme(s.theme)
+
+      // Restore focus mode and typewriter mode flags.
+      useEditorStore.getState().setFocusMode(s.focusMode)
+      useEditorStore.getState().setTypewriterMode(s.typewriterMode)
 
       // Restore last folder if one was persisted. A missing/deleted folder
       // is silently ignored to avoid noisy startup errors.

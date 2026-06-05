@@ -889,7 +889,36 @@
 }
 
 /* ===========================================================================
- * 14. Diagrams (Mermaid live preview)
+ * 14. Focus Mode
+ *
+ * When the editor container has class `focus-mode`, all top-level blocks are
+ * dimmed to --focus-dim opacity. The block that contains the cursor receives
+ * the `block-focused` class from the focusModePlugin decoration and is shown
+ * at full opacity.
+ *
+ * The transition makes the focus effect feel smooth as you move between blocks.
+ * Both light and dark themes benefit from the same approach; dark themes only
+ * need to override --focus-dim if a different opacity looks better.
+ * =========================================================================== */
+
+/* Design token: override in night.css / sepia.css if needed. */
+:root {
+  --focus-dim: 0.25;
+}
+
+/* Dim all top-level blocks when focus mode is active. */
+.editor-pane.focus-mode .ProseMirror > * {
+  opacity: var(--focus-dim);
+  transition: opacity 0.15s ease;
+}
+
+/* Restore full opacity for the focused block. */
+.editor-pane.focus-mode .ProseMirror > .block-focused {
+  opacity: 1;
+}
+
+/* ===========================================================================
+ * 15. Diagrams (Mermaid live preview)
  * =========================================================================== */
 
 .editor-pane .ProseMirror .code-block-wrapper {

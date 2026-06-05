@@ -242,6 +242,13 @@ export function buildMenuTemplate(
       item('Toggle Sidebar',     'CmdOrCtrl+\\',    'toggleSidebar', send),
       item('Toggle Source Mode', 'CmdOrCtrl+Alt+S', 'toggleSource',  send),
       sep,
+      // Focus mode (F8) and Typewriter mode (F9) - plain command items.
+      // The renderer owns the checked/active state (store + container class/attr);
+      // these items simply dispatch the toggle command. This keeps buildMenuTemplate
+      // synchronous and avoids the complexity of checkbox state in the menu template.
+      item('Focus Mode',      'F8', 'toggleFocusMode',      send),
+      item('Typewriter Mode', 'F9', 'toggleTypewriterMode', send),
+      sep,
       { role: 'reload' },
       { role: 'toggleDevTools' },
       sep,

@@ -11,6 +11,7 @@ import { EditorView, type EditorHandle } from './EditorView'
 import { SourceView, type SourceHandle } from './SourceView'
 import { parseMarkdown } from './parser'
 import { serializeMarkdown } from './serializer'
+import { useEditorStore } from '@renderer/store/editorStore'
 import type { AppCommand } from '@shared/commands'
 import type { FindOptions } from './find'
 
@@ -101,6 +102,11 @@ interface EditorPaneProps {
 export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
   function EditorPane({ initialMarkdown, onChange, className }, ref) {
     const [mode, setMode] = useState<EditorMode>('wysiwyg')
+
+    // Read focus/typewriter mode from the store.
+    // These drive the container class (focus-mode) and data attribute (data-typewriter).
+    const focusMode = useEditorStore((s) => s.focusMode)
+    const typewriterMode = useEditorStore((s) => s.typewriterMode)
 
     // Canonical markdown snapshot - the bridge between the two editors.
     // Initialized by serializing the parsed initial markdown so it is always
@@ -231,8 +237,21 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
       [mode, markdown, toggleMode],
     )
 
+    // Compose the container class: append `focus-mode` when active so the CSS
+    // dimming rules in github.css (and other themes) can target it.
+    const containerClass = [className, focusMode ? 'focus-mode' : '']
+      .filter(Boolean)
+      .join(' ')
+
     return (
-      <div className={className}>
+      // data-typewriter="on" is the sentinel read by the typewriter plugin's
+      // view.update() to decide whether to center the caret on each update.
+      // We set it on the same element that carries focus-mode so the typewriter
+      // plugin's closest('[data-typewriter="on"]') finds the scroll container.
+      <div
+        className={containerClass}
+        data-typewriter={typewriterMode ? 'on' : undefined}
+      >
         {mode === 'wysiwyg' ? (
           <EditorView
             ref={wysiwygRef}
