@@ -124,18 +124,19 @@ export const SourceView = forwardRef<SourceHandle, SourceViewProps>(
     useImperativeHandle(
       ref,
       () => {
-        // Testing seam: _cmView exposes the underlying CM view so tests can
-        // dispatch transactions without a real DOM keyboard event. Declared as
-        // a non-optional property typed `CMEditorView | undefined` to satisfy
+        // Testing seam: __testCmView exposes the underlying CM view so tests
+        // can dispatch transactions without a real DOM keyboard event. The
+        // double-underscore prefix signals test-only intent. Declared as a
+        // non-optional property typed `CMEditorView | undefined` to satisfy
         // exactOptionalPropertyTypes.
-        const handle: SourceHandle & { _cmView: CMEditorView | undefined } = {
+        const handle: SourceHandle & { __testCmView: CMEditorView | undefined } = {
           getValue() {
             return viewRef.current?.state.doc.toString() ?? ''
           },
           focus() {
             viewRef.current?.focus()
           },
-          get _cmView(): CMEditorView | undefined {
+          get __testCmView(): CMEditorView | undefined {
             return viewRef.current ?? undefined
           },
         }

@@ -1,0 +1,694 @@
+/*
+ * themes/github.css - WYSIWYG GitHub default theme for Lekha
+ *
+ * Defines CSS custom properties on :root and applies them across every
+ * structural area of the app. The palette is intentionally DRY: all colors
+ * are defined as variables at the top so adding a second theme later only
+ * requires overriding :root.
+ *
+ * Light theme only (Phase 1). No dark-mode media query.
+ *
+ * Organization:
+ *   1. CSS custom properties (palette + typography scale)
+ *   2. App chrome (title bar, status bar, sidebar)
+ *   3. Editor column (ProseMirror container)
+ *   4. Editor typography (headings, paragraph, lists, blockquote, hr, images)
+ *   5. Inline and block code
+ *   6. Code syntax highlighting (GitHub light hljs palette)
+ *   7. Tables
+ *   8. Task items
+ *   9. Find/Replace (highlights + overlay)
+ *  10. Source mode (CodeMirror)
+ *  11. Scrollbars
+ */
+
+/* ===========================================================================
+ * 1. CSS Custom Properties
+ * =========================================================================== */
+
+:root {
+  /* --- Surface colors --- */
+  --gh-bg:           #ffffff;
+  --gh-surface:      #fafafa;
+  --gh-border:       #ededed;
+  --gh-border-light: #e1e4e8;
+
+  /* --- Text colors --- */
+  --gh-text:         #333333;
+  --gh-text-muted:   #9b9b9b;
+  --gh-text-sub:     #6a737d;
+  --gh-text-dark:    #2b2b2b;
+  --gh-text-file:    #4a4a4a;
+
+  /* --- Accent / link --- */
+  --gh-link:         #4183c4;
+
+  /* --- Editor content colors --- */
+  --gh-blockquote-border: #dfe2e5;
+  --gh-table-border:      #dfe2e5;
+  --gh-table-header-bg:   #f6f8fa;
+  --gh-code-bg:           #f6f8fa;
+  --gh-code-bg-inline:    #f8f8f8;
+  --gh-hr-color:          #e1e4e8;
+
+  /* --- Sidebar active row --- */
+  --gh-row-active-bg:     #e8e8e8;
+  --gh-row-hover-bg:      #efefef;
+
+  /* --- Find highlights --- */
+  --gh-find-match:        #fff3b0;
+  --gh-find-match-current:#ffb454;
+
+  /* --- Selection --- */
+  --gh-selection:    #d7e4ff;
+
+  /* --- Typography --- */
+  --gh-font-editor:  "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --gh-font-mono:    "SF Mono", "Consolas", "Liberation Mono", Menlo, monospace;
+  --gh-font-ui:      -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  /* Override the structural fallbacks defined in global.css */
+  --color-bg:        var(--gh-bg);
+  --color-surface:   var(--gh-surface);
+  --color-border:    var(--gh-border);
+  --color-text:      var(--gh-text);
+  --color-text-muted: var(--gh-text-muted);
+  --color-accent:    var(--gh-link);
+  --font-editor:     var(--gh-font-editor);
+  --font-mono:       var(--gh-font-mono);
+  --font-ui:         var(--gh-font-ui);
+}
+
+/* ===========================================================================
+ * 2. App Chrome
+ * =========================================================================== */
+
+/* --- Title bar --- */
+.title-bar {
+  background-color: var(--gh-surface);
+  border-bottom: 1px solid var(--gh-border);
+}
+
+.title-bar__title {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--gh-text-muted);
+  font-family: var(--gh-font-ui);
+}
+
+.title-bar__dirty {
+  color: var(--gh-text-muted);
+  opacity: 0.6;
+}
+
+/* --- Status bar --- */
+.status-bar {
+  background-color: var(--gh-surface);
+  border-top: 1px solid var(--gh-border);
+  font-size: 11px;
+  color: var(--gh-text-muted);
+  font-family: var(--gh-font-ui);
+}
+
+.status-bar__stat {
+  color: var(--gh-text-muted);
+}
+
+.status-bar__sep {
+  color: var(--gh-text-muted);
+  opacity: 0.5;
+}
+
+.status-bar__mode-btn {
+  font-size: 11px;
+  color: var(--gh-text-muted);
+  font-family: var(--gh-font-ui);
+  border-radius: 3px;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.status-bar__mode-btn:hover {
+  color: var(--gh-text);
+  background-color: var(--gh-row-hover-bg);
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  background-color: var(--gh-surface);
+  border-right: 1px solid var(--gh-border);
+}
+
+/* Bottom tab bar */
+.sidebar__tabs {
+  border-top: 1px solid var(--gh-border);
+  background-color: var(--gh-surface);
+}
+
+.sidebar__tab-btn {
+  font-size: 11px;
+  font-family: var(--gh-font-ui);
+  color: var(--gh-text-muted);
+  transition: color 0.12s ease;
+}
+
+.sidebar__tab-btn:hover {
+  color: var(--gh-text-dark);
+}
+
+.sidebar__tab-btn.active {
+  color: var(--gh-text-dark);
+  font-weight: 600;
+}
+
+/* --- File tree --- */
+.file-tree__row {
+  font-size: 13px;
+  color: var(--gh-text-file);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.1s ease;
+}
+
+.file-tree__row:hover {
+  background-color: var(--gh-row-hover-bg);
+}
+
+/* Active file row */
+.file-tree__row.active {
+  background-color: var(--gh-row-active-bg);
+  color: var(--gh-text-dark);
+  font-weight: 600;
+}
+
+.file-tree__arrow {
+  color: var(--gh-text-muted);
+}
+
+/* --- Outline panel --- */
+.outline__item {
+  font-size: 13px;
+  color: var(--gh-text-file);
+  border-radius: 4px;
+  transition: background-color 0.1s ease;
+}
+
+.outline__item:hover {
+  background-color: var(--gh-row-hover-bg);
+}
+
+.outline__empty {
+  color: var(--gh-text-muted);
+  font-style: italic;
+  font-size: 12px;
+  font-family: var(--gh-font-ui);
+}
+
+/* ===========================================================================
+ * 3. Editor Column
+ * =========================================================================== */
+
+.editor-pane {
+  background-color: var(--gh-bg);
+  overflow-y: auto;
+}
+
+/*
+ * ProseMirror container: centered column matching WYSIWYG's GitHub theme layout.
+ * max-width 800px, generous horizontal padding, margin auto to center.
+ * The min-height: 100% ensures the click target fills the pane even for
+ * short documents.
+ */
+.editor-pane .ProseMirror {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 30px 60px;
+  font-family: var(--gh-font-editor);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--gh-text);
+  background-color: var(--gh-bg);
+  outline: none;
+  min-height: 100%;
+}
+
+/* Editor text selection */
+.editor-pane .ProseMirror ::selection {
+  background-color: var(--gh-selection);
+}
+
+/* ===========================================================================
+ * 4. Editor Typography
+ * =========================================================================== */
+
+/* --- Headings --- */
+.editor-pane .ProseMirror h1,
+.editor-pane .ProseMirror h2,
+.editor-pane .ProseMirror h3,
+.editor-pane .ProseMirror h4,
+.editor-pane .ProseMirror h5,
+.editor-pane .ProseMirror h6 {
+  font-family: var(--gh-font-editor);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  color: var(--gh-text);
+}
+
+.editor-pane .ProseMirror h1 {
+  font-size: 2em;
+  border-bottom: 1px solid var(--gh-border-light);
+  padding-bottom: 0.3em;
+}
+
+.editor-pane .ProseMirror h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--gh-border-light);
+  padding-bottom: 0.3em;
+}
+
+.editor-pane .ProseMirror h3 {
+  font-size: 1.25em;
+}
+
+.editor-pane .ProseMirror h4 {
+  font-size: 1em;
+}
+
+.editor-pane .ProseMirror h5 {
+  font-size: 0.875em;
+}
+
+.editor-pane .ProseMirror h6 {
+  font-size: 0.85em;
+  color: var(--gh-text-sub);
+}
+
+/* --- Paragraph --- */
+.editor-pane .ProseMirror p {
+  margin: 0 0 1em;
+  font-size: 16px;
+}
+
+/* --- Links --- */
+.editor-pane .ProseMirror a {
+  color: var(--gh-link);
+  text-decoration: none;
+}
+
+.editor-pane .ProseMirror a:hover {
+  text-decoration: underline;
+}
+
+/* --- Blockquote --- */
+.editor-pane .ProseMirror blockquote {
+  border-left: 4px solid var(--gh-blockquote-border);
+  color: var(--gh-text-sub);
+  padding: 0 1em;
+  margin: 0 0 1em;
+}
+
+.editor-pane .ProseMirror blockquote p {
+  margin-bottom: 0;
+}
+
+/* --- Unordered / ordered lists --- */
+.editor-pane .ProseMirror ul,
+.editor-pane .ProseMirror ol {
+  padding-left: 2em;
+  margin: 0 0 1em;
+}
+
+.editor-pane .ProseMirror li {
+  margin: 0.25em 0;
+}
+
+/* Nested list - remove extra bottom margin */
+.editor-pane .ProseMirror li > ul,
+.editor-pane .ProseMirror li > ol {
+  margin-bottom: 0;
+}
+
+/* --- Horizontal rule --- */
+.editor-pane .ProseMirror hr {
+  height: 1px;
+  background-color: var(--gh-hr-color);
+  border: 0;
+  margin: 1.5em 0;
+}
+
+/* --- Images --- */
+.editor-pane .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===========================================================================
+ * 5. Inline and Block Code
+ * =========================================================================== */
+
+/* Inline code (code mark - NOT inside pre) */
+.editor-pane .ProseMirror :not(pre) > code {
+  background-color: var(--gh-code-bg-inline);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  font-family: var(--gh-font-mono);
+  font-size: 0.9em;
+  color: var(--gh-text);
+}
+
+/* Fenced code blocks */
+.editor-pane .ProseMirror pre {
+  background-color: var(--gh-code-bg);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 0 0 1em;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+.editor-pane .ProseMirror pre code {
+  font-family: var(--gh-font-mono);
+  font-size: 0.85em;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--gh-text);
+}
+
+/* ===========================================================================
+ * 6. Syntax Highlighting - GitHub Light hljs Palette
+ * =========================================================================== */
+
+.editor-pane .ProseMirror pre .hljs-keyword,
+.editor-pane .ProseMirror pre .hljs-selector-tag,
+.editor-pane .ProseMirror pre .hljs-deletion {
+  color: #d73a49;
+}
+
+.editor-pane .ProseMirror pre .hljs-string,
+.editor-pane .ProseMirror pre .hljs-regexp,
+.editor-pane .ProseMirror pre .hljs-addition,
+.editor-pane .ProseMirror pre .hljs-meta-string {
+  color: #032f62;
+}
+
+.editor-pane .ProseMirror pre .hljs-comment,
+.editor-pane .ProseMirror pre .hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.editor-pane .ProseMirror pre .hljs-function,
+.editor-pane .ProseMirror pre .hljs-title {
+  color: #6f42c1;
+}
+
+.editor-pane .ProseMirror pre .hljs-number,
+.editor-pane .ProseMirror pre .hljs-literal {
+  color: #005cc5;
+}
+
+.editor-pane .ProseMirror pre .hljs-built_in,
+.editor-pane .ProseMirror pre .hljs-attr {
+  color: #005cc5;
+}
+
+.editor-pane .ProseMirror pre .hljs-tag,
+.editor-pane .ProseMirror pre .hljs-name {
+  color: #22863a;
+}
+
+.editor-pane .ProseMirror pre .hljs-attribute,
+.editor-pane .ProseMirror pre .hljs-variable,
+.editor-pane .ProseMirror pre .hljs-template-variable {
+  color: #e36209;
+}
+
+.editor-pane .ProseMirror pre .hljs-type,
+.editor-pane .ProseMirror pre .hljs-class {
+  color: #6f42c1;
+}
+
+.editor-pane .ProseMirror pre .hljs-symbol,
+.editor-pane .ProseMirror pre .hljs-bullet,
+.editor-pane .ProseMirror pre .hljs-subst {
+  color: #005cc5;
+}
+
+.editor-pane .ProseMirror pre .hljs-section {
+  color: #005cc5;
+  font-weight: bold;
+}
+
+.editor-pane .ProseMirror pre .hljs-emphasis {
+  font-style: italic;
+}
+
+.editor-pane .ProseMirror pre .hljs-strong {
+  font-weight: bold;
+}
+
+/* ===========================================================================
+ * 7. Tables
+ * =========================================================================== */
+
+.editor-pane .ProseMirror table {
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  width: 100%;
+  overflow: auto;
+  display: block;
+}
+
+.editor-pane .ProseMirror th,
+.editor-pane .ProseMirror td {
+  border: 1px solid var(--gh-table-border);
+  padding: 6px 13px;
+  text-align: left;
+}
+
+.editor-pane .ProseMirror th {
+  background-color: var(--gh-table-header-bg);
+  font-weight: 600;
+}
+
+/* Alternating row tint (GitHub style) */
+.editor-pane .ProseMirror tr:nth-child(2n) {
+  background-color: var(--gh-table-header-bg);
+}
+
+/* ===========================================================================
+ * 8. Task Items
+ * =========================================================================== */
+
+/*
+ * task-item: rendered by taskItemNodeView as <li class="task-item">.
+ * The outer <li> removes the default list marker; the checkbox is positioned
+ * to the left with a small gap before the item content.
+ */
+.editor-pane .ProseMirror li.task-item {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0.25em 0;
+}
+
+/* The checkbox wrapper span (contenteditable=false) */
+.editor-pane .ProseMirror li.task-item > span[contenteditable="false"] {
+  flex-shrink: 0;
+  margin-top: 3px; /* optical vertical alignment with first line of text */
+}
+
+.editor-pane .ProseMirror li.task-item input[type="checkbox"] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* Content span: the ProseMirror contentDOM */
+.editor-pane .ProseMirror li.task-item > span:last-child {
+  flex: 1;
+}
+
+/* Checked task item: muted text like WYSIWYG */
+.editor-pane .ProseMirror li.task-item[data-checked="true"] > span:last-child {
+  color: var(--gh-text-sub);
+  text-decoration: line-through;
+  text-decoration-color: var(--gh-text-muted);
+}
+
+/* Also target via the task_item schema attr (data-checked attribute on the li) */
+.editor-pane .ProseMirror li.task-list-item[data-checked="true"] > span:last-child {
+  color: var(--gh-text-sub);
+}
+
+/* Remove default list-style from the task-list container */
+.editor-pane .ProseMirror ul.contains-task-list {
+  list-style: none;
+  padding-left: 1.5em;
+}
+
+/* ===========================================================================
+ * 9. Find / Replace
+ * =========================================================================== */
+
+/* --- Match highlights (ProseMirror decorations) --- */
+.find-match {
+  background-color: var(--gh-find-match);
+  border-radius: 2px;
+}
+
+.find-match--current {
+  background-color: var(--gh-find-match-current);
+  border-radius: 2px;
+}
+
+/* --- FindReplace overlay --- */
+/*
+ * Floating card in the top-right corner of the app.
+ * Class names from FindReplace.tsx: .find-replace-overlay, .find-replace-row,
+ * .find-replace-input, .find-replace-btn, .find-replace-btn-toggle,
+ * .find-replace-count, .find-replace-close
+ */
+.find-replace-overlay {
+  position: fixed;
+  top: calc(var(--titlebar-height) + 8px);
+  right: 16px;
+  z-index: 100;
+  background-color: var(--gh-bg);
+  border: 1px solid var(--gh-border-light);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 280px;
+}
+
+.find-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.find-replace-input {
+  flex: 1;
+  font-size: 13px;
+  font-family: var(--gh-font-ui);
+  color: var(--gh-text);
+  background-color: var(--gh-bg);
+  border: 1px solid var(--gh-border-light);
+  border-radius: 4px;
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.find-replace-input:focus {
+  border-color: var(--gh-link);
+}
+
+.find-replace-btn,
+.find-replace-btn-toggle,
+.find-replace-close {
+  font-size: 12px;
+  font-family: var(--gh-font-ui);
+  color: var(--gh-text-sub);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 3px 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.1s ease, background-color 0.1s ease, border-color 0.1s ease;
+}
+
+.find-replace-btn:hover,
+.find-replace-close:hover {
+  color: var(--gh-text);
+  background-color: var(--gh-row-hover-bg);
+  border-color: var(--gh-border);
+}
+
+/* Case-sensitive toggle - active state */
+.find-replace-btn-toggle {
+  font-weight: 600;
+}
+
+.find-replace-btn-toggle.active {
+  color: var(--gh-link);
+  background-color: #e8f0fe;
+  border-color: var(--gh-link);
+}
+
+.find-replace-count {
+  font-size: 11px;
+  color: var(--gh-text-muted);
+  white-space: nowrap;
+  min-width: 48px;
+  text-align: right;
+}
+
+.find-replace-close {
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+/* ===========================================================================
+ * 10. Source Mode (CodeMirror)
+ * =========================================================================== */
+
+/*
+ * The SourceView wrapper div fills the editor-pane. CodeMirror mounts its
+ * own DOM (.cm-editor) inside it.
+ */
+.editor-pane > div > .cm-editor {
+  height: 100%;
+  font-family: var(--gh-font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.editor-pane > div > .cm-editor .cm-content {
+  padding: 40px 30px;
+  max-width: 800px;
+  margin: 0 auto;
+  color: var(--gh-text);
+}
+
+.editor-pane > div > .cm-editor .cm-line {
+  color: var(--gh-text);
+}
+
+.editor-pane > div > .cm-editor .cm-cursor {
+  border-left-color: var(--gh-text);
+}
+
+/* ===========================================================================
+ * 11. Scrollbars (thin, Webkit)
+ * =========================================================================== */
+
+.editor-pane::-webkit-scrollbar,
+.sidebar__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-pane::-webkit-scrollbar-track,
+.sidebar__content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-pane::-webkit-scrollbar-thumb,
+.sidebar__content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.editor-pane::-webkit-scrollbar-thumb:hover,
+.sidebar__content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}

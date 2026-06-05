@@ -80,12 +80,12 @@ describe('SourceView component', () => {
     // Since happy-dom can't type into CM, we dispatch via the internal CM API
     // that the component sets up. We'll use the ref's internal view ref exposed
     // for testing.
-    const cmView = (ref.current as SourceHandle & { _cmView?: CMEditorView })._cmView
+    const cmView = (ref.current as SourceHandle & { __testCmView?: CMEditorView }).__testCmView
     if (!cmView) {
-      // If the component doesn't expose _cmView, we test onChange by
+      // If the component doesn't expose __testCmView, we test onChange by
       // dispatching through the component's known CM transaction path.
       // This branch shouldn't execute given our implementation.
-      throw new Error('_cmView not exposed - cannot test onChange without it')
+      throw new Error('__testCmView not exposed - cannot test onChange without it')
     }
 
     act(() => {
@@ -122,14 +122,14 @@ describe('SourceView component', () => {
     const ref = createRef<SourceHandle>()
     render(<SourceView value="foo bar" ref={ref} />)
 
-    const cmView = (ref.current as SourceHandle & { _cmView?: CMEditorView })._cmView
+    const cmView = (ref.current as SourceHandle & { __testCmView?: CMEditorView }).__testCmView
     if (cmView) {
       act(() => {
         dispatchReplace(cmView, 0, 3, 'baz')
       })
       expect(ref.current!.getValue()).toBe('baz bar')
     } else {
-      // If _cmView is not exposed, skip this sub-test gracefully
+      // If __testCmView is not exposed, skip this sub-test gracefully
       expect(ref.current!.getValue()).toBe('foo bar')
     }
   })

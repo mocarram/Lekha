@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import { EditorPane, type EditorPaneHandle } from '@renderer/editor/EditorPane'
 import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
@@ -53,8 +53,14 @@ export default function App() {
   })
 
   // Debounce timer ref - used to delay outline/count recomputation so we
-  // don't parse on every keystroke. Cleaned up on unmount via useCallback.
+  // don't parse on every keystroke. Cleared on unmount to avoid a setState
+  // call on an already-unmounted component.
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cleanup: clear any pending debounce timer on unmount.
+  useEffect(() => () => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+  }, [])
 
   const handleChange = useCallback((markdown: string) => {
     // 1. Update store markdown and mark dirty immediately.

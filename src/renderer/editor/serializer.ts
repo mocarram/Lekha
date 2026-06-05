@@ -47,9 +47,11 @@ function renderMixedList(state: MarkdownSerializerState, node: Node): void {
 
 /** Serialize a single cell's content to inline Markdown, escaping table syntax. */
 function serializeCell(cell: Node): string {
-  // Reuse the serializer's inline rendering by serializing the cell's lone
-  // paragraph in isolation, then flatten and escape pipes/newlines so they do
-  // not break the row.
+  // Forward reference: serializeCell calls serializeMarkdown which is defined
+  // below (after the `const serializer` declaration). This is safe because
+  // serializeCell is only ever invoked at serialize-time - i.e. when
+  // renderTable is called by the MarkdownSerializer - at which point
+  // serializeMarkdown has already been initialized in the module scope.
   const inline = serializeMarkdown(cell).trim()
   return inline.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ')
 }

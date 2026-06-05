@@ -29,9 +29,9 @@ export function countWords(doc: Node): DocCounts {
     // Collect text from every leaf block (paragraphs, headings, code blocks,
     // list items, table cells, blockquotes — anything that isBlock and isLeaf
     // in the ProseMirror sense, i.e. has no block children but does have text).
-    // We detect this by checking `node.isBlock` and `node.textContent !== ''`
-    // only for nodes whose children are all inline (isTextblock) OR code nodes.
-    if (node.isTextblock || (node.isBlock && node.type.spec['code'] === true)) {
+    // `node.isTextblock` already covers code_block nodes (they are textblocks
+    // per the schema: content 'text*', code: true). No separate branch needed.
+    if (node.isTextblock) {
       const text = node.textContent
       if (text.length > 0) {
         segments.push(text)
