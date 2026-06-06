@@ -434,21 +434,39 @@
   margin-bottom: 0;
 }
 
-/* --- Unordered / ordered lists --- */
+/* --- Unordered / ordered / task lists ---
+ *
+ * All three list flavors share the SAME left padding so bullets, numbers, and
+ * checkboxes line up at one consistent left edge (WYSIWYG-tight alignment). The
+ * `--list-indent` token drives both the outer indent and each nested level.
+ */
+:root {
+  --list-indent: 1.6em;
+}
+
 .editor-pane .ProseMirror ul,
-.editor-pane .ProseMirror ol {
-  padding-left: 2em;
+.editor-pane .ProseMirror ol,
+.editor-pane .ProseMirror ul.contains-task-list {
+  padding-left: var(--list-indent);
   margin: 0 0 1em;
 }
 
+/* Tight list items: minimal vertical rhythm between items. */
 .editor-pane .ProseMirror li {
-  margin: 0.25em 0;
+  margin: 0.15em 0;
 }
 
-/* Nested list - remove extra bottom margin */
+/* The loose feel comes from the paragraph margins INSIDE each item. Collapse
+ * them so single-line items read as one tight line (matching WYSIWYG). */
+.editor-pane .ProseMirror li > p {
+  margin: 0;
+}
+
+/* Nested list: indent exactly one level, no extra surrounding margin. */
 .editor-pane .ProseMirror li > ul,
-.editor-pane .ProseMirror li > ol {
-  margin-bottom: 0;
+.editor-pane .ProseMirror li > ol,
+.editor-pane .ProseMirror li > ul.contains-task-list {
+  margin: 0.15em 0 0;
 }
 
 /* --- Horizontal rule --- */
@@ -600,7 +618,7 @@
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  margin: 0.25em 0;
+  margin: 0.15em 0;
 }
 
 .editor-pane .ProseMirror li.task-item > span[contenteditable="false"] {
@@ -628,9 +646,11 @@
   color: var(--text-sub);
 }
 
+/* Task lists drop the bullet marker but keep the shared --list-indent padding
+ * (defined with the other list types above) so checkboxes align with bullets
+ * and numbers at the same left edge. */
 .editor-pane .ProseMirror ul.contains-task-list {
   list-style: none;
-  padding-left: 1.5em;
 }
 
 /* ===========================================================================
