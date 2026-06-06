@@ -555,3 +555,9 @@ Implemented (build order b, near-finished):
 
 Tests: +6 (movedPath pure, movePath IO incl. collision-reject, moveFileTo dispatch; +3 LekhaAPI mocks updated with movePath, +1 FileOps mock). 1197 unit + 7 e2e green.
 Deferred: **Rename current** needs a small dialog component (Electron disables window.prompt) - next wave.
+
+### Wave 9 - Print (`feat/wysiwyg-print`)
+Implemented (build order c):
+- **Print…** - new `window:print` IPC (fire-and-forget); main calls `event.sender.print()` so the OS print dialog (page setup included) opens for the sending window. Preload `print()`, AppCommand `print`, useCommands handler, File ▸ Print…, command registry. No accelerator (Cmd+P stays Quick Open in Lekha).
+
+Tests: +1 dispatch + registry; updated all 4 LekhaAPI mocks with print. 1198 unit + 7 e2e green.

@@ -11,6 +11,7 @@ export type AppCommand =
   | 'duplicateFile'
   | 'moveFileTo'
   | 'deleteFile'
+  | 'print'
   | 'toggleSource'
   | 'toggleSidebar'
   | 'find'

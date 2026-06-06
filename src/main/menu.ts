@@ -213,6 +213,10 @@ export function buildMenuTemplate(
           item('Export to OPML…',        undefined, 'exportOpml',  send),
         ],
       },
+      sep,
+      // Print uses the native dialog (page setup is inside it). No accelerator:
+      // Cmd+P is Quick Open in Lekha.
+      item('Print…', undefined, 'print', send),
     ],
   })
 

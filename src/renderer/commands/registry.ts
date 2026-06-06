@@ -36,6 +36,7 @@ export const COMMANDS: CommandDef[] = [
   { id: 'deleteFile', label: 'Move to Trash…', group: 'File' },
   { id: 'revealInFileTree', label: 'Reveal in File Tree', group: 'File' },
   { id: 'showInFinder', label: 'Open File Location', group: 'File' },
+  { id: 'print', label: 'Print…', group: 'File' },
 
   // View
   { id: 'presentation', label: 'Enter Presentation', group: 'View', shortcut: 'F5' },

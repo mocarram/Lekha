@@ -131,6 +131,12 @@ export function useCommands(
         void fo.newFile()
         return
       }
+      if (cmd === 'print') {
+        // Open the native print dialog for this window (main calls
+        // webContents.print on the sender).
+        window.lekha.print()
+        return
+      }
       if (cmd === 'newWindow') {
         // Ask main to open a fresh, independent window. The native menu opens
         // windows directly in main; this path covers the renderer-routed case.

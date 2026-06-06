@@ -53,6 +53,7 @@ function makeMockLekha(
     addRecentFile: vi.fn(() => Promise.resolve()),
     setDocumentState: vi.fn(),
     newWindow: vi.fn(),
+    print: vi.fn(),
     onCommand: vi.fn(() => unsubscribe),
     onOpenPath: vi.fn(() => unsubscribe),
     onSetTheme: vi.fn(() => unsubscribe),

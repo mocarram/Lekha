@@ -332,6 +332,10 @@ void app.whenReady().then(async () => {
   // windows directly via openNewWindow without this round-trip.)
   ipcMain.on(IPC.newWindow, () => { openNewWindow() })
 
+  // Print: open the native print dialog for the window that asked. Printing the
+  // sender (not the focused window) keeps the right document in multi-window use.
+  ipcMain.on(IPC.print, (event) => { event.sender.print() })
+
   // Remember valid saved bounds for restoring/cascading future windows.
   savedWindowBounds = isSaneBounds(initialSettings.windowBounds)
     ? initialSettings.windowBounds

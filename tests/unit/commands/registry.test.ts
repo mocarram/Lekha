@@ -26,6 +26,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'duplicateFile',
   'moveFileTo',
   'deleteFile',
+  'print',
   'toggleSource',
   'toggleSidebar',
   'find',

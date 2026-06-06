@@ -180,6 +180,7 @@ function stubLekha(): void {
     }),
     onOpenPath: vi.fn(() => () => undefined),
     newWindow: vi.fn(),
+    print: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
     exportHtml: vi.fn(() => Promise.resolve()),
@@ -271,6 +272,19 @@ describe('useCommands - file operation routing', () => {
 
     const { newWindow } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
     expect(newWindow).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "print" calls window.lekha.print()', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('print') })
+
+    const { print } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(print).toHaveBeenCalledOnce()
   })
 
   it('dispatching "open" calls fileOps.open()', () => {

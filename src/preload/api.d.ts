@@ -63,6 +63,9 @@ export interface LekhaAPI {
   /** Open a new, independent editor window (fresh single-document instance). */
   newWindow(): void
 
+  /** Open the OS print dialog for this window. */
+  print(): void
+
   // --- Commands from main ---
   /**
    * Subscribe to app commands broadcast from the main process (menu items, etc.).
