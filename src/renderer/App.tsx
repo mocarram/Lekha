@@ -28,6 +28,7 @@ import { flattenFiles } from '@renderer/commands/files'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
+import { SIDEBAR_DEFAULT_WIDTH } from '@renderer/components/sidebarResizerUtils'
 
 // ---------------------------------------------------------------------------
 // Welcome document shown on first launch (no file open)
@@ -69,8 +70,14 @@ export default function App() {
   const editorRef = useRef<EditorPaneHandle>(null)
   const fileOps = useFileOps(editorRef)
 
+  // Sidebar width: restored from settings on startup, updated live via drag.
+  // Declared before useStartup so the setter can be passed to the hook.
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH)
+
   // Restore persisted settings on mount and persist sidebar/folder changes.
-  useStartup(fileOps)
+  // The second argument receives the restored sidebarWidth so the React state
+  // is kept in sync with the CSS variable applied by useStartup.
+  useStartup(fileOps, setSidebarWidth)
 
   // Auto-save: debounced write for saved (has-path) dirty documents.
   const autoSave = useEditorStore((s) => s.autoSave)
@@ -386,6 +393,8 @@ export default function App() {
           onRenameEntry={handleRenameEntry}
           onDeleteEntry={handleDeleteEntry}
           onRevealEntry={handleRevealEntry}
+          sidebarWidth={sidebarWidth}
+          onSidebarWidthChange={setSidebarWidth}
         />
 
         <EditorPane

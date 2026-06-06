@@ -46,6 +46,8 @@ describe('Sidebar', () => {
     onRenameEntry: noop,
     onDeleteEntry: noop,
     onRevealEntry: noop,
+    sidebarWidth: 240,
+    onSidebarWidthChange: noop,
   }
 
   it('renders the sidebar root element', () => {

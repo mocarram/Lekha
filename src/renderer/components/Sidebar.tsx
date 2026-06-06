@@ -3,6 +3,7 @@ import { useEditorStore } from '@renderer/store/editorStore'
 import { FileTree } from './FileTree'
 import { Outline } from './Outline'
 import { FolderSearch } from './FolderSearch'
+import { SidebarResizer } from './SidebarResizer'
 
 interface SidebarProps {
   /** Called when the user selects a file from the file tree. */
@@ -25,6 +26,10 @@ interface SidebarProps {
   onDeleteEntry: (path: string) => void | Promise<void>
   /** Reveal `path` in the OS file manager. */
   onRevealEntry: (path: string) => void
+  /** Current sidebar width in pixels - driven from persisted settings. */
+  sidebarWidth: number
+  /** Called when the drag handle changes the width (live updates). */
+  onSidebarWidthChange: (px: number) => void
 }
 
 /**
@@ -47,6 +52,8 @@ export function Sidebar({
   onRenameEntry,
   onDeleteEntry,
   onRevealEntry,
+  sidebarWidth,
+  onSidebarWidthChange,
 }: SidebarProps) {
   const sidebarVisible = useWorkspaceStore((s) => s.sidebarVisible)
   const sidebarTab = useWorkspaceStore((s) => s.sidebarTab)
@@ -59,7 +66,7 @@ export function Sidebar({
   if (!sidebarVisible) return null
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{ width: sidebarWidth }}>
       <div className="sidebar__content">
         {sidebarTab === 'files' ? (
           <FileTree
@@ -81,6 +88,12 @@ export function Sidebar({
           />
         )}
       </div>
+
+      {/* Drag handle on the right edge */}
+      <SidebarResizer
+        currentWidth={sidebarWidth}
+        onWidthChange={onSidebarWidthChange}
+      />
 
       {/* Tab switcher at the bottom (WYSIWYG-style) */}
       <div className="sidebar__tabs">

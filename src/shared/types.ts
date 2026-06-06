@@ -23,9 +23,12 @@ export interface ThemeDef {
  * The renderer's src/renderer/themes/index.ts re-exports this for convenience.
  */
 export const THEMES: ThemeDef[] = [
-  { id: 'github', label: 'GitHub' },
-  { id: 'night',  label: 'Night'  },
-  { id: 'sepia',  label: 'Sepia'  },
+  { id: 'github',          label: 'GitHub'         },
+  { id: 'night',           label: 'Night'          },
+  { id: 'sepia',           label: 'Sepia'          },
+  { id: 'solarized-light', label: 'Solarized Light' },
+  { id: 'solarized-dark',  label: 'Solarized Dark'  },
+  { id: 'nord',            label: 'Nord'            },
 ]
 
 /** A single line match inside a file during folder-wide search. */
@@ -64,6 +67,11 @@ export interface Settings {
   autoSave: boolean
   /** Spell check: enable the Electron/Chromium native spell-checker underlines. */
   spellCheck: boolean
+  /**
+   * Sidebar width in pixels. Persisted so the resized width survives restarts.
+   * Clamped to [SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH] on restore.
+   */
+  sidebarWidth: number
   /**
    * BCP-47 language tag for the spell-checker (e.g. 'en-US', 'fr').
    * Applied via session.setSpellCheckerLanguages.

@@ -25,6 +25,7 @@ const DEFAULTS: Settings = {
   autoSave: true,
   spellCheck: true,
   spellCheckLanguage: 'en-US',
+  sidebarWidth: 240,
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

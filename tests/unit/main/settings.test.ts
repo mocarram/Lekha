@@ -54,6 +54,20 @@ describe('createSettingsStore', () => {
     expect(persisted.spellCheckLanguage).toBe('fr')
   })
 
+  it('sidebarWidth defaults to 240', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.sidebarWidth).toBe(240)
+  })
+
+  it('round-trips sidebarWidth=360', async () => {
+    const store = createSettingsStore(tmpDir)
+    await store.set({ sidebarWidth: 360 })
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.sidebarWidth).toBe(360)
+  })
+
   it('equationNumbering defaults to true', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()

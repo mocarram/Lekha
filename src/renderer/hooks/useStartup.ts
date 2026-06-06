@@ -18,6 +18,7 @@ import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { applyTheme, applyFontSize } from '@renderer/themes/index'
+import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
 import type { FileOps } from './useFileOps'
 
 // Debounce interval (ms) for persisting sidebar state changes.
@@ -29,14 +30,17 @@ const PERSIST_DEBOUNCE_MS = 300
  *
  * @param _fileOps - Reserved for future use (e.g. openPath on restored recents).
  *   Currently unused; folder restore uses window.lekha.readDir directly.
+ * @param onSidebarWidth - Called with the restored sidebar width (px) so App
+ *   can update its sidebarWidth state and apply the CSS variable.
  */
-export function useStartup(_fileOps: FileOps): void {
+export function useStartup(_fileOps: FileOps, onSidebarWidth?: (px: number) => void): void {
   // Tracks whether we are currently in the initial restore phase.
   // Using a plain ref (not state) so changes to it never cause re-renders.
   const restoringRef = useRef(false)
 
   // Debounce timer for sidebar-state persistence.
   const sidebarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
 
   useEffect(() => {
     if (typeof window.lekha === 'undefined') return
@@ -67,6 +71,12 @@ export function useStartup(_fileOps: FileOps): void {
       useEditorStore.getState().setTypewriterMode(s.typewriterMode)
       useEditorStore.getState().setEquationNumbering(s.equationNumbering)
       useEditorStore.getState().setAutoSave(s.autoSave)
+
+      // Restore sidebar width. Clamp to the valid range in case a corrupt or
+      // out-of-range value was persisted. Apply the CSS var and notify App.
+      const restoredWidth = clampSidebarWidth(s.sidebarWidth)
+      document.documentElement.style.setProperty('--sidebar-width', `${restoredWidth}px`)
+      onSidebarWidth?.(restoredWidth)
 
       // Restore last folder if one was persisted. A missing/deleted folder
       // is silently ignored to avoid noisy startup errors.
@@ -120,7 +130,9 @@ export function useStartup(_fileOps: FileOps): void {
         sidebarTimerRef.current = null
       }
     }
-    // Empty deps: subscribe once on mount, unsubscribe on unmount.
-    // The store subscription always sees the latest state via zustand's callback.
-  }, [])
+    // onSidebarWidth is the only non-stable dep - it is setSidebarWidth from
+    // useState in App which React guarantees is stable across renders. Including
+    // it satisfies the exhaustive-deps rule without causing extra re-runs.
+    // All other deps (window.lekha, store methods) are stable singletons.
+  }, [onSidebarWidth])
 }
