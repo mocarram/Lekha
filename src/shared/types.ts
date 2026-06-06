@@ -25,6 +25,7 @@ export interface ThemeDef {
 export const THEMES: ThemeDef[] = [
   { id: 'github',          label: 'GitHub'         },
   { id: 'night',           label: 'Night'          },
+  { id: 'graphite',          label: 'Graphite'         },
   { id: 'sepia',           label: 'Sepia'          },
   { id: 'solarized-light', label: 'Solarized Light' },
   { id: 'solarized-dark',  label: 'Solarized Dark'  },

@@ -37,6 +37,12 @@ describe('THEMES registry', () => {
     expect(night!.label).toBe('Night')
   })
 
+  it('includes graphite theme with label "Graphite"', () => {
+    const t = THEMES.find((x) => x.id === 'graphite')
+    expect(t).toBeDefined()
+    expect(t!.label).toBe('Graphite')
+  })
+
   it('includes sepia theme with label "Sepia"', () => {
     const sepia = THEMES.find((t) => t.id === 'sepia')
     expect(sepia).toBeDefined()
@@ -128,5 +134,10 @@ describe('applyTheme', () => {
   it('sets data-theme="nord" when called with "nord"', () => {
     applyTheme('nord')
     expect(document.documentElement.dataset['theme']).toBe('nord')
+  })
+
+  it('sets data-theme="graphite" when called with "graphite"', () => {
+    applyTheme('graphite')
+    expect(document.documentElement.dataset['theme']).toBe('graphite')
   })
 })

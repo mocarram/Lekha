@@ -1,0 +1,104 @@
+/*
+ * themes/graphite.css - "Graphite": a faithful clone of WYSIWYG's Night theme.
+ *
+ * Goes beyond a colour swap: it also adopts WYSIWYG's reading layout - a wider
+ * content column, a larger overall type scale, and looser line spacing - via
+ * the theme-overridable --editor-* metrics declared in github.css. The result
+ * is the clean, clearly-legible WYSIWYG look: bigger fonts, generous-but-not-
+ * wasteful margins, calm dark blue-grey surfaces.
+ *
+ * Activation: document.documentElement.dataset.theme = "graphite"
+ * (applyTheme('graphite') in src/renderer/themes/index.ts).
+ *
+ * Colour reference (WYSIWYG Night):
+ *   Background   #363b40  (blue-grey, softer than pure VS Code dark)
+ *   Sidebar      #2d3034
+ *   Text         #b8bfc6
+ *   Heading      #dfe1e3
+ *   Accent       #4ea1f3  (WYSIWYG's bright link blue)
+ *   Code bg      #2e3135
+ *   Border       #4b5057
+ */
+
+[data-theme="graphite"] {
+  /* --- Editor layout (the "WYSIWYG feel"): wider column + larger type --- */
+  --editor-max-width:   860px;
+  --editor-font-scale:  1.12;
+  --editor-line-height: 1.75;
+
+  /* WYSIWYG's content font: a clean system sans for crisp, legible body text. */
+  --font-editor: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
+
+  /* --- Surface --- */
+  --bg:           #363b40;
+  --surface:      #2d3034;
+  --border:       #4b5057;
+  --border-light: #565b61;
+
+  /* --- Text --- */
+  --text:       #b8bfc6;
+  --text-muted: #7b8085;
+  --text-sub:   #9aa0a6;
+  --text-dark:  #dfe1e3;
+  --text-file:  #c4cace;
+  --heading:    #dfe1e3;
+
+  /* --- Accent / link --- */
+  --link:   #4ea1f3;
+  --accent: #4ea1f3;
+
+  /* --- Editor content --- */
+  --selection:         #3f4d5c;
+  --code-bg:           #2c2f33;
+  --code-bg-inline:    #2c2f33;
+  --code-text:         #c8ced3;
+  --blockquote-text:   #9aa0a6;
+  --blockquote-border: #4b5057;
+  --table-border:      #4b5057;
+  --table-header-bg:   #32363b;
+  --hr-color:          #4b5057;
+
+  /* --- Sidebar / chrome --- */
+  --sidebar-bg:     #2d3034;
+  --sidebar-hover:  #34383d;
+  --titlebar-bg:    #2d3034;
+  --statusbar-text: #7b8085;
+
+  /* --- Find highlights --- */
+  --find-match:         #3d3817;
+  --find-match-current: #7c4f0a;
+
+  /* --- Semantic tokens (dark overrides) --- */
+  --danger:               #f47067;
+  --overlay-scrim:        rgba(0, 0, 0, 0.55);
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.88);
+  --shadow:               0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-sm:            0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg:            0 16px 48px rgba(0, 0, 0, 0.55);
+
+  /* --- Markdown ==highlight== --- */
+  --highlight-bg:   #5a4a16;
+  --highlight-text: #e8e6e3;
+
+  /* --- Syntax highlighting (VS Code dark+ palette, matches Night) --- */
+  --hljs-keyword:   #c586c0;
+  --hljs-string:    #ce9178;
+  --hljs-comment:   #6a9955;
+  --hljs-function:  #dcdcaa;
+  --hljs-number:    #b5cea8;
+  --hljs-tag:       #4ec9b0;
+  --hljs-attribute: #9cdcfe;
+  --hljs-section:   #569cd6;
+}
+
+/* Scrollbar thumbs: white-tinted on the dark surface (mirrors Night). */
+[data-theme="graphite"] .editor-pane::-webkit-scrollbar-thumb,
+[data-theme="graphite"] .sidebar__content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="graphite"] .editor-pane::-webkit-scrollbar-thumb:hover,
+[data-theme="graphite"] .sidebar__content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.26);
+}

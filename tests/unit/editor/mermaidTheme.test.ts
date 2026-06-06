@@ -25,6 +25,15 @@ describe('mermaidThemeFor', () => {
     expect(mermaidThemeFor('night')).toBe('dark')
   })
 
+  it('maps the dark app theme "graphite" to mermaid "dark"', () => {
+    expect(mermaidThemeFor('graphite')).toBe('dark')
+  })
+
+  it('maps the dark themes "nord" and "solarized-dark" to mermaid "dark"', () => {
+    expect(mermaidThemeFor('nord')).toBe('dark')
+    expect(mermaidThemeFor('solarized-dark')).toBe('dark')
+  })
+
   it('maps "github" to mermaid "default"', () => {
     expect(mermaidThemeFor('github')).toBe('default')
   })

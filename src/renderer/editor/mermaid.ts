@@ -63,15 +63,18 @@ function loadMermaid(): Promise<Mermaid> {
 /** Mermaid theme name. Kept narrow - we only use these two. */
 export type MermaidTheme = 'default' | 'dark'
 
+/** App theme ids that render on a dark background and want mermaid's dark theme. */
+const DARK_THEMES = new Set(['night', 'graphite', 'nord', 'solarized-dark'])
+
 /**
  * Map an app `data-theme` attribute value to the matching mermaid theme.
- * 'night' (the dark app theme) -> 'dark'; anything else -> 'default'.
+ * Dark app themes -> 'dark'; anything else -> 'default'.
  *
  * Pure: takes the raw attribute (which may be undefined when unset) and returns
  * the mermaid theme name. Unit-tested in mermaid theme tests.
  */
 export function mermaidThemeFor(dataTheme: string | undefined): MermaidTheme {
-  return dataTheme === 'night' ? 'dark' : 'default'
+  return dataTheme !== undefined && DARK_THEMES.has(dataTheme) ? 'dark' : 'default'
 }
 
 /** Read the live app theme from the document, defaulting to mermaid 'default'. */

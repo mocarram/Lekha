@@ -8,6 +8,7 @@ import './styles/global.css'
 // override the universal design tokens under their [data-theme="..."] selector.
 import './styles/themes/github.css'
 import './styles/themes/night.css'
+import './styles/themes/graphite.css'
 import './styles/themes/sepia.css'
 import './styles/themes/solarized-light.css'
 import './styles/themes/solarized-dark.css'
