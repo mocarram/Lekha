@@ -126,10 +126,25 @@ body,
   position: relative;
 }
 
+/* Section header (WYSIWYG-style): uppercase, letter-spaced, muted title that
+   names the active panel (Files / Outline / Search). Gives the sidebar a calm
+   anchor at the top instead of the list butting against the window edge. */
+.sidebar__header {
+  flex-shrink: 0;
+  padding: 14px 14px 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
 .sidebar__content {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 0;
+  padding: 2px 6px 8px;
 }
 
 /* Drag handle on the right edge of the sidebar */
@@ -258,13 +273,14 @@ body,
 .file-tree__row {
   display: flex;
   align-items: center;
-  padding: 3px 8px;
+  gap: 6px;
+  padding: 5px 8px;
   cursor: pointer;
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border-radius: 3px;
+  border-radius: 5px;
 }
 
 .file-tree__row:hover {
@@ -276,10 +292,24 @@ body,
   color: var(--on-accent);
 }
 
-.file-tree__arrow {
-  margin-right: 4px;
-  font-size: 10px;
+.file-tree__arrow,
+.file-tree__arrow-spacer {
   flex-shrink: 0;
+  width: 10px;
+  font-size: 9px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Row icon: muted by default, brightens to follow the row text on hover/active. */
+.file-tree__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.file-tree__row:hover .file-tree__icon,
+.file-tree__row.active .file-tree__icon {
+  color: inherit;
 }
 
 .file-tree__name {

@@ -3,6 +3,46 @@ import type { FileNode } from '@shared/types'
 import { FileTreeMenu, type FileTreeMenuTarget } from './FileTreeMenu'
 
 // ---------------------------------------------------------------------------
+// Row icons (monochrome, inherit currentColor so they tint with the row)
+// ---------------------------------------------------------------------------
+
+/** Filled folder glyph shown on directory rows. */
+function FolderIcon() {
+  return (
+    <svg
+      className="file-tree__icon"
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M1.75 2.5h3.32c.27 0 .53.11.72.3l.86.86c.06.06.13.09.21.09h7.39c.41 0 .75.34.75.75v8.5c0 .41-.34.75-.75.75H1.75A.75.75 0 0 1 1 13V3.25c0-.41.34-.75.75-.75z" />
+    </svg>
+  )
+}
+
+/** Outlined document glyph (with a folded corner) shown on file rows. */
+function FileIcon() {
+  return (
+    <svg
+      className="file-tree__icon"
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 1.75h5l3 3V14a.25.25 0 0 1-.25.25h-7.5A.25.25 0 0 1 4 14V2a.25.25 0 0 1 .25-.25z" />
+      <path d="M9 1.75V5h3" />
+    </svg>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Inline rename input
 // ---------------------------------------------------------------------------
 
@@ -115,11 +155,14 @@ function FileTreeNode({
         }}
         onContextMenu={(e) => onContextMenu(e, node)}
       >
-        {node.isDirectory && (
+        {node.isDirectory ? (
           <span className="file-tree__arrow" aria-hidden="true">
             {expanded ? '▾' : '▸'}
           </span>
+        ) : (
+          <span className="file-tree__arrow-spacer" aria-hidden="true" />
         )}
+        {node.isDirectory ? <FolderIcon /> : <FileIcon />}
         {isRenaming ? (
           <RenameInput
             initial={node.name}

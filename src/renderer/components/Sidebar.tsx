@@ -65,8 +65,13 @@ export function Sidebar({
 
   if (!sidebarVisible) return null
 
+  // Section header label reflects the active tab (WYSIWYG-style uppercase title).
+  const headerLabel =
+    sidebarTab === 'files' ? 'Files' : sidebarTab === 'outline' ? 'Outline' : 'Search'
+
   return (
     <aside className="sidebar" style={{ width: sidebarWidth }}>
+      <div className="sidebar__header">{headerLabel}</div>
       <div className="sidebar__content">
         {sidebarTab === 'files' ? (
           <FileTree
