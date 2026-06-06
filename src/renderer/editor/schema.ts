@@ -245,7 +245,14 @@ const toc: NodeSpec = {
 
 /**
  * Inline footnote reference: `[^id]` in source.
- * Rendered as a superscript marker. The `label` attr holds the raw label text.
+ *
+ * RENDERING: a clean clickable superscript showing only the label (e.g. `1`),
+ * NOT the literal `[^1]` syntax. The inner `<a>` is the click target wired up
+ * in EditorView.tsx to scroll the matching footnote_definition into view.
+ *
+ * SERIALIZATION is unaffected: the serializer (serializer.ts) still emits
+ * `[^label]`, so round-trip stays byte-identical. The `label` attr is the
+ * single source of truth; `data-label` mirrors it for parseDOM round-trip.
  */
 const footnoteRef: NodeSpec = {
   group: 'inline',
@@ -262,10 +269,14 @@ const footnoteRef: NodeSpec = {
     },
   ],
   toDOM(node): DOMOutputSpec {
+    const label = node.attrs['label'] as string
     return [
       'sup',
-      { class: 'footnote-ref', 'data-label': node.attrs['label'] as string },
-      `[^${node.attrs['label'] as string}]`,
+      { class: 'footnote-ref', 'data-label': label },
+      // Inner anchor renders the bare label and serves as the jump target.
+      // href '#' keeps it a real link visually; the actual scroll is handled
+      // by a handleClick in EditorView (atoms swallow default link nav).
+      ['a', { href: `#footnote-${label}` }, label],
     ]
   },
 }

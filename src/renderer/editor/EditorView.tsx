@@ -87,6 +87,33 @@ function computeTableState(view: ProseMirrorView): TableState {
   }
 }
 
+/**
+ * Scroll the footnote_definition matching `label` into view (best-effort).
+ *
+ * Finds the first footnote_definition block with the same label, reads its
+ * rendered DOM element via the view, and scrolls it into view. No-op if no
+ * matching definition exists (e.g. an orphan reference).
+ */
+function jumpToFootnoteDefinition(view: ProseMirrorView, label: string): void {
+  let defPos = -1
+  view.state.doc.descendants((node, pos) => {
+    if (defPos !== -1) return false
+    if (
+      node.type === schema.nodes['footnote_definition'] &&
+      node.attrs['label'] === label
+    ) {
+      defPos = pos
+      return false
+    }
+    return true
+  })
+  if (defPos === -1) return
+  const dom = view.nodeDOM(defPos)
+  if (dom instanceof HTMLElement) {
+    dom.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
@@ -264,6 +291,12 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
             const src = (node.attrs['src'] as string | null) ?? ''
             const alt = (node.attrs['alt'] as string | null) ?? ''
             onImageClickRef.current?.(src, alt)
+            return false
+          }
+          // Footnote reference: clicking the superscript scrolls the matching
+          // footnote_definition into view (best-effort jump-to-definition).
+          if (node && node.type === schema.nodes['footnote_ref']) {
+            jumpToFootnoteDefinition(clickView, node.attrs['label'] as string)
             return false
           }
           // Check for link mark at the clicked position.

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { type Node } from 'prosemirror-model'
+import { type Node, DOMSerializer } from 'prosemirror-model'
 import { parseMarkdown } from '../../../src/renderer/editor/parser'
 import { serializeMarkdown } from '../../../src/renderer/editor/serializer'
+import { schema } from '../../../src/renderer/editor/schema'
 
 const rt = (md: string): string => serializeMarkdown(parseMarkdown(md))
 
@@ -99,5 +100,30 @@ describe('Footnotes', () => {
     const paraIdx = types.indexOf('paragraph')
     const defIdx = types.indexOf('footnote_definition')
     expect(paraIdx).toBeLessThan(defIdx)
+  })
+
+  it('renders footnote_ref as sup.footnote-ref showing the bare label (not [^1])', () => {
+    const parsed = parseMarkdown('x[^1]')
+    const ref = firstOfType(parsed, 'footnote_ref')
+    expect(ref).not.toBeNull()
+    expect(ref!.attrs['label']).toBe('1')
+
+    const serializer = DOMSerializer.fromSchema(schema)
+    const dom = serializer.serializeNode(ref!) as HTMLElement
+    expect(dom.tagName.toLowerCase()).toBe('sup')
+    expect(dom.classList.contains('footnote-ref')).toBe(true)
+    // Visual fix: shows `1`, NOT the literal `[^1]` syntax.
+    expect(dom.textContent).toBe('1')
+    expect(dom.textContent).not.toContain('[^')
+    // Inner clickable anchor is the jump target.
+    const anchor = dom.querySelector('a')
+    expect(anchor).not.toBeNull()
+    expect(anchor!.textContent).toBe('1')
+    // data-label is preserved for parseDOM round-trip.
+    expect(dom.getAttribute('data-label')).toBe('1')
+  })
+
+  it('serializing x[^1] still emits [^1] (round-trip unchanged)', () => {
+    expect(rt('x[^1]')).toBe('x[^1]')
   })
 })

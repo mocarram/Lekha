@@ -1257,15 +1257,26 @@
   vertical-align: super;
 }
 
-/* Inline footnote reference: [^id] -> superscript */
+/* Inline footnote reference: [^id] -> clean clickable superscript number.
+ * Renders just the label (e.g. `1`) as a small link-colored superscript, with
+ * no `[^ ]` brackets. The inner <a> is the click target (jump-to-definition).
+ */
 .editor-pane .ProseMirror sup.footnote-ref {
-  font-size: 0.75em;
+  font-size: 0.7em;
   vertical-align: super;
   line-height: 0;
-  color: var(--link);
-  font-family: var(--font-mono);
   cursor: pointer;
   user-select: none;
+}
+
+.editor-pane .ProseMirror sup.footnote-ref > a {
+  color: var(--link);
+  text-decoration: none;
+  padding: 0 0.1em;
+}
+
+.editor-pane .ProseMirror sup.footnote-ref > a:hover {
+  text-decoration: underline;
 }
 
 /* Footnote definition block */
