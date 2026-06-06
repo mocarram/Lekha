@@ -23,6 +23,17 @@ describe('createSettingsStore', () => {
     expect(settings.lastFolder).toBeNull()
     expect(settings.sidebarVisible).toBe(true)
     expect(settings.sidebarTab).toBe('files')
+    expect(settings.fontSize).toBe(16)
+  })
+
+  it('round-trips a custom fontSize', async () => {
+    const store = createSettingsStore(tmpDir)
+    const result = await store.set({ fontSize: 20 })
+    expect(result.fontSize).toBe(20)
+
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.fontSize).toBe(20)
   })
 
   it('returns defaults when settings.json is corrupt', async () => {

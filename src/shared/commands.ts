@@ -34,3 +34,4 @@ export type AppCommand =
   | 'exportDocx'
   | 'toggleFocusMode'
   | 'toggleTypewriterMode'
+  | 'preferences'

@@ -17,7 +17,7 @@
 import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
-import { applyTheme } from '@renderer/themes/index'
+import { applyTheme, applyFontSize } from '@renderer/themes/index'
 import type { FileOps } from './useFileOps'
 
 // Debounce interval (ms) for persisting sidebar state changes.
@@ -57,6 +57,10 @@ export function useStartup(_fileOps: FileOps): void {
       // Restore persisted theme. applyTheme sets data-theme on <html> so all
       // CSS theme token overrides take effect immediately.
       applyTheme(s.theme)
+
+      // Restore the editor font size. applyFontSize sets the --editor-font-size
+      // CSS var on <html>; github.css reads it for the .ProseMirror font-size.
+      applyFontSize(s.fontSize)
 
       // Restore focus mode and typewriter mode flags.
       useEditorStore.getState().setFocusMode(s.focusMode)

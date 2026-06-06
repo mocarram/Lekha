@@ -37,3 +37,14 @@ export function applyTheme(id: string): void {
   // documentElement (not document.body) ensures :root selectors also match.
   document.documentElement.dataset['theme'] = resolved
 }
+
+/**
+ * Apply the editor content font size by setting the --editor-font-size CSS
+ * variable on <html>. github.css declares
+ *   .editor-pane .ProseMirror { font-size: var(--editor-font-size, 16px) }
+ * so updating this variable re-sizes the editor text live, with 16px as the
+ * fallback when the variable is unset (e.g. before startup restore runs).
+ */
+export function applyFontSize(px: number): void {
+  document.documentElement.style.setProperty('--editor-font-size', `${px}px`)
+}

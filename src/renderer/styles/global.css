@@ -374,3 +374,47 @@ body,
 .dialog-btn-danger {
   color: #c0392b;
 }
+
+/* ---------------------------------------------------------------------------
+ * Preferences modal
+ * Reuses the shared .dialog tokens; adds grouped sections and a wider body.
+ * ------------------------------------------------------------------------- */
+.dialog.prefs {
+  width: 460px;
+}
+
+.prefs-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.prefs-section {
+  margin-bottom: 18px;
+}
+
+.prefs-heading {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.prefs-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.prefs-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}

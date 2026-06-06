@@ -115,6 +115,7 @@ function makeMockLekha(
         theme: 'github',
         focusMode: false,
         typewriterMode: false,
+        fontSize: 16,
       }),
     ),
     setSettings: vi.fn(() =>
@@ -126,6 +127,7 @@ function makeMockLekha(
         theme: 'github',
         focusMode: false,
         typewriterMode: false,
+        fontSize: 16,
       }),
     ),
     getRecentFiles: vi.fn(() => Promise.resolve([] as string[])),

@@ -140,6 +140,8 @@ export function buildMenuTemplate(
       submenu: [
         { role: 'about' },
         sep,
+        item('Preferences…', 'CmdOrCtrl+,', 'preferences', send),
+        sep,
         { role: 'services' },
         sep,
         { role: 'hide' },
@@ -199,6 +201,11 @@ export function buildMenuTemplate(
       sep,
       item('Find',    'CmdOrCtrl+F',       'find',    send),
       item('Replace', 'CmdOrCtrl+Alt+F',   'replace', send),
+      // On macOS, Preferences lives in the app (Lekha) menu (added above).
+      // On other platforms there is no app menu, so surface it here in Edit.
+      ...(process.platform === 'darwin'
+        ? []
+        : [sep, item('Preferences…', 'CmdOrCtrl+,', 'preferences', send)]),
     ],
   })
 

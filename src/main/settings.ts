@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Settings } from '@shared/types'
+import { DEFAULT_FONT_SIZE } from '@shared/types'
 
 export interface SettingsStore {
   get(): Promise<Settings>
@@ -19,6 +20,7 @@ const DEFAULTS: Settings = {
   theme: 'github',
   focusMode: false,
   typewriterMode: false,
+  fontSize: DEFAULT_FONT_SIZE,
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

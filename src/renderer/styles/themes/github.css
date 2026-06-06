@@ -342,7 +342,10 @@
   margin: 0 auto;
   padding: 40px 30px 60px;
   font-family: var(--font-editor);
-  font-size: 16px;
+  /* Editor font size is driven by the --editor-font-size CSS variable, set on
+     <html> from the persisted `fontSize` setting (see applyFontSize). The 16px
+     fallback applies before startup restore runs or if the var is ever unset. */
+  font-size: var(--editor-font-size, 16px);
   line-height: 1.6;
   color: var(--text);
   background-color: var(--bg);

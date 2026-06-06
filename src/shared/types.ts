@@ -40,7 +40,16 @@ export interface Settings {
   focusMode: boolean
   /** Typewriter mode: keeps the cursor line vertically centered in the editor viewport. */
   typewriterMode: boolean
+  /** Editor content font size in pixels. Applied via the --editor-font-size CSS var. */
+  fontSize: number
 }
+
+/** Default editor font size (px). Shared by the settings store and the renderer. */
+export const DEFAULT_FONT_SIZE = 16
+
+/** Allowed editor font-size range (px) shown in Preferences. */
+export const MIN_FONT_SIZE = 12
+export const MAX_FONT_SIZE = 24
 
 export type EditorMode = 'wysiwyg' | 'source'
 

@@ -41,6 +41,8 @@ export interface CommandOpts {
   onLink: (request: LinkDialogRequest) => void
   /** Open the image dialog. */
   onInsertImage: () => void
+  /** Open the Preferences modal. */
+  onPreferences: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +169,14 @@ export function useCommands(
       // ------------------------------------------------------------------
       if (cmd === 'insertImage') {
         o.onInsertImage()
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Preferences modal (App state)
+      // ------------------------------------------------------------------
+      if (cmd === 'preferences') {
+        o.onPreferences()
         return
       }
 

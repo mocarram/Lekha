@@ -460,4 +460,24 @@ describe('buildMenuTemplate - Insert Link / Insert Image', () => {
     clickItem(found!)
     expect(send).toHaveBeenCalledWith('insertImage')
   })
+
+  it('Preferences… fires send("preferences") and has CmdOrCtrl+, accelerator', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const found = findItem(template, (i) => i.label === 'Preferences…')
+    expect(found).toBeDefined()
+    expect(found?.accelerator).toBe('CmdOrCtrl+,')
+    clickItem(found!)
+    expect(send).toHaveBeenCalledWith('preferences')
+  })
+
+  it('on macOS the Preferences item lives in the app (Lekha) menu', () => {
+    if (process.platform !== 'darwin') return
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const appMenu = template.find((t) => t.label === 'Lekha')
+    expect(appMenu).toBeDefined()
+    const items = appMenu!.submenu as MenuItemConstructorOptions[]
+    expect(items.map((i) => i.label)).toContain('Preferences…')
+  })
 })

@@ -13,6 +13,7 @@ import { Sidebar } from '@renderer/components/Sidebar'
 import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
 import { ImageDialog } from '@renderer/components/ImageDialog'
+import { Preferences } from '@renderer/components/Preferences'
 import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
 
@@ -82,6 +83,9 @@ export default function App() {
     initial: { src: string; alt: string }
   }>({ open: false, seq: 0, initial: { src: '', alt: '' } })
 
+  // Preferences modal open/closed state.
+  const [prefsOpen, setPrefsOpen] = useState(false)
+
   // Open the link dialog from a click on a link in the editor (edit mode).
   const openLinkFromClick = useCallback((info: LinkInfo) => {
     setLinkState((prev) => ({
@@ -115,6 +119,7 @@ export default function App() {
         initial: { src: '', alt: '' },
       }))
     },
+    onPreferences: () => { setPrefsOpen(true) },
   })
 
   // Subscribe to Open Recent path messages from the main process.
@@ -251,6 +256,8 @@ export default function App() {
         }}
         onClose={() => setImageState((prev) => ({ ...prev, open: false }))}
       />
+
+      <Preferences open={prefsOpen} onClose={() => setPrefsOpen(false)} />
     </div>
   )
 }
