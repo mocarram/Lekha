@@ -111,6 +111,11 @@ interface EditorPaneProps {
   onChange?: (markdown: string) => void
   /** Called when the user clicks a link in the WYSIWYG editor. */
   onLinkClick?: (info: LinkInfo) => void
+  /**
+   * Called when the user clicks an image node in the WYSIWYG editor.
+   * Receives the image src and alt text so the host can open a lightbox.
+   */
+  onImageClick?: (src: string, alt: string) => void
   /** Forwarded to EditorView: fired on selection change with table state. */
   onTableStateChange?: (state: TableState) => void
   /** CSS class name applied to the wrapper div. */
@@ -138,7 +143,7 @@ export type { TableCommand, TableState }
  */
 export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
   function EditorPane(
-    { initialMarkdown, onChange, onLinkClick, onTableStateChange, className },
+    { initialMarkdown, onChange, onLinkClick, onImageClick, onTableStateChange, className },
     ref,
   ) {
     const [mode, setMode] = useState<EditorMode>('wysiwyg')
@@ -328,6 +333,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
             markdown={markdown}
             onChange={handleWysiwygChange}
             {...(onLinkClick ? { onLinkClick } : {})}
+            {...(onImageClick ? { onImageClick } : {})}
             {...(onTableStateChange ? { onTableStateChange } : {})}
           />
         ) : (

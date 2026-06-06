@@ -17,6 +17,7 @@
 import type { EditorView } from 'prosemirror-view'
 import { schema } from './schema'
 import { extFromMime } from '@shared/image'
+import { handleSmartPaste } from './smartPaste'
 
 // ---------------------------------------------------------------------------
 // Minimal typed interfaces for clipboard / dataTransfer items.
@@ -100,19 +101,31 @@ export interface ImageEditorProps {
 export function imageEditorProps(getDocPath: () => string | null): ImageEditorProps {
   // -------------------------------------------------------------------------
   // Paste handler
+  //
+  // Handler ordering (each returns true to stop, false to continue):
+  //   1. Image files in clipboard -> process async image insert.
+  //   2. Smart paste: single URL + non-empty selection -> wrap in link mark.
+  //   3. Default ProseMirror paste logic (HTML-to-schema, plain text, etc.).
   // -------------------------------------------------------------------------
   function handlePaste(view: EditorView, event: ClipboardEvent): boolean {
+    // 1. Image files take priority: if the clipboard carries image file items,
+    //    save and insert them asynchronously and consume the event.
     const items = collectFromDTItems(event.clipboardData?.items)
-    if (items.length === 0) return false
+    if (items.length > 0) {
+      // Prevent default paste from also inserting the image as HTML/text.
+      event.preventDefault()
 
-    // Prevent default paste from also inserting the image as HTML/text.
-    event.preventDefault()
+      // Snapshot insertion position BEFORE the async operations.
+      const insertPos = view.state.selection.from
+      void processImages(view, items, insertPos)
+      return true
+    }
 
-    // Snapshot insertion position BEFORE the async operations.
-    const insertPos = view.state.selection.from
+    // 2. Smart paste: single URL pasted over a non-empty selection -> link.
+    if (handleSmartPaste(view, event)) return true
 
-    void processImages(view, items, insertPos)
-    return true
+    // 3. Not handled - let ProseMirror's default paste logic run.
+    return false
   }
 
   // -------------------------------------------------------------------------

@@ -177,6 +177,12 @@ interface EditorViewProps {
    */
   onLinkClick?: (info: LinkInfo) => void
   /**
+   * Called when the user left-clicks an image node in the editor. Receives
+   * the image src and alt so the host can open a lightbox/zoom overlay.
+   * Returning false from handleClick lets ProseMirror place the cursor.
+   */
+  onImageClick?: (src: string, alt: string) => void
+  /**
    * Called on every selection change with the current table state so the host
    * can show/position the floating TableToolbar.
    */
@@ -199,17 +205,22 @@ interface EditorViewProps {
  * - Destroys the view on unmount (no leak).
  */
 export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
-  function EditorView({ markdown, onChange, onLinkClick, onTableStateChange, className }, ref) {
+  function EditorView(
+    { markdown, onChange, onLinkClick, onImageClick, onTableStateChange, className },
+    ref,
+  ) {
     const mountRef = useRef<HTMLDivElement>(null)
     const viewRef = useRef<ProseMirrorView | null>(null)
 
     // Ref-to-latest-callback: keeps onChange current without recreating the view
     const onChangeRef = useRef(onChange)
     const onLinkClickRef = useRef(onLinkClick)
+    const onImageClickRef = useRef(onImageClick)
     const onTableStateChangeRef = useRef(onTableStateChange)
     useEffect(() => {
       onChangeRef.current = onChange
       onLinkClickRef.current = onLinkClick
+      onImageClickRef.current = onImageClick
       onTableStateChangeRef.current = onTableStateChange
     })
 
@@ -237,14 +248,25 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
         },
         handlePaste,
         handleDrop,
-        // Plain left-click on a link opens the edit dialog. We only react to a
-        // primary click with no modifiers so text selection, shift-click, and
+        // Plain left-click on a link opens the edit dialog; left-click on an
+        // image node fires onImageClick to open the lightbox. We only react to
+        // a primary click with no modifiers so text selection, shift-click, and
         // right-click behave normally. Returning false lets ProseMirror place
-        // the cursor as usual (we don't consume the event).
+        // the cursor as usual (we don't consume the event for either case).
         handleClick(clickView, pos, event) {
           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
             return false
           }
+          // Check for image node at the clicked position. ProseMirror resolves
+          // `pos` to the position just before the node for atom/leaf nodes.
+          const node = clickView.state.doc.nodeAt(pos)
+          if (node && node.type === schema.nodes['image']) {
+            const src = (node.attrs['src'] as string | null) ?? ''
+            const alt = (node.attrs['alt'] as string | null) ?? ''
+            onImageClickRef.current?.(src, alt)
+            return false
+          }
+          // Check for link mark at the clicked position.
           const $pos = clickView.state.doc.resolve(pos)
           const linkMark = schema.marks['link']!.isInSet($pos.marks())
           if (!linkMark) return false

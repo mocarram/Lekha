@@ -20,6 +20,7 @@ import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog
 import { ImageDialog } from '@renderer/components/ImageDialog'
 import { Preferences } from '@renderer/components/Preferences'
 import { TableToolbar } from '@renderer/components/TableToolbar'
+import { ImageZoom } from '@renderer/components/ImageZoom'
 import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
 
@@ -100,6 +101,18 @@ export default function App() {
 
   // Preferences modal open/closed state.
   const [prefsOpen, setPrefsOpen] = useState(false)
+
+  // Image zoom (lightbox) state: open/closed, current src and alt.
+  const [imageZoomState, setImageZoomState] = useState<{
+    open: boolean
+    src: string
+    alt: string
+  }>({ open: false, src: '', alt: '' })
+
+  // Open the lightbox when an image is clicked in the WYSIWYG editor.
+  const openImageZoom = useCallback((src: string, alt: string) => {
+    setImageZoomState({ open: true, src, alt })
+  }, [])
 
   // Floating table toolbar state: shown while the cursor is inside a table,
   // anchored to the table's reported client rect. Updated on every selection
@@ -245,6 +258,7 @@ export default function App() {
           initialMarkdown={WELCOME_MARKDOWN}
           onChange={handleChange}
           onLinkClick={openLinkFromClick}
+          onImageClick={openImageZoom}
           onTableStateChange={setTableState}
           className="editor-pane"
         />
@@ -288,6 +302,13 @@ export default function App() {
       />
 
       <Preferences open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+
+      <ImageZoom
+        open={imageZoomState.open}
+        src={imageZoomState.src}
+        alt={imageZoomState.alt}
+        onClose={() => setImageZoomState((prev) => ({ ...prev, open: false }))}
+      />
 
       {tableState.inTable && tableState.rect ? (
         <TableToolbar
