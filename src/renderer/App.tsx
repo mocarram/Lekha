@@ -272,6 +272,86 @@ export default function App() {
     }, 150)
   }, [])
 
+  // -------------------------------------------------------------------------
+  // File-tree operations (create / rename / delete / reveal)
+  //
+  // Each mutating op goes through window.lekha then refreshes the tree so the
+  // sidebar reflects the on-disk state. New entries get a default name (the
+  // user renames via the context menu). Delete uses the main-process
+  // shell.trashItem (recoverable) and is gated behind a light confirm.
+  // -------------------------------------------------------------------------
+
+  // Resolve the directory a new entry is created in: the right-clicked folder,
+  // or the workspace root when invoked from the empty/root area.
+  const resolveDir = useCallback((dir: string | null): string | null => {
+    return dir ?? useWorkspaceStore.getState().rootFolder
+  }, [])
+
+  const handleNewFile = useCallback(async (dir: string | null) => {
+    const target = resolveDir(dir)
+    if (target === null) return
+    try {
+      const path = await window.lekha.createFile(target, 'Untitled.md')
+      await fileOps.refreshTree()
+      // Open the freshly created (empty) file so the user can start typing.
+      await fileOps.openPath(path)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [fileOps, resolveDir])
+
+  const handleNewFolder = useCallback(async (dir: string | null) => {
+    const target = resolveDir(dir)
+    if (target === null) return
+    try {
+      await window.lekha.createFolder(target, 'Untitled Folder')
+      await fileOps.refreshTree()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [fileOps, resolveDir])
+
+  const handleRenameEntry = useCallback(async (oldPath: string, newName: string) => {
+    try {
+      const newPath = await window.lekha.renamePath(oldPath, newName)
+      // If the renamed entry is the open document, update the editor's path so
+      // saves keep targeting the right file.
+      if (useEditorStore.getState().path === oldPath) {
+        useEditorStore.getState().setPath(newPath)
+        const { title } = useEditorStore.getState()
+        window.lekha.setDocumentState({
+          title,
+          dirty: useEditorStore.getState().isDirty,
+          path: newPath,
+        })
+      }
+      await fileOps.refreshTree()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [fileOps])
+
+  const handleDeleteEntry = useCallback(async (path: string) => {
+    // Confirm before trashing. trashItem is recoverable (OS trash), but a
+    // confirm avoids accidental one-click deletes.
+    if (!window.confirm('Move this item to the Trash?')) return
+    try {
+      await window.lekha.deletePath(path)
+      // If the open document was deleted, clear its path so a later save uses
+      // Save As rather than rewriting the trashed location. The buffer is kept.
+      if (useEditorStore.getState().path === path) {
+        useEditorStore.getState().setPath(null)
+      }
+      await fileOps.refreshTree()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [fileOps])
+
+  const handleRevealEntry = useCallback((path: string) => {
+    void window.lekha.revealPath(path)
+  }, [])
+
   const handleToggleSource = useCallback(() => {
     // toggleMode() returns the NEW mode synchronously so we can update the
     // store without a stale read (React state hasn't re-rendered yet at this
@@ -299,6 +379,11 @@ export default function App() {
               editorRef.current?.findNext()
             })
           }}
+          onNewFile={handleNewFile}
+          onNewFolder={handleNewFolder}
+          onRenameEntry={handleRenameEntry}
+          onDeleteEntry={handleDeleteEntry}
+          onRevealEntry={handleRevealEntry}
         />
 
         <EditorPane

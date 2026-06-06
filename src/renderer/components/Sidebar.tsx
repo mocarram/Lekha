@@ -15,6 +15,16 @@ interface SidebarProps {
    * and navigates to the matching text (open-then-find approach).
    */
   onOpenSearchResult: (filePath: string, query: string, caseSensitive: boolean) => void
+  /** Create a new file in `dir` (null = workspace root), then refresh the tree. */
+  onNewFile: (dir: string | null) => void | Promise<void>
+  /** Create a new folder in `dir` (null = workspace root), then refresh. */
+  onNewFolder: (dir: string | null) => void | Promise<void>
+  /** Rename `oldPath` to `newName` (same parent dir), then refresh. */
+  onRenameEntry: (oldPath: string, newName: string) => void | Promise<void>
+  /** Delete (trash) `path`, then refresh. */
+  onDeleteEntry: (path: string) => void | Promise<void>
+  /** Reveal `path` in the OS file manager. */
+  onRevealEntry: (path: string) => void
 }
 
 /**
@@ -28,7 +38,16 @@ interface SidebarProps {
  * Files, Outline, and Search. The search icon activates the search view.
  * Tab changes are written back to workspaceStore so the state persists.
  */
-export function Sidebar({ onSelectFile, onJumpToHeading, onOpenSearchResult }: SidebarProps) {
+export function Sidebar({
+  onSelectFile,
+  onJumpToHeading,
+  onOpenSearchResult,
+  onNewFile,
+  onNewFolder,
+  onRenameEntry,
+  onDeleteEntry,
+  onRevealEntry,
+}: SidebarProps) {
   const sidebarVisible = useWorkspaceStore((s) => s.sidebarVisible)
   const sidebarTab = useWorkspaceStore((s) => s.sidebarTab)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
@@ -47,6 +66,11 @@ export function Sidebar({ onSelectFile, onJumpToHeading, onOpenSearchResult }: S
             nodes={fileTree}
             activePath={activePath}
             onSelect={onSelectFile}
+            onNewFile={onNewFile}
+            onNewFolder={onNewFolder}
+            onRename={onRenameEntry}
+            onDelete={onDeleteEntry}
+            onReveal={onRevealEntry}
           />
         ) : sidebarTab === 'outline' ? (
           <Outline items={outline} onJump={onJumpToHeading} />

@@ -41,6 +41,27 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.readDir, dir) as Promise<FileNode[]>
   },
 
+  // --- File-tree entry operations ---
+  createFile(dir: string, name: string): Promise<string> {
+    return ipcRenderer.invoke(IPC.createFile, dir, name) as Promise<string>
+  },
+
+  createFolder(dir: string, name: string): Promise<string> {
+    return ipcRenderer.invoke(IPC.createFolder, dir, name) as Promise<string>
+  },
+
+  renamePath(oldPath: string, newName: string): Promise<string> {
+    return ipcRenderer.invoke(IPC.renamePath, oldPath, newName) as Promise<string>
+  },
+
+  deletePath(path: string): Promise<void> {
+    return ipcRenderer.invoke(IPC.deletePath, path) as Promise<void>
+  },
+
+  revealPath(path: string): Promise<void> {
+    return ipcRenderer.invoke(IPC.revealPath, path) as Promise<void>
+  },
+
   // --- Settings ---
   getSettings(): Promise<Settings> {
     return ipcRenderer.invoke(IPC.getSettings) as Promise<Settings>

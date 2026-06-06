@@ -262,6 +262,76 @@ body,
   text-overflow: ellipsis;
 }
 
+/* Inline rename input - sits in the row in place of the name label. */
+.file-tree__rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1px 4px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: 3px;
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * File-tree context menu
+ * Token-themed (uses --color-* vars) so it adapts to light + dark. Items are
+ * <button> elements for native keyboard accessibility; Escape closes the menu.
+ * --------------------------------------------------------------------------- */
+.filetree-menu {
+  position: fixed;
+  z-index: 210;
+  min-width: 168px;
+  padding: 4px;
+  border-radius: 8px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-ui);
+}
+
+.filetree-menu__item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filetree-menu__item:hover,
+.filetree-menu__item:focus-visible {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  outline: none;
+}
+
+.filetree-menu__item--danger {
+  color: #d33;
+}
+
+.filetree-menu__item--danger:hover,
+.filetree-menu__item--danger:focus-visible {
+  background-color: #d33;
+  color: #ffffff;
+}
+
+.filetree-menu__sep {
+  height: 1px;
+  margin: 4px 6px;
+  background-color: var(--color-border);
+}
+
 /* ---------------------------------------------------------------------------
  * Outline
  * --------------------------------------------------------------------------- */

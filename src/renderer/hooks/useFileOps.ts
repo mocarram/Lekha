@@ -23,6 +23,12 @@ export interface FileOps {
   newFile(): Promise<void>
   /** Show the OS folder picker and populate the workspace file tree. */
   openFolder(): Promise<void>
+  /**
+   * Re-read the current root folder and refresh the workspace file tree.
+   * Called after any file-tree mutation (create/rename/delete) so the sidebar
+   * reflects the on-disk state. No-op when no folder is open.
+   */
+  refreshTree(): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -196,5 +202,14 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     // workspaceStore.rootFolder - no explicit setSettings call needed here.
   }, [workspaceStore])
 
-  return { open, openPath, save, saveAs, newFile, openFolder }
+  // Re-read the open root folder and push the fresh tree into the store.
+  // No-op when no folder is open (nothing to refresh).
+  const refreshTree = useCallback(async (): Promise<void> => {
+    const root = workspaceStore.getState().rootFolder
+    if (root === null) return
+    const tree = await window.lekha.readDir(root)
+    workspaceStore.getState().setFileTree(tree)
+  }, [workspaceStore])
+
+  return { open, openPath, save, saveAs, newFile, openFolder, refreshTree }
 }

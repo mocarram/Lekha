@@ -128,7 +128,8 @@ function makeMockFileOps(): MockFileOpsResult {
   const save = vi.fn(() => Promise.resolve())
   const saveAs = vi.fn(() => Promise.resolve())
   const openFolder = vi.fn(() => Promise.resolve())
-  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder }
+  const refreshTree = vi.fn(() => Promise.resolve())
+  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree }
   return { fileOps, newFile, open, openPath, save, saveAs, openFolder }
 }
 

@@ -38,9 +38,19 @@ afterEach(() => {
 describe('Sidebar', () => {
   const noop = () => {}
 
+  // File-tree operation callbacks the Sidebar requires but these tests don't
+  // exercise. Bundled so each render passes them via spread.
+  const fileOpProps = {
+    onNewFile: noop,
+    onNewFolder: noop,
+    onRenameEntry: noop,
+    onDeleteEntry: noop,
+    onRevealEntry: noop,
+  }
+
   it('renders the sidebar root element', () => {
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     expect(container.querySelector('.sidebar')).not.toBeNull()
   })
@@ -48,7 +58,7 @@ describe('Sidebar', () => {
   it('is hidden entirely when sidebarVisible is false', () => {
     useWorkspaceStore.setState({ sidebarVisible: false })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     expect(container.querySelector('.sidebar')).toBeNull()
   })
@@ -56,7 +66,7 @@ describe('Sidebar', () => {
   it('shows FileTree when sidebarTab is "files"', () => {
     useWorkspaceStore.setState({ sidebarTab: 'files' })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     expect(container.querySelector('.file-tree')).not.toBeNull()
     expect(container.querySelector('.outline')).toBeNull()
@@ -65,7 +75,7 @@ describe('Sidebar', () => {
   it('shows Outline when sidebarTab is "outline"', () => {
     useWorkspaceStore.setState({ sidebarTab: 'outline' })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     expect(container.querySelector('.outline')).not.toBeNull()
     expect(container.querySelector('.file-tree')).toBeNull()
@@ -74,7 +84,7 @@ describe('Sidebar', () => {
   it('shows FolderSearch when sidebarTab is "search"', () => {
     useWorkspaceStore.setState({ sidebarTab: 'search' })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     expect(container.querySelector('.folder-search')).not.toBeNull()
     expect(container.querySelector('.file-tree')).toBeNull()
@@ -84,7 +94,7 @@ describe('Sidebar', () => {
   it('switches to "files" tab when the Files button is clicked', () => {
     useWorkspaceStore.setState({ sidebarTab: 'outline' })
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     fireEvent.click(getByText(/Files/i))
     expect(useWorkspaceStore.getState().sidebarTab).toBe('files')
@@ -93,7 +103,7 @@ describe('Sidebar', () => {
   it('switches to "outline" tab when the Outline button is clicked', () => {
     useWorkspaceStore.setState({ sidebarTab: 'files' })
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     fireEvent.click(getByText(/Outline/i))
     expect(useWorkspaceStore.getState().sidebarTab).toBe('outline')
@@ -102,7 +112,7 @@ describe('Sidebar', () => {
   it('switches to "search" tab when the Search button is clicked', () => {
     useWorkspaceStore.setState({ sidebarTab: 'files' })
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     fireEvent.click(getByText(/Search/i))
     expect(useWorkspaceStore.getState().sidebarTab).toBe('search')
@@ -117,7 +127,7 @@ describe('Sidebar', () => {
       ],
     })
     const { getByText } = render(
-      <Sidebar onSelectFile={onSelect} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={onSelect} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     fireEvent.click(getByText('notes.md'))
     expect(onSelect).toHaveBeenCalledWith('/docs/notes.md')
@@ -130,7 +140,7 @@ describe('Sidebar', () => {
       { level: 1, text: 'Introduction', pos: 0 },
     ])
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={onJump} onOpenSearchResult={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={onJump} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     fireEvent.click(getByText('Introduction'))
     expect(onJump).toHaveBeenCalledWith(0)

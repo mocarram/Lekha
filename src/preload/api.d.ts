@@ -21,6 +21,31 @@ export interface LekhaAPI {
   writeFile(path: string, content: string): Promise<void>
   readDir(dir: string): Promise<FileNode[]>
 
+  // --- File-tree entry operations ---
+  /**
+   * Create an empty file `name` in `dir`. A missing extension defaults to
+   * ".md". Rejects if the entry already exists or the name is invalid.
+   * Returns the new absolute path.
+   */
+  createFile(dir: string, name: string): Promise<string>
+  /**
+   * Create a folder `name` in `dir`. Rejects if it already exists or the name
+   * is invalid. Returns the new absolute path.
+   */
+  createFolder(dir: string, name: string): Promise<string>
+  /**
+   * Rename `oldPath` to `newName` within the same parent directory. Rejects if
+   * the target exists or the name is invalid. Returns the new absolute path.
+   */
+  renamePath(oldPath: string, newName: string): Promise<string>
+  /**
+   * Move `path` to the OS trash (RECOVERABLE - uses shell.trashItem, never a
+   * permanent delete).
+   */
+  deletePath(path: string): Promise<void>
+  /** Reveal `path` in the OS file manager (Finder / Explorer). */
+  revealPath(path: string): Promise<void>
+
   // --- Settings ---
   getSettings(): Promise<Settings>
   setSettings(patch: Partial<Settings>): Promise<Settings>

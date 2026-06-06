@@ -4,6 +4,13 @@ import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
 import type { WindowRegistry } from '@main/window'
 import { readTextFile, writeFileAtomic, buildFileTree } from '@main/fs-helpers'
+import {
+  createFile,
+  createFolder,
+  renamePath,
+  deletePath,
+  revealPath,
+} from '@main/fileOps'
 
 /** Wraps an async handler so filesystem errors surface as clean Error messages
  *  rather than crashing the main process. */
@@ -56,6 +63,33 @@ export function registerFileHandlers(
 
   safeHandle(IPC.readDir, async (dir) => {
     return buildFileTree(String(dir))
+  })
+
+  // --- File-tree entry operations (create / rename / delete / reveal) ---
+  // Name validation + path-safety live in fileOps.ts. deletePath uses
+  // shell.trashItem (recoverable), never a permanent rm.
+
+  safeHandle(IPC.createFile, async (dir, name) => {
+    return createFile(String(dir), String(name))
+  })
+
+  safeHandle(IPC.createFolder, async (dir, name) => {
+    return createFolder(String(dir), String(name))
+  })
+
+  safeHandle(IPC.renamePath, async (oldPath, newName) => {
+    return renamePath(String(oldPath), String(newName))
+  })
+
+  safeHandle(IPC.deletePath, async (path) => {
+    await deletePath(String(path))
+  })
+
+  // revealPath is synchronous (shell.showItemInFolder); wrap its result in a
+  // resolved promise so it fits the async safeHandle contract.
+  safeHandle(IPC.revealPath, (path) => {
+    revealPath(String(path))
+    return Promise.resolve()
   })
 
   // --- Settings ---

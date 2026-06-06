@@ -30,6 +30,11 @@ function makeMockLekha(
     readFile: vi.fn(() => Promise.resolve('')),
     writeFile: vi.fn(() => Promise.resolve()),
     readDir: vi.fn(() => Promise.resolve([])),
+    createFile: vi.fn(() => Promise.resolve('')),
+    createFolder: vi.fn(() => Promise.resolve('')),
+    renamePath: vi.fn(() => Promise.resolve('')),
+    deletePath: vi.fn(() => Promise.resolve()),
+    revealPath: vi.fn(() => Promise.resolve()),
     getSettings: vi.fn(() => Promise.resolve({
       recentFiles: [], lastFolder: null, sidebarVisible: true,
       sidebarTab: 'files' as const, theme: 'github', focusMode: false,

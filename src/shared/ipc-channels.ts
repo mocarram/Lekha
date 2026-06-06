@@ -8,6 +8,16 @@ export const IPC = {
   readFile: 'fs:readFile',
   writeFile: 'fs:writeFile',
   readDir: 'fs:readDir',
+  /** Renderer -> main: create an empty file `name` in `dir`. Returns new path. */
+  createFile: 'fs:createFile',
+  /** Renderer -> main: create a folder `name` in `dir`. Returns new path. */
+  createFolder: 'fs:createFolder',
+  /** Renderer -> main: rename `oldPath` to `newName` (same parent). Returns new path. */
+  renamePath: 'fs:renamePath',
+  /** Renderer -> main: move `path` to the OS trash (recoverable, not permanent rm). */
+  deletePath: 'fs:deletePath',
+  /** Renderer -> main: reveal `path` in the OS file manager (Finder/Explorer). */
+  revealPath: 'fs:revealPath',
   getRecentFiles: 'settings:getRecentFiles',
   addRecentFile: 'settings:addRecentFile',
   getSettings: 'settings:get',

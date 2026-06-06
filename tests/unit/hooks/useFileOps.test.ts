@@ -75,6 +75,11 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     readFile: vi.fn((_p: string) => Promise.resolve('# Loaded')),
     writeFile: vi.fn(() => Promise.resolve()),
     readDir: vi.fn(() => Promise.resolve([] as FileNode[])),
+    createFile: vi.fn(() => Promise.resolve('')),
+    createFolder: vi.fn(() => Promise.resolve('')),
+    renamePath: vi.fn(() => Promise.resolve('')),
+    deletePath: vi.fn(() => Promise.resolve()),
+    revealPath: vi.fn(() => Promise.resolve()),
     getSettings: vi.fn(() =>
       Promise.resolve({
         recentFiles: [] as string[],
