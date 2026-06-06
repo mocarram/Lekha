@@ -51,6 +51,12 @@ export interface FileOps {
    * blank document and refresh the tree. No-op when the document has no path.
    */
   deleteCurrent(): Promise<void>
+  /**
+   * Move the current file into a folder chosen via the native picker, then
+   * reopen it at the new path and refresh the tree. No-op when the document has
+   * no path or the user cancels the picker.
+   */
+  moveCurrentTo(): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -275,6 +281,17 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     await refreshTree()
   }, [editorStore, newFile, refreshTree])
 
+  // Move the current file into a folder chosen via the native picker.
+  const moveCurrentTo = useCallback(async (): Promise<void> => {
+    const { path } = editorStore.getState()
+    if (path === null) return
+    const destDir = await window.lekha.openFolderDialog()
+    if (destDir === null) return
+    const newPath = await window.lekha.movePath(path, destDir)
+    await refreshTree()
+    await openPath(newPath)
+  }, [editorStore, refreshTree, openPath])
+
   return {
     open,
     openPath,
@@ -287,5 +304,6 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     revertToSaved,
     duplicateCurrent,
     deleteCurrent,
+    moveCurrentTo,
   }
 }

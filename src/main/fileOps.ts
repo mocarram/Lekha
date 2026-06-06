@@ -167,6 +167,31 @@ export async function duplicatePath(srcPath: string): Promise<string> {
 }
 
 /**
+ * The destination path when moving `srcPath` into `destDir` (keeps the file's
+ * basename). Pure helper for {@link movePath}.
+ */
+export function movedPath(srcPath: string, destDir: string): string {
+  return join(destDir, basename(srcPath))
+}
+
+/**
+ * Moves the file at `srcPath` into `destDir`, keeping its name. No-ops (returns
+ * srcPath) when the destination equals the source. Rejects if a file with the
+ * same name already exists in `destDir`. Returns the new absolute path.
+ */
+export async function movePath(srcPath: string, destDir: string): Promise<string> {
+  const dest = movedPath(srcPath, destDir)
+  if (dest === srcPath) return srcPath
+  if (await pathExists(dest)) {
+    throw new Error(
+      `A file named "${basename(srcPath)}" already exists in the destination.`,
+    )
+  }
+  await rename(srcPath, dest)
+  return dest
+}
+
+/**
  * Moves `path` to the OS trash. Uses shell.trashItem (RECOVERABLE) rather than
  * a permanent fs.rm - sidebar deletes must be reversible from the system trash.
  */

@@ -161,6 +161,10 @@ export function useCommands(
         void fo.duplicateCurrent()
         return
       }
+      if (cmd === 'moveFileTo') {
+        void fo.moveCurrentTo()
+        return
+      }
       if (cmd === 'deleteFile') {
         void fo.deleteCurrent()
         return

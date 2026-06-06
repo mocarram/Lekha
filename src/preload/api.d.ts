@@ -41,6 +41,8 @@ export interface LekhaAPI {
   renamePath(oldPath: string, newName: string): Promise<string>
   /** Duplicate the file at `path` in place ("name copy.md"); returns new path. */
   duplicatePath(path: string): Promise<string>
+  /** Move the file at `srcPath` into `destDir` (keeps its name); returns new path. */
+  movePath(srcPath: string, destDir: string): Promise<string>
   /**
    * Move `path` to the OS trash (RECOVERABLE - uses shell.trashItem, never a
    * permanent delete).

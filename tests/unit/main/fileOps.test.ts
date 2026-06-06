@@ -6,7 +6,7 @@
  * Electron/IO-bound thin wrappers and are exercised manually, not unit-tested.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -15,6 +15,8 @@ import {
   renamedPath,
   duplicatedPath,
   duplicatePath,
+  movedPath,
+  movePath,
 } from '../../../src/main/fileOps'
 
 describe('isValidEntryName', () => {
@@ -137,5 +139,41 @@ describe('duplicatePath (IO)', () => {
     expect(first).toBe(join(tmpDir, 'doc copy.md'))
     expect(second).toBe(join(tmpDir, 'doc copy 2.md'))
     expect(existsSync(second)).toBe(true)
+  })
+})
+
+describe('movedPath (pure)', () => {
+  it('keeps the basename and swaps the directory', () => {
+    expect(movedPath('/a/b/doc.md', '/x/y')).toBe('/x/y/doc.md')
+  })
+})
+
+describe('movePath (IO)', () => {
+  let root: string
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'lekha-move-'))
+  })
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true })
+  })
+
+  it('moves a file into another directory, keeping its name', async () => {
+    const src = join(root, 'doc.md')
+    writeFileSync(src, 'x', 'utf8')
+    const destDir = join(root, 'sub')
+    mkdirSync(destDir)
+    const out = await movePath(src, destDir)
+    expect(out).toBe(join(destDir, 'doc.md'))
+    expect(existsSync(out)).toBe(true)
+    expect(existsSync(src)).toBe(false)
+  })
+
+  it('rejects when a same-named file exists in the destination', async () => {
+    const src = join(root, 'doc.md')
+    const destDir = join(root, 'sub')
+    mkdirSync(destDir)
+    writeFileSync(src, 'x', 'utf8')
+    writeFileSync(join(destDir, 'doc.md'), 'y', 'utf8')
+    await expect(movePath(src, destDir)).rejects.toThrow()
   })
 })

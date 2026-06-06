@@ -122,6 +122,7 @@ interface MockFileOpsResult {
   revertToSaved: ReturnType<typeof vi.fn>
   duplicateCurrent: ReturnType<typeof vi.fn>
   deleteCurrent: ReturnType<typeof vi.fn>
+  moveCurrentTo: ReturnType<typeof vi.fn>
 }
 
 function makeMockFileOps(): MockFileOpsResult {
@@ -136,8 +137,9 @@ function makeMockFileOps(): MockFileOpsResult {
   const revertToSaved = vi.fn(() => Promise.resolve())
   const duplicateCurrent = vi.fn(() => Promise.resolve())
   const deleteCurrent = vi.fn(() => Promise.resolve())
-  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent }
-  return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent }
+  const moveCurrentTo = vi.fn(() => Promise.resolve())
+  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo }
+  return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo }
 }
 
 // ---------------------------------------------------------------------------
@@ -317,6 +319,18 @@ describe('useCommands - file operation routing', () => {
     act(() => { capturedDispatch!('duplicateFile') })
 
     expect(duplicateCurrent).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "moveFileTo" calls fileOps.moveCurrentTo()', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps, moveCurrentTo } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('moveFileTo') })
+
+    expect(moveCurrentTo).toHaveBeenCalledOnce()
   })
 
   it('dispatching "openFolder" calls fileOps.openFolder()', () => {

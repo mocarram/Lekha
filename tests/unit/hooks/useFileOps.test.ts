@@ -79,6 +79,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     createFolder: vi.fn(() => Promise.resolve('')),
     renamePath: vi.fn(() => Promise.resolve('')),
     duplicatePath: vi.fn(() => Promise.resolve('')),
+    movePath: vi.fn(() => Promise.resolve('')),
     deletePath: vi.fn(() => Promise.resolve()),
     revealPath: vi.fn(() => Promise.resolve()),
     getSettings: vi.fn(() =>

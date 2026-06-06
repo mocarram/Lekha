@@ -136,6 +136,7 @@ export function buildMenuTemplate(
   setTheme: (id: string) => void = () => { /* no-op - no theme caller */ },
   onNewWindow: () => void = () => { /* no-op - no multi-window caller */ },
   onCheckForUpdates: () => void = () => { /* no-op - no updater caller */ },
+  onSaveAll: () => void = () => { /* no-op - no save-all caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -188,7 +189,11 @@ export function buildMenuTemplate(
       sep,
       item('Save',          'CmdOrCtrl+S',       'save',       send),
       item('Save As…',      'CmdOrCtrl+Shift+S', 'saveAs',     send),
+      // Save All saves every open window; runs directly in main (no renderer
+      // round-trip) so it reaches all windows, not just the focused one.
+      { label: 'Save All', click: () => { onSaveAll() } },
       item('Duplicate',       undefined,         'duplicateFile', send),
+      item('Move To…',        undefined,         'moveFileTo',    send),
       item('Revert to Saved', undefined,         'revertToSaved', send),
       item('Move to Trash…',  undefined,         'deleteFile',    send),
       sep,

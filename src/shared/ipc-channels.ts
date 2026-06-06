@@ -16,6 +16,8 @@ export const IPC = {
   renamePath: 'fs:renamePath',
   /** Renderer -> main: duplicate a file in place ("name copy.md"). Returns new path. */
   duplicatePath: 'fs:duplicatePath',
+  /** Renderer -> main: move a file into another directory. Returns new path. */
+  movePath: 'fs:movePath',
   /** Renderer -> main: move `path` to the OS trash (recoverable, not permanent rm). */
   deletePath: 'fs:deletePath',
   /** Renderer -> main: reveal `path` in the OS file manager (Finder/Explorer). */

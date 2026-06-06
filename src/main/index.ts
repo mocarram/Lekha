@@ -102,6 +102,13 @@ function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void
         // "Check for Updates…" runs the manual check directly in main (no
         // renderer round-trip). It is a safe no-op in dev.
         () => { void checkForUpdates() },
+        // "Save All" sends the save command to EVERY open window (not just the
+        // focused one) so all dirty documents are written.
+        () => {
+          for (const win of BrowserWindow.getAllWindows()) {
+            win.webContents.send(IPC.command, 'save')
+          }
+        },
       ),
     ),
   )

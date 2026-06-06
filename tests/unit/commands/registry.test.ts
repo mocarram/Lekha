@@ -24,6 +24,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'showInFinder',
   'revealInFileTree',
   'duplicateFile',
+  'moveFileTo',
   'deleteFile',
   'toggleSource',
   'toggleSidebar',

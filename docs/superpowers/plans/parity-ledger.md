@@ -547,3 +547,11 @@ Implemented (build order b cont.):
 
 Tests: +6 (duplicatedPath pure, duplicatePath IO incl. collision, duplicateFile dispatch; updated 4 LekhaAPI/FileOps mocks). 1193 unit + 7 e2e green.
 Remaining in (b): Rename current (name prompt), Move To (folder picker + new fs:movePath IPC), Save All (multi-window) - next sub-wave.
+
+### Wave 8 - Move To + Save All (`feat/wysiwyg-move-saveall`)
+Implemented (build order b, near-finished):
+- **Move To…** - new main `movedPath` (pure) + `movePath` (IO, rename into chosen dir, collision guard) + `fs:movePath` IPC/preload; `useFileOps.moveCurrentTo` picks a folder via the native dialog, moves the open file, reopens at the new path, refreshes the tree. File menu + registry + command.
+- **Save All** - main-side: iterates all BrowserWindows and sends the `save` command to each (reaches every window, not just focused). Wired via a new onSaveAll param to buildMenuTemplate + index.ts; File ▸ Save All.
+
+Tests: +6 (movedPath pure, movePath IO incl. collision-reject, moveFileTo dispatch; +3 LekhaAPI mocks updated with movePath, +1 FileOps mock). 1197 unit + 7 e2e green.
+Deferred: **Rename current** needs a small dialog component (Electron disables window.prompt) - next wave.
