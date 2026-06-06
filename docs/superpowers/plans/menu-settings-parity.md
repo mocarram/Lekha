@@ -84,12 +84,40 @@ line numbers + copy button, image insert behavior (copy-to-assets vs absolute),
 markdown extension toggles (math, diagrams, sub/sup, highlight, footnotes, YAML),
 reading-time in status bar.
 
-## Open questions for you (please clarify / screenshot)
-1. **Document tabs** (File ▸ New Tab): add real in-window tabs like WYSIWYG, or keep one-doc-per-window?
-2. **Reveal in Library** - what should this map to in Lekha?
-3. **Share** (macOS share sheet) - include it?
-4. **Page Setup** - needed, or is Print sufficient?
-5. **Underline** - add a real `<u>` underline mark (not standard Markdown; WYSIWYG stores raw HTML)?
+## Resolved decisions (user answered - now ADD, no longer ❓)
+1. **Document tabs** - YES. Add real in-window tabs (multiple docs per window,
+   tab bar, Cmd+T new tab, Cmd+W closes tab then window). Large workstream - do
+   it as its own staged effort (tab model in a store, tab strip UI, per-tab
+   editor state, dirty indicator per tab, drag-reorder, persistence).
+2. **Articles/Library view + two reveal commands** - YES, both views exist:
+   - **File Tree** (current sidebar Files tab) - folder hierarchy.
+   - **Articles/Library** (NEW sidebar tab "Articles") - a FLAT list of every
+     `.md` file under the workspace, sorted by last-modified (most recent first),
+     each row showing: title (first H1 or filename), source folder label, a
+     relative timestamp ("20 minutes ago"/"Yesterday"/date), and a 1-2 line
+     content preview. Clicking opens the file.
+   - **Reveal in File Tree** - switch to Files tab + expand/scroll to active file
+     (Wave-2 auto-reveal already does the expand/scroll).
+   - **Reveal in Library** - switch to Articles tab + highlight/scroll active file.
+   Needs a main IPC to list all md files with {path, mtime, title, preview}.
+3. **Share** - YES. macOS share sheet (AirDrop/Messages/Notes/…) via Electron's
+   `ShareMenu` (macOS only); File ▸ Share with the current file as the shared item.
+4. **Print** - YES, Print only (`webContents.print()` opens the native dialog,
+   which already exposes page setup). No separate Page Setup item.
+5. **Underline** - YES. Add a `<u>` underline mark with Cmd+U; parser maps `<u>`,
+   serializer emits raw `<u>…</u>` (HTML passthrough, like WYSIWYG). Keep
+   markdown round-trip stable for the rest.
+
+## Articles/Library view - design
+- Sidebar gains a 4th tab: **Files | Outline | Articles | Search** (Articles
+  between Outline and Search, matching WYSIWYG's emphasis).
+- Main IPC `fs:listArticles(root)` returns `ArticleEntry[]`
+  `{ path, title, mtimeMs, sizeBytes, preview }` for all `.md` under root
+  (reuse the recursive walk from buildFileTree / searchFolder; cap preview to
+  ~140 chars; title = first `# heading` else basename).
+- Renderer `Articles.tsx` component renders the grouped/sorted list with
+  relative-time formatting; clicking calls the same open-file path as the tree.
+- `sidebarTab` type extends to include `'articles'`; persisted like the others.
 
 ## Build order (autonomous waves)
 1. Doc-level file ops (Get Info, Reveal in Sidebar, Show in Finder, Rename,
