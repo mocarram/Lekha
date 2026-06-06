@@ -42,3 +42,5 @@ export type AppCommand =
   | 'preferences'
   | 'copyAsHtml'
   | 'copyAsMarkdown'
+  | 'commandPalette'
+  | 'quickOpen'

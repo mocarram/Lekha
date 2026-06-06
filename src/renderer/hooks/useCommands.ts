@@ -14,7 +14,7 @@
  *
  * Unsubscribes automatically on unmount.
  */
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import type { AppCommand } from '@shared/commands'
 import type { PandocFormat } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
@@ -56,6 +56,10 @@ export interface CommandOpts {
   onInsertImage: () => void
   /** Open the Preferences modal. */
   onPreferences: () => void
+  /** Open the command palette in 'commands' mode (Cmd+Shift+P). */
+  onCommandPalette: () => void
+  /** Open the command palette in 'files' (quick-open) mode (Cmd+P). */
+  onQuickOpen: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -69,12 +73,14 @@ export interface CommandOpts {
  * @param editorRef - Ref to the EditorPaneHandle for formatting/mode commands.
  * @param fileOps   - File operation callbacks from useFileOps.
  * @param opts      - Callbacks for find/replace overlay (built in M13).
+ * @returns The shared `dispatch(cmd)` so the command palette can run any
+ *   command through the exact same routing path as the native menu / IPC.
  */
 export function useCommands(
   editorRef: RefObject<EditorPaneHandle | null>,
   fileOps: FileOps,
   opts: CommandOpts,
-): void {
+): (cmd: AppCommand) => void {
   // Ref-to-latest-callbacks: keep fileOps and opts current without
   // re-subscribing to onCommand on every render (the IPC listener is set up
   // once on mount; the refs ensure it always sees the latest values).
@@ -87,8 +93,10 @@ export function useCommands(
     optsRef.current = opts
   })
 
-  useEffect(() => {
-    const dispatch = (cmd: AppCommand): void => {
+  // The single command router. Stable identity (refs hold the latest deps), so
+  // it is safe to subscribe with it once AND hand it to the palette to call
+  // directly - both paths run the exact same routing logic.
+  const dispatch = useCallback((cmd: AppCommand): void => {
       const fo = fileOpsRef.current
       const o = optsRef.current
       // ------------------------------------------------------------------
@@ -196,6 +204,18 @@ export function useCommands(
       // ------------------------------------------------------------------
       if (cmd === 'preferences') {
         o.onPreferences()
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Command palette / quick-open (App-hosted overlay)
+      // ------------------------------------------------------------------
+      if (cmd === 'commandPalette') {
+        o.onCommandPalette()
+        return
+      }
+      if (cmd === 'quickOpen') {
+        o.onQuickOpen()
         return
       }
 
@@ -318,12 +338,15 @@ export function useCommands(
       // editorCommandMap (single source of truth shared with keymap).
       // ------------------------------------------------------------------
       editorRef.current?.runCommand(cmd)
-    }
+    // editorRef is a stable ref, so dispatch keeps a stable identity and the
+    // subscription below never needs to re-register.
+  }, [editorRef])
 
+  useEffect(() => {
     // Subscribe and capture the unsubscribe function for cleanup.
     const unsubscribe = window.lekha.onCommand(dispatch)
     return unsubscribe
-    // Empty deps: subscribe once. fileOpsRef / optsRef / editorRef are React
-    // refs and always hold the latest values without needing re-subscription.
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch])
+
+  return dispatch
 }

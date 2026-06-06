@@ -176,6 +176,7 @@ export function buildMenuTemplate(
       { label: 'New Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => { onNewWindow() } },
       item('Open…',         'CmdOrCtrl+O',       'open',       send),
       item('Open Folder…',  'CmdOrCtrl+Shift+O', 'openFolder', send),
+      item('Quick Open…',   'CmdOrCtrl+P',       'quickOpen',  send),
       {
         label: 'Open Recent',
         submenu: buildOpenRecentSubmenu(recentFiles, openPath),
@@ -273,6 +274,8 @@ export function buildMenuTemplate(
   template.push({
     label: 'View',
     submenu: [
+      item('Command Palette…',   'CmdOrCtrl+Shift+P', 'commandPalette', send),
+      sep,
       item('Toggle Sidebar',     'CmdOrCtrl+\\',    'toggleSidebar', send),
       item('Toggle Source Mode', 'CmdOrCtrl+Alt+S', 'toggleSource',  send),
       sep,

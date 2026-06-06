@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react'
+import { useRef, useCallback, useMemo, useState, useEffect } from 'react'
 import {
   EditorPane,
   type EditorPaneHandle,
@@ -22,6 +22,10 @@ import { Preferences } from '@renderer/components/Preferences'
 import { WordCountPanel } from '@renderer/components/WordCountPanel'
 import { TableToolbar } from '@renderer/components/TableToolbar'
 import { ImageZoom } from '@renderer/components/ImageZoom'
+import { CommandPalette, type PaletteMode } from '@renderer/components/CommandPalette'
+import { COMMANDS } from '@renderer/commands/registry'
+import { flattenFiles } from '@renderer/commands/files'
+import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
 
@@ -133,6 +137,23 @@ export default function App() {
     setImageZoomState({ open: true, src, alt })
   }, [])
 
+  // Command palette / quick-open overlay state. One component, two modes.
+  // `seq` increments on each open and is used as the React `key` so the palette
+  // remounts fresh (empty query, selection at top) every time it appears.
+  const [paletteState, setPaletteState] = useState<{
+    open: boolean
+    seq: number
+    mode: PaletteMode
+  }>({ open: false, seq: 0, mode: 'commands' })
+
+  // Workspace file tree (for quick-open) + root, kept live from the store.
+  const fileTree = useWorkspaceStore((s) => s.fileTree)
+  const rootFolder = useWorkspaceStore((s) => s.rootFolder)
+  const paletteFiles = useMemo(
+    () => flattenFiles(fileTree, rootFolder),
+    [fileTree, rootFolder],
+  )
+
   // Floating table toolbar state: shown while the cursor is inside a table,
   // anchored to the table's reported client rect. Updated on every selection
   // change via EditorPane's onTableStateChange.
@@ -152,8 +173,10 @@ export default function App() {
     }))
   }, [])
 
-  // Wire native menu commands to editor / file ops / sidebar / find
-  useCommands(editorRef, fileOps, {
+  // Wire native menu commands to editor / file ops / sidebar / find.
+  // The hook returns its shared `dispatch` so the command palette can run any
+  // command through the exact same routing path (no duplicated routing).
+  const dispatch = useCommands(editorRef, fileOps, {
     onFind: () => { setFindState({ open: true, mode: 'find' }) },
     onReplace: () => { setFindState({ open: true, mode: 'replace' }) },
     onLink: (request) => {
@@ -172,6 +195,12 @@ export default function App() {
       }))
     },
     onPreferences: () => { setPrefsOpen(true) },
+    onCommandPalette: () => {
+      setPaletteState((prev) => ({ open: true, seq: prev.seq + 1, mode: 'commands' }))
+    },
+    onQuickOpen: () => {
+      setPaletteState((prev) => ({ open: true, seq: prev.seq + 1, mode: 'files' }))
+    },
   })
 
   // Subscribe to Open Recent path messages from the main process.
@@ -333,6 +362,26 @@ export default function App() {
         src={imageZoomState.src}
         alt={imageZoomState.alt}
         onClose={() => setImageZoomState((prev) => ({ ...prev, open: false }))}
+      />
+
+      <CommandPalette
+        key={`palette-${paletteState.seq}`}
+        open={paletteState.open}
+        mode={paletteState.mode}
+        commands={COMMANDS}
+        files={paletteFiles}
+        hasFolder={rootFolder !== null}
+        onRun={(id) => {
+          // Close first, then run through the shared dispatch so a command
+          // that opens another overlay (e.g. Find) is not immediately hidden.
+          setPaletteState((prev) => ({ ...prev, open: false }))
+          dispatch(id)
+        }}
+        onOpenFile={(path) => {
+          setPaletteState((prev) => ({ ...prev, open: false }))
+          void fileOps.openPath(path)
+        }}
+        onClose={() => setPaletteState((prev) => ({ ...prev, open: false }))}
       />
 
       {tableState.inTable && tableState.rect ? (

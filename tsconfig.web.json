@@ -22,6 +22,7 @@
     "tests/unit/hooks/**/*.ts",
     "tests/unit/hooks/**/*.tsx",
     "tests/unit/components/**/*.tsx",
+    "tests/unit/commands/**/*.ts",
     "tests/unit/smoke.test.ts",
     // Export tests run in happy-dom (renderer-side buildExportHtml).
     "tests/unit/export/**/*.ts",

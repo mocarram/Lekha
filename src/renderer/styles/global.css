@@ -759,3 +759,114 @@ body,
   cursor: default;
   user-select: none;
 }
+
+/* ---------------------------------------------------------------------------
+ * Command palette / quick-open (CommandPalette.tsx)
+ *
+ * A centered modal anchored in the upper third. Dim backdrop captures outside
+ * clicks; the panel is token-themed so it adapts to light + dark themes.
+ * ------------------------------------------------------------------------- */
+.cmdk__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background-color: rgba(0, 0, 0, 0.32);
+}
+
+.cmdk {
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-ui);
+}
+
+.cmdk__input {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: 15px;
+  font-family: var(--font-ui);
+}
+
+.cmdk__input:focus {
+  outline: none;
+}
+
+.cmdk__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.cmdk__empty {
+  padding: 20px 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.cmdk__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.cmdk__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cmdk__row--active {
+  background-color: var(--color-accent);
+  color: #ffffff;
+}
+
+.cmdk__label {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cmdk__match {
+  background: transparent;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.cmdk__row--active .cmdk__match {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.cmdk__hint {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cmdk__row--active .cmdk__hint {
+  color: rgba(255, 255, 255, 0.85);
+}
