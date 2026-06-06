@@ -9,6 +9,7 @@ import {
   emDash,
 } from 'prosemirror-inputrules'
 import { type Plugin } from 'prosemirror-state'
+import emojiDefs from 'markdown-it-emoji/lib/data/full.mjs'
 
 // ---------------------------------------------------------------------------
 // Shared inline-mark helper (DRY - used 4x below)
@@ -97,6 +98,31 @@ function hrInputRule(schema: Schema): InputRule {
 }
 
 // ---------------------------------------------------------------------------
+// Emoji input rule
+// ---------------------------------------------------------------------------
+
+/**
+ * Create an InputRule that replaces a `:shortcode:` with its unicode emoji
+ * character when the closing `:` is typed. Unknown shortcodes are left as-is
+ * (the rule returns null), matching WYSIWYG's behaviour.
+ *
+ * The name->char map is markdown-it-emoji's `full` data set, the SAME source
+ * the parser uses, so typed and pasted emoji resolve identically.
+ */
+function emojiInputRule(): InputRule {
+  return new InputRule(
+    /:([a-zA-Z0-9_+-]+):$/,
+    (state, match: RegExpMatchArray, start, end) => {
+      const name = match[1]
+      if (!name) return null
+      const char = emojiDefs[name]
+      if (!char) return null
+      return state.tr.insertText(char, start, end)
+    },
+  )
+}
+
+// ---------------------------------------------------------------------------
 // buildInputRules
 // ---------------------------------------------------------------------------
 
@@ -154,8 +180,22 @@ export function buildInputRules(schema: Schema): Plugin {
     ),
     // inline code: `x`
     markInputRule(/`([^`]+)`$/, schema.marks['code']!),
-    // strikethrough: ~~x~~
+    // strikethrough: ~~x~~  - MUST precede the subscript rule so the `~~`
+    // form is consumed first and never mis-parsed as `~x~`.
     markInputRule(/~~([^~]+)~~$/, schema.marks['strikethrough']!),
+
+    // Extended inline marks.
+    // highlight: ==x==
+    markInputRule(/==([^=]+)==$/, schema.marks['highlight']!),
+    // subscript: ~x~  - the negative look-behind/inner guard `[^~]` prevents
+    // it from firing on `~~strike~~` (no `~` allowed inside, and a preceding
+    // `~` is rejected) so strikethrough keeps its `~~` form.
+    markInputRule(/(?<!~)~([^~]+)~$/, schema.marks['subscript']!),
+    // superscript: ^x^
+    markInputRule(/\^([^^]+)\^$/, schema.marks['superscript']!),
+
+    // emoji: :shortcode: -> unicode char (unknown shortcodes left as-is)
+    emojiInputRule(),
 
     // Inline math: $...$  (typing the closing $ triggers the rule)
     // The regex captures non-empty content between the two dollars.

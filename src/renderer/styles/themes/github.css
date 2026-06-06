@@ -108,6 +108,10 @@
   --gh-find-match:         #fff3b0;
   --gh-find-match-current: #ffb454;
 
+  /* Markdown ==highlight== (mark) */
+  --gh-highlight-bg:   #fff8c5;
+  --gh-highlight-text: #24292e;
+
   /* Selection */
   --gh-selection: #d7e4ff;
 
@@ -169,6 +173,8 @@
   /* Find highlights */
   --find-match:         var(--gh-find-match);
   --find-match-current: var(--gh-find-match-current);
+  --highlight-bg:       var(--gh-highlight-bg);
+  --highlight-text:     var(--gh-highlight-text);
 
   /* Syntax highlighting tokens */
   --hljs-keyword:   var(--gh-hljs-keyword);
@@ -1101,6 +1107,31 @@
  * Inline references render as superscript links.
  * Definition blocks render as a subtle labeled region.
  * =========================================================================== */
+
+/* ===========================================================================
+ * Extended inline marks: ==highlight==, ~subscript~, ^superscript^
+ * Token-driven so they read correctly in light, Night, and Sepia.
+ * =========================================================================== */
+
+.editor-pane .ProseMirror mark {
+  background-color: var(--highlight-bg);
+  color: var(--highlight-text);
+  border-radius: 2px;
+  padding: 0 0.1em;
+}
+
+.editor-pane .ProseMirror sub {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: sub;
+}
+
+/* Plain ^superscript^ (footnote refs override below with their own colour). */
+.editor-pane .ProseMirror sup {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+}
 
 /* Inline footnote reference: [^id] -> superscript */
 .editor-pane .ProseMirror sup.footnote-ref {

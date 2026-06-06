@@ -59,6 +59,11 @@
   --find-match:         #e8c96e;
   --find-match-current: #cc8833;
 
+  /* --- Markdown ==highlight== --- */
+  /* Warm straw wash tuned to the sepia paper. */
+  --highlight-bg:   #ecd9a0;
+  --highlight-text: #433422;
+
   /* --- Syntax highlighting (warm desaturated tones) --- */
   --hljs-keyword:   #8b2500;   /* dark red - keywords */
   --hljs-string:    #3d6b00;   /* dark green - strings */

@@ -181,6 +181,10 @@ const serializer = new MarkdownSerializer(
   {
     ...defaultMarkdownSerializer.marks,
     strikethrough: { open: '~~', close: '~~', mixable: true, expelEnclosingWhitespace: true },
+    // Extended inline marks.
+    highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true },
+    subscript: { open: '~', close: '~', mixable: true },
+    superscript: { open: '^', close: '^', mixable: true },
   },
 )
 

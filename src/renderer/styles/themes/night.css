@@ -69,6 +69,11 @@
   --find-match:         #3d3817;
   --find-match-current: #7c4f0a;
 
+  /* --- Markdown ==highlight== --- */
+  /* Muted amber wash that stays legible on the dark surface. */
+  --highlight-bg:   #5a4a16;
+  --highlight-text: #e8e6e3;
+
   /* --- Syntax highlighting (VS Code dark+ palette) --- */
   --hljs-keyword:   #c586c0;   /* pink/purple - keywords */
   --hljs-string:    #ce9178;   /* orange-brown - strings */

@@ -83,6 +83,30 @@ const strikethrough: MarkSpec = {
   },
 }
 
+/** Extended-inline highlight mark: `==text==` <-> `<mark>`. */
+const highlight: MarkSpec = {
+  parseDOM: [{ tag: 'mark' }],
+  toDOM(): DOMOutputSpec {
+    return ['mark', 0]
+  },
+}
+
+/** Extended-inline subscript mark: `~text~` <-> `<sub>`. */
+const subscript: MarkSpec = {
+  parseDOM: [{ tag: 'sub' }],
+  toDOM(): DOMOutputSpec {
+    return ['sub', 0]
+  },
+}
+
+/** Extended-inline superscript mark: `^text^` <-> `<sup>`. */
+const superscript: MarkSpec = {
+  parseDOM: [{ tag: 'sup' }],
+  toDOM(): DOMOutputSpec {
+    return ['sup', 0]
+  },
+}
+
 /**
  * Rebuild the baseline code_block spec so its language lives on a `language`
  * attribute (the baseline uses `params`). Keeps WYSIWYG's mental model and the
@@ -268,6 +292,11 @@ const nodes = baseSchema.spec.nodes
     footnote_definition: footnoteDefinition,
   })
 
-const marks = baseSchema.spec.marks.append({ strikethrough })
+const marks = baseSchema.spec.marks.append({
+  strikethrough,
+  highlight,
+  subscript,
+  superscript,
+})
 
 export const schema = new Schema({ nodes, marks })

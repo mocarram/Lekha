@@ -5,6 +5,10 @@ import type Token from 'markdown-it/lib/token.mjs'
 import type { Nesting } from 'markdown-it/lib/token.mjs'
 import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 import taskLists from 'markdown-it-task-lists'
+import markPlugin from 'markdown-it-mark'
+import subPlugin from 'markdown-it-sub'
+import supPlugin from 'markdown-it-sup'
+import { full as emojiPlugin } from 'markdown-it-emoji'
 import { mathPlugin } from './math-plugin'
 import { frontMatterPlugin } from './frontmatter-plugin'
 import { tocPlugin } from './toc-plugin'
@@ -213,6 +217,27 @@ function lekhaTables(state: StateCore): boolean {
   return true
 }
 
+/**
+ * Flatten `emoji` tokens into plain text.
+ *
+ * markdown-it-emoji replaces a `:shortcode:` run with an `emoji` inline token
+ * whose `content` is already the resolved unicode character. WYSIWYG consumes
+ * the shortcode on first parse, so we simply retype each `emoji` token to a
+ * `text` token: the emoji then lives in the document as an ordinary text
+ * character, serializes as itself, and re-parses as itself (idempotent).
+ */
+function lekhaEmoji(state: StateCore): boolean {
+  for (const block of state.tokens) {
+    if (block.type !== 'inline' || !block.children) continue
+    for (const child of block.children) {
+      if (child.type === 'emoji') {
+        child.type = 'text'
+      }
+    }
+  }
+  return true
+}
+
 /** Construct a fresh markdown-it token using the state's Token constructor. */
 function makeToken(
   state: StateCore,
@@ -230,6 +255,16 @@ function makeToken(
 const tokenizer = MarkdownIt('commonmark', { html: false })
   .enable(['strikethrough', 'table'])
   .use(taskLists, { label: true })
+  // Extended inline marks. Strikethrough (`~~`) is enabled above and its
+  // delimiter rule runs first, so markdown-it-sub's single-`~` rule only ever
+  // sees the `~x~` form (the `~~` pairs are already consumed by strikethrough).
+  // markdown-it-sup handles `^x^`; footnote refs (`[^id]`) are intercepted
+  // earlier by footnotePlugin's inline rule, so they never reach the sup rule.
+  .use(markPlugin)
+  .use(subPlugin)
+  .use(supPlugin)
+  // Emoji shortcodes (`:smile:` -> 😄). Flattened to text by lekha_emoji below.
+  .use(emojiPlugin)
   .use(mathPlugin)
   .use(frontMatterPlugin)
   .use(tocPlugin)
@@ -239,6 +274,8 @@ const tokenizer = MarkdownIt('commonmark', { html: false })
 // `contains-task-list`/`task-list-item` classes it sets are present.
 tokenizer.core.ruler.after('github-task-lists', 'lekha_task_lists', lekhaTaskLists)
 tokenizer.core.ruler.after('lekha_task_lists', 'lekha_tables', lekhaTables)
+// Flatten emoji tokens to text after inline parsing has produced them.
+tokenizer.core.ruler.push('lekha_emoji', lekhaEmoji)
 
 // ---------------------------------------------------------------------------
 // Token -> node/mark specs
@@ -356,6 +393,11 @@ const tokens: Record<string, ParseSpec> = {
   em: { mark: 'em' },
   strong: { mark: 'strong' },
   s: { mark: 'strikethrough' },
+  // Extended inline marks. markdown-it-mark emits mark_open/mark_close;
+  // markdown-it-sub/sup emit sub_open/sub_close and sup_open/sup_close.
+  mark: { mark: 'highlight' },
+  sub: { mark: 'subscript' },
+  sup: { mark: 'superscript' },
   link: {
     mark: 'link',
     getAttrs: (tok) => ({
