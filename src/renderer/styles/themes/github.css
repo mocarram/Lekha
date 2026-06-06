@@ -927,6 +927,65 @@
 }
 
 /* ===========================================================================
+ * 14b. Heading section fold
+ *
+ * The headingFoldPlugin injects a `.heading-fold-toggle` widget at the start of
+ * every heading and gives every block in a folded section the `.folded-block`
+ * class (display:none). Folding is purely visual - the document and its
+ * serialized markdown are never changed.
+ * =========================================================================== */
+
+/* Hide every block inside a folded heading's section. */
+.editor-pane .ProseMirror .folded-block {
+  display: none;
+}
+
+/* The clickable fold chevron, anchored just left of the heading text. It sits
+ * in the negative margin so it doesn't reflow the heading, and fades in on
+ * hover over the heading to stay out of the way while writing. */
+.editor-pane .ProseMirror .heading-fold-toggle {
+  position: absolute;
+  margin-left: -1.1em;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.6em;
+  line-height: inherit;
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease, color 0.12s ease;
+  user-select: none;
+}
+
+/* Draw the chevron glyph via CSS (not text) so the empty button never pollutes
+ * the heading's textContent. */
+.editor-pane .ProseMirror .heading-fold-toggle::before {
+  content: '\25BE'; /* ▾ */
+}
+
+/* Reveal the chevron when hovering the heading, and keep it visible while a
+ * section is folded so the user can re-expand it. */
+.editor-pane .ProseMirror h1:hover .heading-fold-toggle,
+.editor-pane .ProseMirror h2:hover .heading-fold-toggle,
+.editor-pane .ProseMirror h3:hover .heading-fold-toggle,
+.editor-pane .ProseMirror h4:hover .heading-fold-toggle,
+.editor-pane .ProseMirror h5:hover .heading-fold-toggle,
+.editor-pane .ProseMirror h6:hover .heading-fold-toggle,
+.editor-pane .ProseMirror .heading-fold-toggle--folded {
+  opacity: 1;
+}
+
+.editor-pane .ProseMirror .heading-fold-toggle:hover {
+  color: var(--accent);
+}
+
+/* Collapsed: rotate the down-chevron to point right. */
+.editor-pane .ProseMirror .heading-fold-toggle--folded {
+  transform: rotate(-90deg);
+}
+
+/* ===========================================================================
  * 15. Diagrams (Mermaid live preview)
  * =========================================================================== */
 

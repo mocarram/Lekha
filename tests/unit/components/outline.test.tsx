@@ -77,3 +77,64 @@ describe('Outline', () => {
     expect(onJump).toHaveBeenCalledWith(5)
   })
 })
+
+describe('Outline - collapsible tree', () => {
+  // Introduction (H1) > Getting Started (H2) > Installation (H3); Usage (H2)
+  // is a second child of Introduction. So Introduction has children.
+  function chevronOf(label: HTMLElement): HTMLElement | null {
+    const row = label.closest('.outline__row') as HTMLElement
+    return row?.querySelector('.outline__chevron') ?? null
+  }
+
+  it('renders a chevron for a node that has children', () => {
+    const { getByText } = render(<Outline items={ITEMS} onJump={() => {}} />)
+    const intro = getByText('Introduction')
+    expect(chevronOf(intro)).not.toBeNull()
+  })
+
+  it('does not render a chevron for a leaf node', () => {
+    const { getByText } = render(<Outline items={ITEMS} onJump={() => {}} />)
+    const installation = getByText('Installation')
+    expect(chevronOf(installation)).toBeNull()
+  })
+
+  it('collapsing a node hides its descendants', () => {
+    const { getByText, queryByText } = render(<Outline items={ITEMS} onJump={() => {}} />)
+    // All descendants visible initially.
+    expect(queryByText('Getting Started')).not.toBeNull()
+    expect(queryByText('Installation')).not.toBeNull()
+    expect(queryByText('Usage')).not.toBeNull()
+
+    const chevron = chevronOf(getByText('Introduction'))!
+    fireEvent.click(chevron)
+
+    // Descendants are hidden; the collapsed node itself stays.
+    expect(queryByText('Introduction')).not.toBeNull()
+    expect(queryByText('Getting Started')).toBeNull()
+    expect(queryByText('Installation')).toBeNull()
+    expect(queryByText('Usage')).toBeNull()
+  })
+
+  it('re-expands a collapsed node when its chevron is clicked again', () => {
+    const { getByText, queryByText } = render(<Outline items={ITEMS} onJump={() => {}} />)
+    const chevron = chevronOf(getByText('Introduction'))!
+    fireEvent.click(chevron)
+    expect(queryByText('Getting Started')).toBeNull()
+    fireEvent.click(chevronOf(getByText('Introduction'))!)
+    expect(queryByText('Getting Started')).not.toBeNull()
+  })
+
+  it('clicking the label still calls onJump with the pos', () => {
+    const onJump = vi.fn()
+    const { getByText } = render(<Outline items={ITEMS} onJump={onJump} />)
+    fireEvent.click(getByText('Getting Started'))
+    expect(onJump).toHaveBeenCalledWith(20)
+  })
+
+  it('clicking the chevron does NOT call onJump', () => {
+    const onJump = vi.fn()
+    const { getByText } = render(<Outline items={ITEMS} onJump={onJump} />)
+    fireEvent.click(chevronOf(getByText('Introduction'))!)
+    expect(onJump).not.toHaveBeenCalled()
+  })
+})

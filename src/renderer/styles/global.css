@@ -255,7 +255,47 @@ body,
   width: 100%;
 }
 
+/* A row pairs a collapse chevron (or a fixed-width spacer for leaf nodes) with
+ * the clickable heading label, so labels line up regardless of children. */
+.outline__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.outline__chevron,
+.outline__chevron-spacer {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.outline__chevron {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  border-radius: 3px;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.outline__chevron:hover {
+  color: var(--color-accent);
+}
+
+/* Collapsed: rotate the down-chevron to point right. */
+.outline__chevron--collapsed {
+  transform: rotate(-90deg);
+}
+
 .outline__item {
+  flex: 1 1 auto;
   padding: 3px 8px;
   cursor: pointer;
   font-size: 13px;

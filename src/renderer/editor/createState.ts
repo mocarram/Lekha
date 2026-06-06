@@ -13,6 +13,7 @@ import { highlightPlugin } from './plugins/highlight'
 import { findHighlightPlugin } from './plugins/findHighlight'
 import { focusModePlugin } from './plugins/focusMode'
 import { typewriterPlugin } from './plugins/typewriter'
+import { headingFoldPlugin } from './plugins/headingFold'
 
 /**
  * Create a fully-configured EditorState from a Markdown string.
@@ -30,6 +31,7 @@ import { typewriterPlugin } from './plugins/typewriter'
  *  10. findHighlightPlugin - find/replace match decorations
  *  11. focusModePlugin   - node decoration marking the focused top-level block
  *  12. typewriterPlugin  - view lifecycle that centers the caret line on scroll
+ *  13. headingFoldPlugin  - clickable heading chevrons + view-only section fold
  */
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
@@ -47,6 +49,7 @@ export function createEditorState(markdown: string): EditorState {
       findHighlightPlugin(),
       focusModePlugin(),
       typewriterPlugin(),
+      headingFoldPlugin(),
     ],
   })
 }
