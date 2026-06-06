@@ -1031,6 +1031,30 @@
   margin: 0 0 1em;
 }
 
+/* Diagram source-hiding gate (better-than-WYSIWYG behavior).
+ *
+ * A diagram block (`.is-diagram`, set by codeBlockNodeView for mermaid) shows
+ * ONLY its rendered preview when the cursor is elsewhere. When it becomes the
+ * active block (`.is-active-block`, added by activeBlockPlugin to this same
+ * wrapper), the editable source is revealed ALONGSIDE the live preview - so you
+ * edit and see the diagram update at the same time. Non-diagram code blocks are
+ * unaffected: their `<pre>` source is always shown.
+ */
+.editor-pane .ProseMirror .code-block-wrapper.is-diagram > pre {
+  display: none;
+}
+
+.editor-pane .ProseMirror .code-block-wrapper.is-diagram.is-active-block > pre {
+  display: block;
+}
+
+/* When the source is hidden, the preview is the only visible element, so it
+ * owns the full rounded border (not just the bottom corners). */
+.editor-pane .ProseMirror .code-block-wrapper.is-diagram:not(.is-active-block) .diagram-preview {
+  border-top: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .editor-pane .ProseMirror .code-block-wrapper pre.code-block {
   background-color: var(--code-bg);
   border-radius: 6px 6px 0 0;

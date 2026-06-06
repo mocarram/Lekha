@@ -12,6 +12,7 @@ import { buildKeymap } from './keymap'
 import { highlightPlugin } from './plugins/highlight'
 import { findHighlightPlugin } from './plugins/findHighlight'
 import { focusModePlugin } from './plugins/focusMode'
+import { activeBlockPlugin } from './plugins/activeBlock'
 import { typewriterPlugin } from './plugins/typewriter'
 import { headingFoldPlugin } from './plugins/headingFold'
 
@@ -30,8 +31,9 @@ import { headingFoldPlugin } from './plugins/headingFold'
  *   9. highlightPlugin   - syntax highlighting decorations for code blocks
  *  10. findHighlightPlugin - find/replace match decorations
  *  11. focusModePlugin   - node decoration marking the focused top-level block
- *  12. typewriterPlugin  - view lifecycle that centers the caret line on scroll
- *  13. headingFoldPlugin  - clickable heading chevrons + view-only section fold
+ *  12. activeBlockPlugin - node decoration marking the active block (is-active-block)
+ *  13. typewriterPlugin  - view lifecycle that centers the caret line on scroll
+ *  14. headingFoldPlugin  - clickable heading chevrons + view-only section fold
  */
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
@@ -48,6 +50,7 @@ export function createEditorState(markdown: string): EditorState {
       highlightPlugin(),
       findHighlightPlugin(),
       focusModePlugin(),
+      activeBlockPlugin(),
       typewriterPlugin(),
       headingFoldPlugin(),
     ],

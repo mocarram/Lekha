@@ -146,6 +146,13 @@ describe('codeBlockNodeView - mermaid block', () => {
     expect(preview).not.toBeNull()
   })
 
+  it('adds the is-diagram class to the wrapper for mermaid blocks', async () => {
+    view = await mountCodeBlockView('```mermaid\ngraph TD;A-->B;\n```')
+    const wrapper = document.querySelector('.code-block-wrapper')
+    expect(wrapper).not.toBeNull()
+    expect(wrapper!.classList.contains('is-diagram')).toBe(true)
+  })
+
   it('invokes mermaid.render when mounting a mermaid block (after debounce)', async () => {
     const mermaidMod = await import('mermaid')
     const mockedRender = vi.mocked(mermaidMod.default.render)
@@ -178,6 +185,13 @@ describe('codeBlockNodeView - non-diagram language', () => {
     view = await mountCodeBlockView('```js\nconst x = 1;\n```')
     const preview = document.querySelector('.diagram-preview')
     expect(preview).toBeNull()
+  })
+
+  it('does NOT add the is-diagram class for a js code block', async () => {
+    view = await mountCodeBlockView('```js\nconst x = 1;\n```')
+    const wrapper = document.querySelector('.code-block-wrapper')
+    expect(wrapper).not.toBeNull()
+    expect(wrapper!.classList.contains('is-diagram')).toBe(false)
   })
 
   it('renders a <pre class="code-block"><code> for js blocks (source only)', async () => {

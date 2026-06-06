@@ -21,6 +21,7 @@
 
 import { Plugin, PluginKey } from 'prosemirror-state'
 import { Decoration, DecorationSet } from 'prosemirror-view'
+import { findActiveTopLevelBlock } from './topLevelBlock'
 
 // Exported key so tests can look up the plugin by key name.
 export const focusModeKey = new PluginKey<DecorationSet>('focusMode')
@@ -38,46 +39,17 @@ export function focusModePlugin(): Plugin<DecorationSet> {
 
     props: {
       decorations(state) {
-        const { doc, selection } = state
-        const { head } = selection
-
         // Find the top-level block (direct doc child) containing the cursor.
-        // We walk doc's children accumulating positions to find the match.
-        let focusedBlockStart = -1
-        let focusedBlockEnd = -1
-        let offset = 0
-
-        for (let i = 0; i < doc.childCount; i++) {
-          const child = doc.child(i)
-          const start = offset
-          const end = offset + child.nodeSize
-          // The selection head is inside this block if start < head <= end.
-          // (pos 0 = before the doc; a block at offset 0 spans [0, nodeSize-1],
-          //  and content inside it starts at offset+1.)
-          if (head > start && head <= end) {
-            focusedBlockStart = start
-            focusedBlockEnd = end
-            break
-          }
-          offset = end
-        }
-
-        // Fallback: if the cursor sits exactly at pos 0 (before doc content),
-        // treat the first block as focused.
-        if (focusedBlockStart === -1 && doc.childCount > 0) {
-          focusedBlockStart = 0
-          focusedBlockEnd = doc.child(0).nodeSize
-        }
-
-        if (focusedBlockStart === -1) return DecorationSet.empty
+        const block = findActiveTopLevelBlock(state)
+        if (!block) return DecorationSet.empty
 
         // Node decoration: wraps the matched top-level block with a class.
         // The `class` attr is merged onto the block element by ProseMirror.
-        const deco = Decoration.node(focusedBlockStart, focusedBlockEnd, {
+        const deco = Decoration.node(block.from, block.to, {
           class: 'block-focused',
         })
 
-        return DecorationSet.create(doc, [deco])
+        return DecorationSet.create(state.doc, [deco])
       },
     },
   })

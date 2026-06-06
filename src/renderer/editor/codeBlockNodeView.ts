@@ -66,6 +66,11 @@ function makeCodeBlockNodeView(
   // <div class="code-block-wrapper"> holds both the source pre and the preview.
   // Using a <div> (not <pre>) at the outer level lets us stack source + preview
   // vertically without affecting the <pre>'s whitespace handling.
+  //
+  // Diagram blocks additionally get the `is-diagram` class so CSS can hide the
+  // source by default and only reveal it when the block is the active block
+  // (the activeBlockPlugin adds `is-active-block` to this same wrapper element,
+  // since a code_block is a top-level block). See github.css section 15.
   const dom = document.createElement('div')
   dom.className = 'code-block-wrapper'
 
@@ -96,6 +101,13 @@ function makeCodeBlockNodeView(
   // ---- Helper: is current language a diagram language? ---------------------
   function isDiagram(lang: string): boolean {
     return DIAGRAM_LANGS.has(lang)
+  }
+
+  // ---- Toggle the `is-diagram` wrapper class for CSS targeting ------------
+  // Uses classList so it composes with the `is-active-block` class that the
+  // activeBlockPlugin adds to this same element via a node decoration.
+  function syncDiagramClass(lang: string): void {
+    dom.classList.toggle('is-diagram', isDiagram(lang))
   }
 
   // ---- Attach / detach preview based on language --------------------------
@@ -163,6 +175,7 @@ function makeCodeBlockNodeView(
   }
 
   // ---- Initial setup -------------------------------------------------------
+  syncDiagramClass(currentLanguage)
   attachPreviewIfNeeded()
   if (isDiagram(currentLanguage)) {
     scheduleRender()
@@ -203,6 +216,7 @@ function makeCodeBlockNodeView(
 
       if (langChanged) {
         syncLanguageClass(newLang)
+        syncDiagramClass(newLang)
         attachPreviewIfNeeded()
       }
 
