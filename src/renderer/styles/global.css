@@ -295,11 +295,11 @@ body,
 .file-tree__arrow,
 .file-tree__arrow-spacer {
   flex-shrink: 0;
-  width: 12px;
+  width: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1;
   color: var(--color-text-muted);
 }
