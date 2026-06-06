@@ -32,10 +32,25 @@ Compares WYSIWYG's menu/settings surface to Lekha's (`src/main/menu.ts`,
 | Page Setup | – | ❓ needed, or is Print enough? |
 | Print | – | ADD - system print (already a high backlog finding) |
 
-## Edit menu
-ADD: Paste as Plain Text, Copy as Plain Text, Smart Punctuation toggle, Jump to
-Top / Jump to Bottom, Emoji & Symbols (macOS role). HAVE: Undo/Redo, Cut/Copy/
-Paste/SelectAll, Copy as HTML/Markdown, Find/Replace.
+## Edit menu (expanded from WYSIWYG's Edit menu screenshot)
+HAVE: Undo/Redo, Cut/Copy/Paste/SelectAll, Copy as HTML/Markdown, Find/Replace.
+ADD (needed):
+- **Copy as Plain Text** and **Paste as Plain Text** (strip formatting).
+- **Copy without Theme Styling** - copy-as-HTML variant with no theme CSS inlined.
+- **Move Row Up / Move Row Down** - reorder the current table row (and add
+  **Move Column Left/Right** for completeness) via prosemirror-tables.
+- **Line Endings** submenu - LF / CRLF for the current document (persist + apply
+  on save).
+- **Selection** submenu - Select Line / Select Block / Select Word.
+- **Jump to Top / Jump to Bottom** of the document.
+- **Speech** (Start Speaking / Stop Speaking), **Start Dictation**, **Emoji &
+  Symbols** - macOS roles (`startSpeaking`/`stopSpeaking`/`startsDictation`/
+  `showEmojiAndSymbols` / `toggleSpeech`), cheap to add.
+ADD (have behavior, expose toggle): **Substitutions / Smart Punctuation**
+(smart quotes, dashes, ellipsis) - already in input rules; add a settings toggle
++ Edit-menu entry. **Spelling and Grammar** - we have spellcheck; surface the
+standard submenu where practical.
+SKIP: Copy Image Content (niche), AutoFill (OS form-fill, irrelevant to an editor).
 
 ## Paragraph menu (WYSIWYG separates block-level from inline)
 Lekha folds these into Format. ADD a dedicated **Paragraph** menu mirroring

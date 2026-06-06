@@ -37,6 +37,23 @@ feature branch.
 - Prefer token-driven, theme-aware CSS; keep the 7 themes coherent.
 - Security/perf waves must not break existing hardening (CSP, contextIsolation, sandbox).
 
+## Capstone - Final quality pass
+
+After all feature workstreams (menu/settings parity, design system, custom
+themes, remaining parity backlog) AND the 20 security / 20 performance / 20
+live-usage rounds are complete, run a final consolidated **review & polish** pass
+to certify highest quality:
+- **Security:** re-audit CSP, contextIsolation/sandbox, IPC input validation,
+  path traversal, external-URL handling, user-CSS injection safety.
+- **Performance:** cold-start, bundle size, large-document editing, scroll, find,
+  render of math/diagrams/code; fix regressions.
+- **UI:** visual consistency across all themes (incl. Graphite + custom), spacing,
+  controls, empty states - screenshot-verified.
+- **UX:** end-to-end flows (open/edit/save, folder browsing, export, theming,
+  keyboard-only operation), error handling, a11y/focus.
+Produce a final report, fix everything that makes sense, and only then declare
+the app done.
+
 ## Ledger
 
 Progress is tracked in `docs/superpowers/plans/wysiwyg-parity-ledger.md` (round-by-round:
