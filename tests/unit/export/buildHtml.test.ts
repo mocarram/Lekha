@@ -1,10 +1,16 @@
+// @vitest-environment jsdom
 /**
  * Unit tests for buildExportHtml - the pure renderer-side HTML export builder.
  *
- * Runs in happy-dom (the default vitest environment) so mermaid.render() has
- * a DOM available. Mermaid is mocked to avoid requiring a real browser layout
- * engine; the mock returns a predictable SVG string so we can assert the
- * mermaid code block is converted to an SVG container.
+ * Runs in jsdom (overriding the default happy-dom env for this file) so that
+ * DOMPurify - which buildHtml now uses to sanitize the rendered body - parses
+ * HTML the same way real Chromium does. happy-dom's HTML parser drops the
+ * first/outer block element when DOMPurify reparses a fragment (e.g. <h1>x</h1>
+ * collapses to "x"), which is a happy-dom quirk not present in the real
+ * renderer; jsdom matches Chromium's parsing so the sanitizer output is
+ * faithful. Mermaid is mocked to avoid requiring a real browser layout engine;
+ * the mock returns a predictable SVG string so we can assert the mermaid code
+ * block is converted to an SVG container.
  */
 
 // Mock mermaid BEFORE importing buildExportHtml so the module sees the mock.
@@ -162,5 +168,73 @@ describe('buildExportHtml - mermaid rendering', () => {
     const html = await buildExportHtml(md)
     // The mermaid source should not appear verbatim inside a <code> tag
     expect(html).not.toMatch(/<code[^>]*>[\s\S]*graph TD/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// HTML sanitization (DOMPurify) - inline HTML from an opened (untrusted) .md
+// must be stripped of script / event handlers / iframes WITHOUT breaking the
+// legitimately-rendered markdown / math / mermaid / code output.
+// ---------------------------------------------------------------------------
+
+describe('buildExportHtml - sanitization strips dangerous markup', () => {
+  it('strips a raw <script> tag from inline HTML', async () => {
+    const html = await buildExportHtml('<script>alert(1)</script>\n\n# Hi')
+    expect(html).not.toContain('<script>alert(1)</script>')
+    expect(html).not.toMatch(/<script\b/i)
+    // The legitimate markdown still renders.
+    expect(html).toContain('<h1>Hi</h1>')
+  })
+
+  it('strips inline event-handler attributes (onerror) from <img>', async () => {
+    const html = await buildExportHtml('<img src=x onerror=alert(1)>')
+    expect(html).not.toMatch(/onerror/i)
+    // The img element itself may survive (sanitized), but with no handler.
+    expect(html).not.toContain('alert(1)')
+  })
+
+  it('strips <iframe> and <object> elements', async () => {
+    const html = await buildExportHtml(
+      '<iframe src="https://evil.test"></iframe>\n\n<object data="x"></object>\n\n# Ok',
+    )
+    expect(html).not.toMatch(/<iframe\b/i)
+    expect(html).not.toMatch(/<object\b/i)
+    expect(html).toContain('<h1>Ok</h1>')
+  })
+
+  it('removes javascript: URLs from link hrefs', async () => {
+    // markdown-it itself refuses a javascript: link (leaves it as literal text);
+    // an inline-HTML <a> is the real attack surface, so assert the sanitizer
+    // drops the href there. No executable javascript: ends up in an attribute.
+    const html = await buildExportHtml('<a href="javascript:alert(1)">click</a>')
+    expect(html).not.toMatch(/href\s*=\s*["']?javascript:/i)
+    // The anchor text survives but with no dangerous href.
+    expect(html).toContain('click')
+  })
+
+  it('KEEPS rendered code / math / mermaid after sanitization', async () => {
+    const md = [
+      '<script>alert(1)</script>',
+      '',
+      '# Survivor',
+      '',
+      '```js',
+      'const x = 1',
+      '```',
+      '',
+      'Inline $x^2$ math.',
+      '',
+      '```mermaid',
+      'graph TD; A-->B;',
+      '```',
+    ].join('\n')
+    const html = await buildExportHtml(md)
+    // Dangerous markup gone...
+    expect(html).not.toMatch(/<script\b/i)
+    // ...but every rendered feature survives.
+    expect(html).toContain('<h1>Survivor</h1>')
+    expect(html).toMatch(/hljs/) // code highlighting
+    expect(html).toMatch(/katex/) // KaTeX math
+    expect(html).toContain('<svg') // mermaid diagram SVG
   })
 })

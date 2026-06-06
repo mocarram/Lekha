@@ -32,6 +32,7 @@ import MarkdownIt from 'markdown-it'
 import katex from 'katex'
 import hljs from 'highlight.js'
 import taskLists from 'markdown-it-task-lists'
+import DOMPurify from 'dompurify'
 import { mathPlugin } from '../editor/math-plugin'
 import { renderMermaid } from '../editor/mermaid'
 
@@ -198,6 +199,55 @@ function reinsertMermaid(html: string, blocks: MermaidBlock[]): string {
 }
 
 // ---------------------------------------------------------------------------
+// HTML sanitization (DOMPurify)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sanitize a rendered HTML body fragment before it is wrapped into the export
+ * document (and, for PDF, loaded into an offscreen BrowserWindow).
+ *
+ * Why: markdown-it runs with `html: true`, so any inline HTML present in an
+ * OPENED (possibly untrusted) `.md` passes straight through into the export
+ * output. Without sanitization a malicious document could smuggle a
+ * `<script>`, an `onerror=` handler, an `<iframe>`, or a `javascript:` URL into
+ * the exported HTML - which then executes when that HTML is opened or rendered
+ * for PDF. This is the renderer-side defense; the offscreen PDF window is also
+ * locked down (export.ts) as defense-in-depth.
+ *
+ * The config must STRIP the dangerous bits while PRESERVING everything we
+ * legitimately render:
+ *   - normal markdown HTML (headings, lists, tables, code, img, a, ...),
+ *   - mermaid diagrams (inline `<svg>` + all its children, incl. foreignObject),
+ *   - KaTeX output (`<span class>`/`<math>`/`<annotation>`/`<semantics>` ... with
+ *     class + inline style).
+ *
+ * We therefore enable the html + svg + mathMl profiles and explicitly keep the
+ * `class` and `style` attributes (KaTeX positions glyphs with inline style and
+ * keys everything off classes; hljs colours code via classes). `target` is also
+ * allowed so external links keep working. DOMPurify removes `<script>`, event
+ * handlers (`on*`), `<iframe>`/`<object>`/`<embed>`, and `javascript:` URLs by
+ * default under these profiles.
+ *
+ * DOMPurify needs a DOM `window`; buildHtml runs in the renderer (real DOM) and
+ * unit tests run in happy-dom (which provides one), so the global DOMPurify
+ * instance works in both.
+ */
+function sanitizeBody(html: string): string {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
+    // KaTeX/hljs rely on class for styling and KaTeX uses inline style for glyph
+    // positioning; mermaid SVG uses style too. Keep them (DOMPurify still strips
+    // dangerous values). `target`/`rel` keep external links working.
+    ADD_ATTR: ['class', 'style', 'target', 'rel'],
+    // foreignObject is used by mermaid to embed HTML labels inside the SVG.
+    ADD_TAGS: ['foreignObject'],
+    // Return a string (default), not a DOM node.
+    RETURN_DOM: false,
+    RETURN_DOM_FRAGMENT: false,
+  })
+}
+
+// ---------------------------------------------------------------------------
 // HTML document assembly
 // ---------------------------------------------------------------------------
 
@@ -305,7 +355,11 @@ export async function renderMarkdownBody(markdown: string): Promise<string> {
   // 3. Reinsert the rendered mermaid SVGs
   body = reinsertMermaid(body, blocks)
 
-  return body
+  // 4. Sanitize the assembled body. Done LAST so the mermaid SVG is also
+  //    sanitized (defense-in-depth) while the allowlist preserves it, KaTeX,
+  //    and highlighted code. Strips <script>, on* handlers, iframes,
+  //    javascript: URLs from any inline HTML in an untrusted opened document.
+  return sanitizeBody(body)
 }
 
 /**

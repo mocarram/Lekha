@@ -46,6 +46,7 @@ import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { IPC } from '@shared/ipc-channels'
 import type { PandocFormat } from '@shared/types'
+import { hardenWebContents } from '@main/window'
 
 // ---------------------------------------------------------------------------
 // Pandoc detection (cached)
@@ -202,14 +203,24 @@ export function registerExportHandlers(): void {
 
       // Create the offscreen window. sandbox:false is required for printToPDF
       // to work - with sandbox:true Electron cannot access the printer backend.
+      // Keep the rest locked down: no node integration, context isolation on.
       const offscreen = new BrowserWindow({
         show: false,
         width: 1200,
         height: 900,
         webPreferences: {
           sandbox: false,
+          nodeIntegration: false,
+          contextIsolation: true,
         },
       })
+
+      // Defense-in-depth: the export HTML is sanitized in the renderer
+      // (buildHtml.ts), but harden this window too so that even if a script
+      // slipped through it can neither open a child window nor navigate the
+      // frame away from the temp document we loaded. The allowed navigation
+      // target is the temp file's own URL; everything else is blocked.
+      hardenWebContents(offscreen.webContents, `file://${tmpPath}`)
 
       try {
         // Load the temp HTML and wait for the page to finish rendering.
