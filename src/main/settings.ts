@@ -21,6 +21,7 @@ const DEFAULTS: Settings = {
   focusMode: false,
   typewriterMode: false,
   fontSize: DEFAULT_FONT_SIZE,
+  autoSave: true,
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

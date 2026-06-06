@@ -43,6 +43,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     focusMode: false,
     typewriterMode: false,
     fontSize: 16,
+    autoSave: true,
     ...overrides,
   }
 }
@@ -149,6 +150,39 @@ describe('Preferences - editor toggles', () => {
     fireEvent.click(screen.getByLabelText('Typewriter mode by default'))
     expect(setSettingsMock).toHaveBeenCalledWith({ typewriterMode: true })
     expect(useEditorStore.getState().typewriterMode).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Editor: auto-save
+// ---------------------------------------------------------------------------
+
+describe('Preferences - auto-save', () => {
+  it('renders the Auto-save checkbox', async () => {
+    await renderOpen()
+    expect(screen.getByLabelText('Auto-save')).toBeTruthy()
+  })
+
+  it('toggling auto-save off persists it and updates the editor store', async () => {
+    // Default is autoSave=true; clicking unchecks it.
+    await renderOpen()
+    fireEvent.click(screen.getByLabelText('Auto-save'))
+    expect(setSettingsMock).toHaveBeenCalledWith({ autoSave: false })
+    expect(useEditorStore.getState().autoSave).toBe(false)
+  })
+
+  it('reflects autoSave=false when seeded from settings', async () => {
+    stubLekha(makeSettings({ autoSave: false }))
+    await renderOpen()
+    const el = screen.getByLabelText('Auto-save')
+    expect((el as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('reflects autoSave=true (default) when seeded from settings', async () => {
+    stubLekha(makeSettings({ autoSave: true }))
+    await renderOpen()
+    const el = screen.getByLabelText('Auto-save')
+    expect((el as HTMLInputElement).checked).toBe(true)
   })
 })
 

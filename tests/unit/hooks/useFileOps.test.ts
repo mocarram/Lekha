@@ -83,6 +83,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
         focusMode: false,
         typewriterMode: false,
         fontSize: 16,
+        autoSave: true,
       }),
     ),
     setSettings: vi.fn(() =>
@@ -95,6 +96,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
         focusMode: false,
         typewriterMode: false,
         fontSize: 16,
+        autoSave: true,
       }),
     ),
     getRecentFiles: vi.fn(() => Promise.resolve([] as string[])),
@@ -416,7 +418,7 @@ describe('useFileOps - openFolder()', () => {
     const tree: FileNode[] = []
     const openFolderDialog = vi.fn(() => Promise.resolve('/proj' as string | null))
     const readDir = vi.fn((_d: string) => Promise.resolve(tree))
-    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const, theme: 'github', focusMode: false, typewriterMode: false, fontSize: 16 }))
+    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const, theme: 'github', focusMode: false, typewriterMode: false, fontSize: 16, autoSave: true }))
     const mockLekha = makeMockLekha({ openFolderDialog, readDir, setSettings })
     vi.stubGlobal('lekha', mockLekha)
 

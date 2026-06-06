@@ -22,6 +22,8 @@ interface EditorState {
   focusMode: boolean
   /** Typewriter mode: keeps the cursor line vertically centered in the viewport. */
   typewriterMode: boolean
+  /** Auto-save: automatically write saved documents after a short idle period. */
+  autoSave: boolean
 }
 
 interface EditorActions {
@@ -49,6 +51,8 @@ interface EditorActions {
   setFocusMode(value: boolean): void
   /** Set typewriter mode to an explicit value. */
   setTypewriterMode(value: boolean): void
+  /** Set auto-save to an explicit value. */
+  setAutoSave(value: boolean): void
 }
 
 export type EditorStore = EditorState & EditorActions
@@ -83,6 +87,7 @@ const INITIAL_STATE: EditorState = {
   selChars: 0,
   focusMode: false,
   typewriterMode: false,
+  autoSave: true,
 }
 
 // ---------------------------------------------------------------------------
@@ -156,5 +161,9 @@ export const useEditorStore = create<EditorStore>()((set) => ({
 
   setTypewriterMode(value) {
     set({ typewriterMode: value })
+  },
+
+  setAutoSave(value) {
+    set({ autoSave: value })
   },
 }))

@@ -116,6 +116,7 @@ function makeMockLekha(
         focusMode: false,
         typewriterMode: false,
         fontSize: 16,
+        autoSave: true,
       }),
     ),
     setSettings: vi.fn(() =>
@@ -128,6 +129,7 @@ function makeMockLekha(
         focusMode: false,
         typewriterMode: false,
         fontSize: 16,
+        autoSave: true,
       }),
     ),
     getRecentFiles: vi.fn(() => Promise.resolve([] as string[])),

@@ -42,6 +42,8 @@ export interface Settings {
   typewriterMode: boolean
   /** Editor content font size in pixels. Applied via the --editor-font-size CSS var. */
   fontSize: number
+  /** Auto-save: automatically write saved documents after a short idle period. */
+  autoSave: boolean
 }
 
 /** Default editor font size (px). Shared by the settings store and the renderer. */

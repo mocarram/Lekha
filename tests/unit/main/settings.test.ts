@@ -26,6 +26,21 @@ describe('createSettingsStore', () => {
     expect(settings.fontSize).toBe(16)
   })
 
+  it('autoSave defaults to true', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.autoSave).toBe(true)
+  })
+
+  it('round-trips autoSave=false', async () => {
+    const store = createSettingsStore(tmpDir)
+    await store.set({ autoSave: false })
+
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.autoSave).toBe(false)
+  })
+
   it('round-trips a custom fontSize', async () => {
     const store = createSettingsStore(tmpDir)
     const result = await store.set({ fontSize: 20 })

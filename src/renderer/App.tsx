@@ -3,6 +3,7 @@ import { EditorPane, type EditorPaneHandle } from '@renderer/editor/EditorPane'
 import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
 import { useStartup } from '@renderer/hooks/useStartup'
+import { useAutoSave } from '@renderer/hooks/useAutoSave'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { parseMarkdown } from '@renderer/editor/parser'
 import { getOutline } from '@renderer/editor/outline'
@@ -59,6 +60,15 @@ export default function App() {
 
   // Restore persisted settings on mount and persist sidebar/folder changes.
   useStartup(fileOps)
+
+  // Auto-save: debounced write for saved (has-path) dirty documents.
+  const autoSave = useEditorStore((s) => s.autoSave)
+  const isDirty = useEditorStore((s) => s.isDirty)
+  const editorPath = useEditorStore((s) => s.path)
+  // Wrap in an arrow to avoid the unbound-method lint rule: fileOps.save is a
+  // plain async function (no `this` access), but the linter can't infer that.
+  const autoSaveFn = useCallback(() => fileOps.save(), [fileOps])
+  useAutoSave({ enabled: autoSave, isDirty, hasPath: editorPath !== null, save: autoSaveFn })
 
   // Find/Replace overlay state
   const [findState, setFindState] = useState<{

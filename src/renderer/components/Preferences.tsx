@@ -41,7 +41,7 @@ export interface PreferencesProps {
 /** The subset of Settings the Preferences form edits. */
 type FormState = Pick<
   Settings,
-  'theme' | 'fontSize' | 'focusMode' | 'typewriterMode' | 'sidebarVisible' | 'sidebarTab'
+  'theme' | 'fontSize' | 'focusMode' | 'typewriterMode' | 'autoSave' | 'sidebarVisible' | 'sidebarTab'
 >
 
 const INITIAL_FORM: FormState = {
@@ -49,6 +49,7 @@ const INITIAL_FORM: FormState = {
   fontSize: DEFAULT_FONT_SIZE,
   focusMode: false,
   typewriterMode: false,
+  autoSave: true,
   sidebarVisible: true,
   sidebarTab: 'files',
 }
@@ -73,6 +74,7 @@ export function Preferences({ open, onClose }: PreferencesProps) {
         fontSize: s.fontSize,
         focusMode: s.focusMode,
         typewriterMode: s.typewriterMode,
+        autoSave: s.autoSave,
         sidebarVisible: s.sidebarVisible,
         sidebarTab: s.sidebarTab,
       })
@@ -116,6 +118,12 @@ export function Preferences({ open, onClose }: PreferencesProps) {
     setForm((f) => ({ ...f, typewriterMode }))
     useEditorStore.getState().setTypewriterMode(typewriterMode)
     persist({ typewriterMode })
+  }
+
+  const handleAutoSave = (autoSave: boolean): void => {
+    setForm((f) => ({ ...f, autoSave }))
+    useEditorStore.getState().setAutoSave(autoSave)
+    persist({ autoSave })
   }
 
   const handleSidebarVisible = (sidebarVisible: boolean): void => {
@@ -223,6 +231,16 @@ export function Preferences({ open, onClose }: PreferencesProps) {
               aria-label="Typewriter mode by default"
             />
             Typewriter mode by default
+          </label>
+
+          <label className="prefs-check">
+            <input
+              type="checkbox"
+              checked={form.autoSave}
+              onChange={(e) => handleAutoSave(e.target.checked)}
+              aria-label="Auto-save"
+            />
+            Auto-save
           </label>
         </section>
 
