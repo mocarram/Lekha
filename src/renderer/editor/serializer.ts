@@ -131,6 +131,40 @@ const serializer = new MarkdownSerializer(
       state.closeBlock(node)
     },
 
+    // YAML front-matter: emit `---\n<yaml>\n---` followed by a blank line.
+    front_matter(state, node) {
+      state.write('---\n')
+      state.text(node.textContent, false)
+      state.write('\n---')
+      state.closeBlock(node)
+    },
+
+    // [TOC] atom: emit canonical lowercase `[toc]`.
+    toc(state, node) {
+      state.write('[toc]')
+      state.closeBlock(node)
+    },
+
+    // Footnote inline reference: `[^label]`
+    footnote_ref(state, node) {
+      state.write('[^' + (node.attrs['label'] as string) + ']')
+    },
+
+    // Footnote definition block: `[^label]: <inline content>`
+    // Serializes as `[^label]: text` on a single line.
+    // Multi-paragraph footnotes are not supported in the MVP; only the first
+    // paragraph's inline content is serialized (lossless for the common case).
+    footnote_definition(state, node) {
+      const label = node.attrs['label'] as string
+      // Get the first paragraph's serialized text (inline-only, no block wrapper).
+      // serializeMarkdown is a forward reference; it is safe because this
+      // function is only called at serialize-time, after the module is initialized.
+      const first = node.firstChild
+      const inlineText = first ? serializeMarkdown(first).trim() : ''
+      state.write('[^' + label + ']: ' + inlineText)
+      state.closeBlock(node)
+    },
+
     table(state, node) {
       renderTable(state, node)
     },

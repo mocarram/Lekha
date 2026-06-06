@@ -12,6 +12,8 @@ import { serializeMarkdown } from './serializer'
 import { taskItemNodeView } from './taskItem'
 import { mathInlineNodeView, mathBlockNodeView } from './mathNodeView'
 import { codeBlockNodeView } from './codeBlockNodeView'
+import { frontMatterNodeView } from './frontMatterNodeView'
+import { tocNodeView } from './tocNodeView'
 import { editorCommandMap } from './editorCommands'
 import { schema } from './schema'
 import { imageEditorProps } from './imagePaste'
@@ -135,6 +137,8 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           math_inline: mathInlineNodeView,
           math_block: mathBlockNodeView,
           code_block: codeBlockNodeView,
+          front_matter: frontMatterNodeView,
+          toc: tocNodeView,
         },
         handlePaste,
         handleDrop,

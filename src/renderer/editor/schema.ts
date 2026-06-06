@@ -157,6 +157,97 @@ const mathBlock: NodeSpec = {
   },
 }
 
+/**
+ * YAML front-matter block. Only valid as the first node in the document.
+ * Stores the raw YAML as text content so it is fully editable and round-trips
+ * losslessly: serialize emits `---\n<yaml>\n---`.
+ *
+ * Implemented as a code-like block (code: true, marks: '') so ProseMirror
+ * treats its text content as literal (no inline marks), and the NodeView can
+ * render it as a monospace, editable YAML region.
+ */
+const frontMatter: NodeSpec = {
+  group: 'block',
+  content: 'text*',
+  code: true,
+  defining: true,
+  marks: '',
+  attrs: {},
+  parseDOM: [
+    {
+      tag: 'div.front-matter',
+      preserveWhitespace: 'full',
+    },
+  ],
+  toDOM(): DOMOutputSpec {
+    return ['div', { class: 'front-matter' }, ['pre', 0]]
+  },
+}
+
+/**
+ * Table of contents atom. Serializes to `[toc]`.
+ * The NodeView renders live TOC entries derived from the document's headings.
+ */
+const toc: NodeSpec = {
+  group: 'block',
+  atom: true,
+  selectable: true,
+  attrs: {},
+  parseDOM: [{ tag: 'div.toc' }],
+  toDOM(): DOMOutputSpec {
+    return ['div', { class: 'toc' }]
+  },
+}
+
+/**
+ * Inline footnote reference: `[^id]` in source.
+ * Rendered as a superscript marker. The `label` attr holds the raw label text.
+ */
+const footnoteRef: NodeSpec = {
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  attrs: { label: { default: '' } },
+  parseDOM: [
+    {
+      tag: 'sup.footnote-ref',
+      getAttrs(dom: HTMLElement): { label: string } {
+        return { label: dom.getAttribute('data-label') ?? '' }
+      },
+    },
+  ],
+  toDOM(node): DOMOutputSpec {
+    return [
+      'sup',
+      { class: 'footnote-ref', 'data-label': node.attrs['label'] as string },
+      `[^${node.attrs['label'] as string}]`,
+    ]
+  },
+}
+
+/**
+ * Block footnote definition: `[^id]: content` in source.
+ * Holds block content (paragraph, etc.). The `label` attr identifies the note.
+ */
+const footnoteDefinition: NodeSpec = {
+  group: 'block',
+  content: 'block+',
+  defining: true,
+  attrs: { label: { default: '' } },
+  parseDOM: [
+    {
+      tag: 'div.footnote-def',
+      getAttrs(dom: HTMLElement): { label: string } {
+        return { label: dom.getAttribute('data-label') ?? '' }
+      },
+    },
+  ],
+  toDOM(node): DOMOutputSpec {
+    return ['div', { class: 'footnote-def', 'data-label': node.attrs['label'] as string }, 0]
+  },
+}
+
 // Start from the baseline node map, override code_block, then append the
 // WYSIWYG additions. baseSchema.spec.nodes is an OrderedMap whose
 // `append`/`update` keep ordering deterministic.
@@ -171,6 +262,10 @@ const nodes = baseSchema.spec.nodes
     table_header: tables.table_header,
     math_inline: mathInline,
     math_block: mathBlock,
+    front_matter: frontMatter,
+    toc: toc,
+    footnote_ref: footnoteRef,
+    footnote_definition: footnoteDefinition,
   })
 
 const marks = baseSchema.spec.marks.append({ strikethrough })

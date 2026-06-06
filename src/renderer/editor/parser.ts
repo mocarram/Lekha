@@ -6,6 +6,9 @@ import type { Nesting } from 'markdown-it/lib/token.mjs'
 import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 import taskLists from 'markdown-it-task-lists'
 import { mathPlugin } from './math-plugin'
+import { frontMatterPlugin } from './frontmatter-plugin'
+import { tocPlugin } from './toc-plugin'
+import { footnotePlugin } from './footnote-plugin'
 import { schema } from './schema'
 
 /**
@@ -228,6 +231,9 @@ const tokenizer = MarkdownIt('commonmark', { html: false })
   .enable(['strikethrough', 'table'])
   .use(taskLists, { label: true })
   .use(mathPlugin)
+  .use(frontMatterPlugin)
+  .use(tocPlugin)
+  .use(footnotePlugin)
 
 // Run AFTER markdown-it-task-lists' `github-task-lists` rule so the
 // `contains-task-list`/`task-list-item` classes it sets are present.
@@ -309,6 +315,42 @@ const tokens: Record<string, ParseSpec> = {
   // from the token's content attribute.
   math_inline: { node: 'math_inline', getAttrs: (tok) => ({ latex: tok.content }) },
   math_block: { node: 'math_block', getAttrs: (tok) => ({ latex: tok.content }) },
+
+  // YAML front-matter. The frontMatterPlugin emits a single `front_matter`
+  // token (nesting=0) with token.content = raw YAML. We map it to a
+  // `front_matter` block node whose text content is the raw YAML.
+  // `noCloseToken: true` tells the parser this is a self-contained token,
+  // not an open/close pair (like code_block).
+  front_matter: {
+    block: 'front_matter',
+    noCloseToken: true,
+    getAttrs: () => ({}),
+  },
+
+  // [TOC] atom. The tocPlugin emits a single `toc` token (nesting=0).
+  toc: { node: 'toc', getAttrs: () => ({}) },
+
+  // Footnote inline reference: `[^label]`
+  // The footnotePlugin emits `footnote_ref` (nesting=0) with meta.label.
+  // tok.meta is typed as `any` by markdown-it; we cast it to the known shape
+  // emitted by our footnote-plugin.ts to avoid unsafe-member-access lint errors.
+  footnote_ref: {
+    node: 'footnote_ref',
+    getAttrs: (tok) => {
+      const meta = tok.meta as { label?: string } | null
+      return { label: meta?.label ?? '' }
+    },
+  },
+
+  // Footnote definition block: `[^label]: content`
+  // The footnotePlugin emits footnote_def_open/content/footnote_def_close.
+  footnote_def: {
+    block: 'footnote_definition',
+    getAttrs: (tok) => {
+      const meta = tok.meta as { label?: string } | null
+      return { label: meta?.label ?? '' }
+    },
+  },
 
   // Marks.
   em: { mark: 'em' },

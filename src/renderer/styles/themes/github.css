@@ -981,3 +981,149 @@
   font-size: 0.9em;
   font-family: var(--font-ui);
 }
+
+/* ===========================================================================
+ * 16. YAML Front Matter
+ *
+ * A leading `---\nyaml\n---` block rendered as a styled monospace region.
+ * The label provides a subtle "Front Matter" affordance. The <pre> inside
+ * is the ProseMirror contentDOM — fully editable, whitespace preserved.
+ * =========================================================================== */
+
+.editor-pane .ProseMirror div.front-matter {
+  margin: 0 0 1.5em;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--code-bg);
+}
+
+.editor-pane .ProseMirror div.front-matter .front-matter__label {
+  display: block;
+  padding: 4px 12px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.editor-pane .ProseMirror div.front-matter pre.front-matter__content {
+  margin: 0;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: var(--code-text);
+  background: none;
+  border-radius: 0;
+  overflow-x: auto;
+  white-space: pre;
+  outline: none;
+}
+
+/* ===========================================================================
+ * 17. Table of Contents ([toc])
+ *
+ * A live, auto-updating TOC rendered as a styled contents box.
+ * Entries are clickable links that jump to the corresponding heading.
+ * =========================================================================== */
+
+.editor-pane .ProseMirror div.toc {
+  display: block;
+  margin: 0 0 1.5em;
+  padding: 12px 16px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  user-select: none;
+}
+
+.editor-pane .ProseMirror div.toc .toc__label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.editor-pane .ProseMirror div.toc .toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-pane .ProseMirror div.toc .toc__item {
+  margin: 3px 0;
+}
+
+.editor-pane .ProseMirror div.toc .toc__link {
+  display: block;
+  font-family: var(--font-editor);
+  font-size: 14px;
+  color: var(--link);
+  text-decoration: none;
+  border-radius: 3px;
+  padding: 1px 4px;
+  transition: background-color 0.1s ease;
+}
+
+.editor-pane .ProseMirror div.toc .toc__link:hover {
+  background-color: var(--sidebar-hover);
+  text-decoration: underline;
+}
+
+.editor-pane .ProseMirror div.toc .toc__empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  font-family: var(--font-ui);
+}
+
+/* H2+ entries are smaller */
+.editor-pane .ProseMirror div.toc .toc__item--h2 .toc__link,
+.editor-pane .ProseMirror div.toc .toc__item--h3 .toc__link,
+.editor-pane .ProseMirror div.toc .toc__item--h4 .toc__link,
+.editor-pane .ProseMirror div.toc .toc__item--h5 .toc__link,
+.editor-pane .ProseMirror div.toc .toc__item--h6 .toc__link {
+  font-size: 13px;
+}
+
+/* ===========================================================================
+ * 18. Footnotes
+ *
+ * Inline references render as superscript links.
+ * Definition blocks render as a subtle labeled region.
+ * =========================================================================== */
+
+/* Inline footnote reference: [^id] -> superscript */
+.editor-pane .ProseMirror sup.footnote-ref {
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  color: var(--link);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Footnote definition block */
+.editor-pane .ProseMirror div.footnote-def {
+  margin: 0.75em 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--border-light);
+  background-color: var(--surface);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.9em;
+  color: var(--text-sub);
+}
+
+.editor-pane .ProseMirror div.footnote-def p {
+  margin: 0;
+}
