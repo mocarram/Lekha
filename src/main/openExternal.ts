@@ -28,3 +28,28 @@ export function isSafeExternalUrl(url: string): boolean {
     return false
   }
 }
+
+/**
+ * Decision for a webContents window-open request.
+ *
+ *   - `openExternal` is true only when the URL passed `isSafeExternalUrl`, in
+ *     which case the caller should hand it to `shell.openExternal`.
+ *   - The window action is ALWAYS 'deny': Lekha never opens a child Electron
+ *     window (which would run with the app's privileges). Unsafe URLs are
+ *     simply dropped (denied with no external open).
+ *
+ * Pure (no Electron / shell side effects) so the policy is unit-testable. The
+ * thin handler in window.ts performs the actual `shell.openExternal` call when
+ * `openExternal` is true.
+ */
+export interface WindowOpenDecision {
+  /** Whether the caller should forward the URL to shell.openExternal. */
+  openExternal: boolean
+  /** Action returned to Electron's setWindowOpenHandler. Always 'deny'. */
+  action: 'deny'
+}
+
+/** Decide what to do with a window-open request for `url`. */
+export function decideWindowOpen(url: string): WindowOpenDecision {
+  return { openExternal: isSafeExternalUrl(url), action: 'deny' }
+}

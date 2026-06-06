@@ -20,6 +20,44 @@ import { BrowserWindow, dialog, shell } from 'electron'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import type { Settings } from '@shared/types'
+import { decideWindowOpen } from '@main/openExternal'
+
+// ---------------------------------------------------------------------------
+// Navigation / window-open hardening (shared by every window we create)
+// ---------------------------------------------------------------------------
+
+/**
+ * Lock down a window's webContents so it can NEVER open a child Electron window
+ * or navigate away from the bundled app:
+ *
+ *   - setWindowOpenHandler: route every window.open / target=_blank / external
+ *     link through the scheme allowlist (decideWindowOpen -> isSafeExternalUrl).
+ *     Safe http/https/mailto URLs are handed to the OS browser via
+ *     shell.openExternal; everything else (file:, javascript:, data:, ...) is
+ *     dropped. We ALWAYS return { action: 'deny' } so no in-app child window is
+ *     ever created (a child window would run with the app's privileges).
+ *
+ *   - will-navigate: prevent the renderer from navigating the top-level frame
+ *     away from the app (e.g. a stray <a href> or injected script setting
+ *     location). Only the app's own URL/file is allowed to load; any other
+ *     destination is canceled with event.preventDefault().
+ *
+ * `appUrl` is the URL/file the window was loaded with so we can recognise an
+ * allowed (same-document) navigation and block everything else.
+ */
+export function hardenWebContents(contents: Electron.WebContents, appUrl: string): void {
+  contents.setWindowOpenHandler(({ url }) => {
+    const decision = decideWindowOpen(url)
+    if (decision.openExternal) void shell.openExternal(url)
+    return { action: decision.action }
+  })
+
+  contents.on('will-navigate', (event, url) => {
+    // Allow only navigations back to the exact app document we loaded. Any
+    // navigation to a different (non-app) URL is blocked.
+    if (url !== appUrl) event.preventDefault()
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Pure geometry helpers (Electron-free, unit-tested)
@@ -233,17 +271,24 @@ export function createWindow(
     win.show()
   })
 
-  // Open external links in the system browser, not in the app.
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
-    return { action: 'deny' }
-  })
+  // Determine the app document this window loads so the navigation guard can
+  // tell an allowed (same-document) navigation from an unwanted redirect.
+  const devUrl = process.env['ELECTRON_RENDERER_URL']
+  const appFile = join(__dirname, '../renderer/index.html')
 
-  if (process.env['ELECTRON_RENDERER_URL']) {
-    void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (devUrl) {
+    // loadURL normalises (e.g. appends a trailing slash); use the resolved URL
+    // as the navigation allowlist entry below.
+    void win.loadURL(devUrl)
   } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'))
+    void win.loadFile(appFile)
   }
+
+  // Harden the window: only open scheme-validated external links in the OS
+  // browser (never a child Electron window) and block navigation away from the
+  // app. The app URL is the loaded document; loadFile resolves to a file: URL.
+  const appUrl = devUrl ?? `file://${appFile}`
+  hardenWebContents(win.webContents, appUrl)
 
   return controller
 }
