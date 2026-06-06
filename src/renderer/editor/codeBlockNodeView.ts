@@ -144,8 +144,7 @@ function makeCodeBlockNodeView(
   copyBtn.addEventListener('click', () => {
     // currentCode is kept up-to-date by update(); use it rather than node.textContent
     // so copy always reflects the latest source even after edits.
-    void (window as Window & { lekha?: { writeClipboard: (args: { text: string }) => Promise<void> } })
-      .lekha?.writeClipboard({ text: currentCode })
+    void window.lekha?.writeClipboard({ text: currentCode })
 
     copyBtn.textContent = 'Copied!'
     copyBtn.classList.add('copied')

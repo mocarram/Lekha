@@ -1049,6 +1049,96 @@
 
 .editor-pane .ProseMirror .code-block-wrapper {
   margin: 0 0 1em;
+  /* Positioning context for the absolutely-placed header strip. */
+  position: relative;
+}
+
+/* ---------------------------------------------------------------------------
+ * Code block header (language selector + copy button)
+ *
+ * Floats in the top-right corner of the wrapper. Hidden at rest and revealed
+ * on hover or focus-within so it stays out of the way while reading/writing
+ * (WYSIWYG-style). Both controls are purely decorative from PM's perspective -
+ * they live outside contentDOM and are ignored by ProseMirror mutations.
+ * --------------------------------------------------------------------------- */
+
+.editor-pane .ProseMirror .code-block-header {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  /* Invisible by default - revealed via hover / focus-within below. */
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  /* Prevent pointer interactions while hidden so they don't interfere. */
+  pointer-events: none;
+}
+
+/* Reveal when the user hovers the wrapper or focuses inside it (keyboard). */
+.editor-pane .ProseMirror .code-block-wrapper:hover .code-block-header,
+.editor-pane .ProseMirror .code-block-wrapper:focus-within .code-block-header {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Language selector - reads like a subtle label with a chevron. */
+.editor-pane .ProseMirror .lang-selector {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-muted);
+  background-color: var(--code-bg);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  outline: none;
+  /* Prevent the native OS widget frame from showing through. */
+  box-shadow: none;
+  transition: color 0.1s ease, border-color 0.1s ease, background-color 0.1s ease;
+}
+
+.editor-pane .ProseMirror .lang-selector:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.editor-pane .ProseMirror .lang-selector:focus {
+  color: var(--text);
+  border-color: var(--border-light);
+}
+
+/* Copy button - minimal text/icon button that blends with the code surface. */
+.editor-pane .ProseMirror .copy-btn {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-muted);
+  background-color: var(--code-bg);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  outline: none;
+  transition: color 0.1s ease, border-color 0.1s ease, background-color 0.1s ease;
+  white-space: nowrap;
+}
+
+.editor-pane .ProseMirror .copy-btn:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* "Copied!" confirmation state - slight accent tint so the feedback registers. */
+.editor-pane .ProseMirror .copy-btn.copied {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* Diagram source-hiding gate (better-than-WYSIWYG behavior).
