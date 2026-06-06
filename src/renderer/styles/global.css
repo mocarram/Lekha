@@ -295,9 +295,12 @@ body,
 .file-tree__arrow,
 .file-tree__arrow-spacer {
   flex-shrink: 0;
-  width: 10px;
-  font-size: 9px;
-  text-align: center;
+  width: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
   color: var(--color-text-muted);
 }
 
