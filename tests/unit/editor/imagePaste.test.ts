@@ -150,6 +150,7 @@ function makeMockLekha(
     saveImage,
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
+    searchFolder: vi.fn(() => Promise.resolve([])),
   }
 }
 

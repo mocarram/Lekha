@@ -5,6 +5,7 @@ import { registerFileHandlers } from '@main/ipc/files'
 import { registerExportHandlers } from '@main/ipc/export'
 import { registerImageHandlers } from '@main/ipc/images'
 import { registerShellHandlers } from '@main/ipc/shell'
+import { registerSearchHandlers } from '@main/ipc/search'
 import { buildMenuTemplate } from '@main/menu'
 import { setupAutoUpdater, checkForUpdates } from '@main/updater'
 import { applySpellCheck } from '@main/spellCheck'
@@ -254,6 +255,9 @@ void app.whenReady().then(async () => {
 
   // Register the openExternal IPC handler (scheme-validated link opening).
   registerShellHandlers()
+
+  // Register folder-wide Markdown search handler.
+  registerSearchHandlers()
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens

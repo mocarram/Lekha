@@ -117,6 +117,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/image-000001.png' })),
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
+    searchFolder: vi.fn(() => Promise.resolve([])),
     ...overrides,
   }
 }

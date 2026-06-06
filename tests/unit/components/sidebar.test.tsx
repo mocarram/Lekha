@@ -2,8 +2,8 @@
  * Tests for Sidebar component.
  *
  * Sidebar reads sidebarVisible and sidebarTab from useWorkspaceStore, renders
- * FileTree when tab='files' and Outline when tab='outline', and hides entirely
- * when sidebarVisible is false.
+ * FileTree when tab='files', Outline when tab='outline', FolderSearch when
+ * tab='search', and hides entirely when sidebarVisible is false.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup, fireEvent } from '@testing-library/react'
@@ -19,13 +19,18 @@ const WORKSPACE_DEFAULTS = {
   sidebarTab: 'files' as const,
 }
 
-afterEach(() => {
-  cleanup()
+// Minimal stub so FolderSearch's window.lekha.searchFolder doesn't throw.
+beforeEach(() => {
+  vi.stubGlobal('lekha', {
+    searchFolder: vi.fn(() => Promise.resolve([])),
+  })
   useWorkspaceStore.setState(WORKSPACE_DEFAULTS)
   useEditorStore.getState().reset()
 })
 
-beforeEach(() => {
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
   useWorkspaceStore.setState(WORKSPACE_DEFAULTS)
   useEditorStore.getState().reset()
 })
@@ -35,7 +40,7 @@ describe('Sidebar', () => {
 
   it('renders the sidebar root element', () => {
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     expect(container.querySelector('.sidebar')).not.toBeNull()
   })
@@ -43,7 +48,7 @@ describe('Sidebar', () => {
   it('is hidden entirely when sidebarVisible is false', () => {
     useWorkspaceStore.setState({ sidebarVisible: false })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     expect(container.querySelector('.sidebar')).toBeNull()
   })
@@ -51,7 +56,7 @@ describe('Sidebar', () => {
   it('shows FileTree when sidebarTab is "files"', () => {
     useWorkspaceStore.setState({ sidebarTab: 'files' })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     expect(container.querySelector('.file-tree')).not.toBeNull()
     expect(container.querySelector('.outline')).toBeNull()
@@ -60,16 +65,26 @@ describe('Sidebar', () => {
   it('shows Outline when sidebarTab is "outline"', () => {
     useWorkspaceStore.setState({ sidebarTab: 'outline' })
     const { container } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     expect(container.querySelector('.outline')).not.toBeNull()
     expect(container.querySelector('.file-tree')).toBeNull()
   })
 
+  it('shows FolderSearch when sidebarTab is "search"', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'search' })
+    const { container } = render(
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+    )
+    expect(container.querySelector('.folder-search')).not.toBeNull()
+    expect(container.querySelector('.file-tree')).toBeNull()
+    expect(container.querySelector('.outline')).toBeNull()
+  })
+
   it('switches to "files" tab when the Files button is clicked', () => {
     useWorkspaceStore.setState({ sidebarTab: 'outline' })
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     fireEvent.click(getByText(/Files/i))
     expect(useWorkspaceStore.getState().sidebarTab).toBe('files')
@@ -78,10 +93,19 @@ describe('Sidebar', () => {
   it('switches to "outline" tab when the Outline button is clicked', () => {
     useWorkspaceStore.setState({ sidebarTab: 'files' })
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     fireEvent.click(getByText(/Outline/i))
     expect(useWorkspaceStore.getState().sidebarTab).toBe('outline')
+  })
+
+  it('switches to "search" tab when the Search button is clicked', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'files' })
+    const { getByText } = render(
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} />,
+    )
+    fireEvent.click(getByText(/Search/i))
+    expect(useWorkspaceStore.getState().sidebarTab).toBe('search')
   })
 
   it('calls onSelectFile when a file is selected from FileTree', () => {
@@ -93,7 +117,7 @@ describe('Sidebar', () => {
       ],
     })
     const { getByText } = render(
-      <Sidebar onSelectFile={onSelect} onJumpToHeading={noop} />,
+      <Sidebar onSelectFile={onSelect} onJumpToHeading={noop} onOpenSearchResult={noop} />,
     )
     fireEvent.click(getByText('notes.md'))
     expect(onSelect).toHaveBeenCalledWith('/docs/notes.md')
@@ -106,7 +130,7 @@ describe('Sidebar', () => {
       { level: 1, text: 'Introduction', pos: 0 },
     ])
     const { getByText } = render(
-      <Sidebar onSelectFile={noop} onJumpToHeading={onJump} />,
+      <Sidebar onSelectFile={noop} onJumpToHeading={onJump} onOpenSearchResult={noop} />,
     )
     fireEvent.click(getByText('Introduction'))
     expect(onJump).toHaveBeenCalledWith(0)

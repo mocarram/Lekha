@@ -2,12 +2,19 @@ import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { FileTree } from './FileTree'
 import { Outline } from './Outline'
+import { FolderSearch } from './FolderSearch'
 
 interface SidebarProps {
   /** Called when the user selects a file from the file tree. */
   onSelectFile: (path: string) => void
   /** Called when the user clicks a heading in the outline panel. */
   onJumpToHeading: (pos: number) => void
+  /**
+   * Called when the user clicks a folder-search result.
+   * Opens the file and triggers the in-document find so the editor highlights
+   * and navigates to the matching text (open-then-find approach).
+   */
+  onOpenSearchResult: (filePath: string, query: string, caseSensitive: boolean) => void
 }
 
 /**
@@ -15,15 +22,16 @@ interface SidebarProps {
  *
  * It reads sidebarVisible and sidebarTab from workspaceStore. When
  * sidebarVisible is false, the component renders nothing. Otherwise, it shows
- * the FileTree or Outline panel based on the active tab.
+ * the FileTree, Outline, or FolderSearch panel based on the active tab.
  *
- * Two tab buttons at the bottom (WYSIWYG-style) let the user switch between
- * the Files and Outline tabs. Tab changes are written back to workspaceStore
- * so the state persists across re-renders.
+ * Three tab buttons at the bottom (WYSIWYG-style) let the user switch between
+ * Files, Outline, and Search. The search icon activates the search view.
+ * Tab changes are written back to workspaceStore so the state persists.
  */
-export function Sidebar({ onSelectFile, onJumpToHeading }: SidebarProps) {
+export function Sidebar({ onSelectFile, onJumpToHeading, onOpenSearchResult }: SidebarProps) {
   const sidebarVisible = useWorkspaceStore((s) => s.sidebarVisible)
   const sidebarTab = useWorkspaceStore((s) => s.sidebarTab)
+  const rootFolder = useWorkspaceStore((s) => s.rootFolder)
   const fileTree = useWorkspaceStore((s) => s.fileTree)
 
   const activePath = useEditorStore((s) => s.path)
@@ -40,8 +48,13 @@ export function Sidebar({ onSelectFile, onJumpToHeading }: SidebarProps) {
             activePath={activePath}
             onSelect={onSelectFile}
           />
-        ) : (
+        ) : sidebarTab === 'outline' ? (
           <Outline items={outline} onJump={onJumpToHeading} />
+        ) : (
+          <FolderSearch
+            rootFolder={rootFolder}
+            onOpenResult={onOpenSearchResult}
+          />
         )}
       </div>
 
@@ -60,6 +73,14 @@ export function Sidebar({ onSelectFile, onJumpToHeading }: SidebarProps) {
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('outline') }}
         >
           Outline
+        </button>
+        <button
+          type="button"
+          className={`sidebar__tab-btn${sidebarTab === 'search' ? ' active' : ''}`}
+          aria-label="Search"
+          onClick={() => { useWorkspaceStore.getState().setSidebarTab('search') }}
+        >
+          Search
         </button>
       </div>
     </aside>

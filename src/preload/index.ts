@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 import type { LekhaAPI } from './api'
-import type { FileNode, Settings, DocumentState } from '@shared/types'
+import type { FileNode, Settings, DocumentState, FolderSearchResult } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
 const api: LekhaAPI = {
@@ -119,6 +119,11 @@ const api: LekhaAPI = {
   // --- Clipboard ---
   writeClipboard(args: { text?: string; html?: string }): Promise<void> {
     return ipcRenderer.invoke(IPC.writeClipboard, args) as Promise<void>
+  },
+
+  // --- Folder search ---
+  searchFolder(args: { root: string; query: string; caseSensitive: boolean }): Promise<FolderSearchResult[]> {
+    return ipcRenderer.invoke(IPC.searchFolder, args) as Promise<FolderSearchResult[]>
   },
 }
 

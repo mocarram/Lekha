@@ -1,4 +1,4 @@
-import type { FileNode, Settings, DocumentState } from '@shared/types'
+import type { FileNode, Settings, DocumentState, FolderSearchResult } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
 /** All methods exposed on window.lekha from the preload bridge. */
@@ -87,6 +87,18 @@ export interface LekhaAPI {
    * just the plain-text clipboard.
    */
   writeClipboard(args: { text?: string; html?: string }): Promise<void>
+
+  // --- Folder search ---
+  /**
+   * Search all Markdown files under `root` for lines containing `query`.
+   * Returns one FolderSearchResult per file that has at least one match.
+   * Empty query (<1 char) resolves to [].
+   */
+  searchFolder(args: {
+    root: string
+    query: string
+    caseSensitive: boolean
+  }): Promise<FolderSearchResult[]>
 }
 
 declare global {

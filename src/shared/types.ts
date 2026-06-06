@@ -28,11 +28,24 @@ export const THEMES: ThemeDef[] = [
   { id: 'sepia',  label: 'Sepia'  },
 ]
 
+/** A single line match inside a file during folder-wide search. */
+export interface FolderSearchMatch {
+  lineNumber: number
+  lineText: string
+}
+
+/** Per-file result grouping returned by the searchFolder IPC handler. */
+export interface FolderSearchResult {
+  filePath: string
+  fileName: string
+  matches: FolderSearchMatch[]
+}
+
 export interface Settings {
   recentFiles: string[]
   lastFolder: string | null
   sidebarVisible: boolean
-  sidebarTab: 'files' | 'outline'
+  sidebarTab: 'files' | 'outline' | 'search'
   windowBounds?: { x: number; y: number; width: number; height: number }
   /** Active theme id (corresponds to a ThemeDef id in the renderer theme registry). */
   theme: string

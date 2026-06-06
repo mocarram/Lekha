@@ -219,6 +219,15 @@ export default function App() {
         <Sidebar
           onSelectFile={(path) => { void fileOps.openPath(path) }}
           onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
+          onOpenSearchResult={(filePath, query, caseSensitive) => {
+            // Open-then-find: open the file, then use the in-document find to
+            // highlight and navigate to the query. Line-to-position mapping in
+            // WYSIWYG is unreliable; reusing the editor's own find is robust.
+            void fileOps.openPath(filePath).then(() => {
+              editorRef.current?.setFind(query, { caseSensitive })
+              editorRef.current?.findNext()
+            })
+          }}
         />
 
         <EditorPane
