@@ -1,6 +1,7 @@
 import {
   useEffect,
   useRef,
+  useState,
   forwardRef,
   useImperativeHandle,
 } from 'react'
@@ -41,6 +42,12 @@ import {
 import { isInTable, selectedRect } from 'prosemirror-tables'
 import { tableCommandMap, type TableCommand } from './tableCommands'
 import type { AppCommand } from '@shared/commands'
+import {
+  slashMenuKey,
+  insertBlock,
+  type SlashMenuState,
+} from './plugins/slashMenu'
+import { SlashMenu } from '@renderer/components/SlashMenu'
 
 export type { LinkInfo, ApplyLinkArgs, ApplyImageArgs }
 export type { TableCommand }
@@ -214,9 +221,24 @@ interface EditorViewProps {
    * can show/position the floating TableToolbar.
    */
   onTableStateChange?: (state: TableState) => void
+  /**
+   * Called when the slash menu's "Image" item is chosen. The slash text has
+   * already been removed; the host opens its existing Image dialog.
+   */
+  onInsertImage?: () => void
   /** CSS class name applied to the wrapper div. */
   className?: string
 }
+
+/** Caret-anchored popup state for the slash menu, lifted from the plugin. */
+interface SlashPopup {
+  open: boolean
+  query: string
+  left: number
+  top: number
+}
+
+const SLASH_POPUP_CLOSED: SlashPopup = { open: false, query: '', left: 0, top: 0 }
 
 // ---------------------------------------------------------------------------
 // Component
@@ -233,23 +255,42 @@ interface EditorViewProps {
  */
 export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
   function EditorView(
-    { markdown, onChange, onLinkClick, onImageClick, onTableStateChange, className },
+    { markdown, onChange, onLinkClick, onImageClick, onTableStateChange, onInsertImage, className },
     ref,
   ) {
     const mountRef = useRef<HTMLDivElement>(null)
     const viewRef = useRef<ProseMirrorView | null>(null)
+
+    // Slash menu popup state, lifted from the slashMenu plugin on each tx.
+    const [slash, setSlash] = useState<SlashPopup>(SLASH_POPUP_CLOSED)
 
     // Ref-to-latest-callback: keeps onChange current without recreating the view
     const onChangeRef = useRef(onChange)
     const onLinkClickRef = useRef(onLinkClick)
     const onImageClickRef = useRef(onImageClick)
     const onTableStateChangeRef = useRef(onTableStateChange)
+    const onInsertImageRef = useRef(onInsertImage)
     useEffect(() => {
       onChangeRef.current = onChange
       onLinkClickRef.current = onLinkClick
       onImageClickRef.current = onImageClick
       onTableStateChangeRef.current = onTableStateChange
+      onInsertImageRef.current = onInsertImage
     })
+
+    /**
+     * Mirror the slashMenu plugin state into React after each transaction. When
+     * open, anchor the popup just below the slash position via coordsAtPos.
+     */
+    const syncSlashMenu = (view: ProseMirrorView): void => {
+      const s: SlashMenuState | undefined = slashMenuKey.getState(view.state)
+      if (!s || !s.open) {
+        setSlash((prev) => (prev.open ? SLASH_POPUP_CLOSED : prev))
+        return
+      }
+      const coords = view.coordsAtPos(s.from)
+      setSlash({ open: true, query: s.query, left: coords.left, top: coords.bottom + 4 })
+    }
 
     // Create the view once on mount; destroy on unmount
     useEffect(() => {
@@ -328,6 +369,9 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
             // TableToolbar can show/hide and reposition on each cursor move.
             onTableStateChangeRef.current?.(computeTableState(view))
           }
+          // Keep the slash menu popup in sync with the plugin (open/query/pos).
+          // Runs on every tx since activation also depends on selection moves.
+          syncSlashMenu(view)
         },
       })
 
@@ -480,6 +524,42 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
       [],
     )
 
-    return <div ref={mountRef} className={className} />
+    /**
+     * Handle a slash-menu selection: run insertBlock against the live view
+     * (removing the `/query` and inserting the block in one transaction). The
+     * Image item additionally asks the host to open its Image dialog. Always
+     * close the popup and return focus to the editor.
+     */
+    const handleSlashSelect = (id: string): void => {
+      const view = viewRef.current
+      if (!view) return
+      insertBlock(view.state, id, view.dispatch)
+      setSlash(SLASH_POPUP_CLOSED)
+      if (id === 'image') onInsertImageRef.current?.()
+      view.focus()
+    }
+
+    // Escape leaves the slash text in place; just close the popup and refocus.
+    const handleSlashClose = (): void => {
+      setSlash(SLASH_POPUP_CLOSED)
+      viewRef.current?.focus()
+    }
+
+    // The PM editable DOM lives inside `mountRef` (ProseMirror owns its
+    // children), so the SlashMenu is rendered as a SIBLING - never a child of
+    // the PM-managed element. The popup is position:fixed at caret coords, so
+    // the wrapper needs no special layout.
+    return (
+      <>
+        <div ref={mountRef} className={className} />
+        <SlashMenu
+          open={slash.open}
+          query={slash.query}
+          coords={{ left: slash.left, top: slash.top }}
+          onSelect={handleSlashSelect}
+          onClose={handleSlashClose}
+        />
+      </>
+    )
   },
 )

@@ -870,3 +870,86 @@ body,
 .cmdk__row--active .cmdk__hint {
   color: rgba(255, 255, 255, 0.85);
 }
+
+/* -------------------------------------------------------------------------
+ * Slash menu (`/` block-insert popup) - a feature WYSIWYG lacks.
+ *
+ * Anchored at the caret in client coordinates (position: fixed), token-themed
+ * so it adapts to light + dark. Rows are <button> elements for accessibility;
+ * the active row keys off aria-selected as well as the hover/keyboard class.
+ * ------------------------------------------------------------------------- */
+.slashmenu {
+  position: fixed;
+  z-index: 210;
+  width: 240px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 10px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-ui);
+}
+
+.slashmenu__empty {
+  padding: 14px 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.slashmenu__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+
+.slashmenu__row--active {
+  background-color: var(--color-accent);
+  color: #ffffff;
+}
+
+.slashmenu__icon {
+  flex: 0 0 1.6em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.slashmenu__row--active .slashmenu__icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.slashmenu__label {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slashmenu__match {
+  background: transparent;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.slashmenu__row--active .slashmenu__match {
+  color: #ffffff;
+  text-decoration: underline;
+}

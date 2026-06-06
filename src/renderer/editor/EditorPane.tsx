@@ -118,6 +118,8 @@ interface EditorPaneProps {
   onImageClick?: (src: string, alt: string) => void
   /** Forwarded to EditorView: fired on selection change with table state. */
   onTableStateChange?: (state: TableState) => void
+  /** Forwarded to EditorView: fired when the slash menu's Image item is chosen. */
+  onInsertImage?: () => void
   /** CSS class name applied to the wrapper div. */
   className?: string
 }
@@ -143,7 +145,7 @@ export type { TableCommand, TableState }
  */
 export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
   function EditorPane(
-    { initialMarkdown, onChange, onLinkClick, onImageClick, onTableStateChange, className },
+    { initialMarkdown, onChange, onLinkClick, onImageClick, onTableStateChange, onInsertImage, className },
     ref,
   ) {
     const [mode, setMode] = useState<EditorMode>('wysiwyg')
@@ -341,6 +343,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
             {...(onLinkClick ? { onLinkClick } : {})}
             {...(onImageClick ? { onImageClick } : {})}
             {...(onTableStateChange ? { onTableStateChange } : {})}
+            {...(onInsertImage ? { onInsertImage } : {})}
           />
         ) : (
           <SourceView

@@ -308,6 +308,7 @@ export default function App() {
           onLinkClick={openLinkFromClick}
           onImageClick={openImageZoom}
           onTableStateChange={setTableState}
+          onInsertImage={() => dispatch('insertImage')}
           className="editor-pane"
         />
       </div>
