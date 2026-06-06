@@ -121,6 +121,9 @@ function buildOpenRecentSubmenu(
  * @param setTheme    - Called with the chosen theme id when the user picks a
  *   theme from the native Themes menu. In production this sends IPC.setTheme
  *   to the renderer. Defaults to a no-op when themeMenu is omitted.
+ * @param onNewWindow - Called when the user picks "New Window". In production
+ *   this opens a fresh window DIRECTLY in main (no renderer round-trip), so it
+ *   works regardless of which window - if any - is focused. Defaults to a no-op.
  */
 export function buildMenuTemplate(
   send: (cmd: AppCommand) => void,
@@ -128,6 +131,7 @@ export function buildMenuTemplate(
   openPath: (path: string) => void = () => { /* no-op - no recents caller */ },
   themeMenu?: ThemeMenuConfig,
   setTheme: (id: string) => void = () => { /* no-op - no theme caller */ },
+  onNewWindow: () => void = () => { /* no-op - no multi-window caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -160,6 +164,11 @@ export function buildMenuTemplate(
     label: 'File',
     submenu: [
       item('New',           'CmdOrCtrl+N',       'new',        send),
+      // New Window opens a fresh, independent editor window. It calls
+      // onNewWindow() directly in the main process rather than routing an
+      // AppCommand through a renderer, so it works even when no window is
+      // focused (e.g. all windows closed on macOS).
+      { label: 'New Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => { onNewWindow() } },
       item('Open…',         'CmdOrCtrl+O',       'open',       send),
       item('Open Folder…',  'CmdOrCtrl+Shift+O', 'openFolder', send),
       {

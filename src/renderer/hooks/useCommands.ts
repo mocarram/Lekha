@@ -85,6 +85,12 @@ export function useCommands(
         void fo.newFile()
         return
       }
+      if (cmd === 'newWindow') {
+        // Ask main to open a fresh, independent window. The native menu opens
+        // windows directly in main; this path covers the renderer-routed case.
+        window.lekha.newWindow()
+        return
+      }
       if (cmd === 'open') {
         void fo.open()
         return

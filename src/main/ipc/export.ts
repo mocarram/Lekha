@@ -96,24 +96,25 @@ export function buildPandocArgs(outPath: string): string[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Register all export IPC handlers.
- *
- * @param getWindow - Returns the current main BrowserWindow (used as parent
- *   for save dialogs so they are attached to the main window as sheets on
- *   macOS). May return null if no window exists yet; handlers cope by passing
- *   undefined to Electron's dialog APIs (which then show as floating dialogs).
+ * Resolve the window that sent an IPC request so save dialogs attach (as sheets
+ * on macOS) to the calling window. Multi-window safe: an export started in one
+ * window shows its dialog over that same window.
  */
-export function registerExportHandlers(
-  getWindow: () => BrowserWindow | null,
-): void {
+function senderWindow(event: Electron.IpcMainInvokeEvent): BrowserWindow | undefined {
+  return BrowserWindow.fromWebContents(event.sender) ?? undefined
+}
+
+/** Register all export IPC handlers. Save dialogs and the offscreen PDF parent
+ *  are derived from the IPC event sender (the calling window). */
+export function registerExportHandlers(): void {
   // -------------------------------------------------------------------------
   // export:html
   // -------------------------------------------------------------------------
 
   ipcMain.handle(
     IPC.exportHtml,
-    async (_event, args: { html: string; suggestedName: string }): Promise<void> => {
-      const win = getWindow() ?? undefined
+    async (event, args: { html: string; suggestedName: string }): Promise<void> => {
+      const win = senderWindow(event)
       const result = await dialog.showSaveDialog(win!, {
         defaultPath: args.suggestedName,
         filters: [{ name: 'HTML Files', extensions: ['html'] }],
@@ -141,7 +142,7 @@ export function registerExportHandlers(
 
   ipcMain.handle(
     IPC.exportPdf,
-    async (_event, args: { html: string; suggestedName: string }): Promise<void> => {
+    async (event, args: { html: string; suggestedName: string }): Promise<void> => {
       // Write HTML to a temp file so loadFile() can read it (data: URLs have
       // length limits that cause problems with large, CSS-inlined documents).
       const tmpPath = join(tmpdir(), `lekha-export-${Date.now()}.html`)
@@ -175,8 +176,8 @@ export function registerExportHandlers(
           margins: { marginType: 'default' },
         })
 
-        // Ask the user where to save the PDF.
-        const win = getWindow() ?? undefined
+        // Ask the user where to save the PDF (modal to the calling window).
+        const win = senderWindow(event)
         const result = await dialog.showSaveDialog(win!, {
           defaultPath: args.suggestedName,
           filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
@@ -206,7 +207,7 @@ export function registerExportHandlers(
 
   ipcMain.handle(
     IPC.exportDocx,
-    async (_event, args: { markdown: string; suggestedName: string }): Promise<void> => {
+    async (event, args: { markdown: string; suggestedName: string }): Promise<void> => {
       const available = await checkPandocAvailable()
       if (!available) {
         throw new Error(
@@ -214,7 +215,7 @@ export function registerExportHandlers(
         )
       }
 
-      const win = getWindow() ?? undefined
+      const win = senderWindow(event)
       const result = await dialog.showSaveDialog(win!, {
         defaultPath: args.suggestedName,
         filters: [{ name: 'Word Documents', extensions: ['docx'] }],

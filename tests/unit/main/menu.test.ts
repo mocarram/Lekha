@@ -83,7 +83,7 @@ describe('buildMenuTemplate - top-level submenus', () => {
     expect(labels).toContain('View')
   })
 
-  it('File submenu contains New, Open, Open Folder, Save, Save As items', () => {
+  it('File submenu contains New, New Window, Open, Open Folder, Save, Save As items', () => {
     const send = vi.fn()
     const template = buildMenuTemplate(send)
 
@@ -92,6 +92,7 @@ describe('buildMenuTemplate - top-level submenus', () => {
     const fileItems = file!.submenu as unknown as MenuItemConstructorOptions[]
     const fileLabels = fileItems.map((i: MenuItemConstructorOptions) => i.label)
     expect(fileLabels).toContain('New')
+    expect(fileLabels).toContain('New Window')
     expect(fileLabels).toContain('Open…')
     expect(fileLabels).toContain('Open Folder…')
     expect(fileLabels).toContain('Save')
@@ -204,6 +205,32 @@ describe('buildMenuTemplate - click callbacks fire send with the right command',
     expect(found).toBeDefined()
     clickItem(found!)
     expect(send).toHaveBeenCalledWith('new')
+  })
+})
+
+describe('buildMenuTemplate - New Window', () => {
+  it('has a New Window item with CmdOrCtrl+Shift+N accelerator', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const item = findItem(template, (i) => i.label === 'New Window')
+    expect(item).toBeDefined()
+    expect(item?.accelerator).toBe('CmdOrCtrl+Shift+N')
+  })
+
+  it('clicking New Window invokes onNewWindow (not the renderer send channel)', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const onNewWindow = vi.fn()
+    // onNewWindow is the 6th positional arg; recents/openPath/themeMenu/setTheme
+    // keep their defaults.
+    const template = buildMenuTemplate(send, [], undefined, undefined, undefined, onNewWindow)
+    const item = findItem(template, (i) => i.label === 'New Window')
+    expect(item).toBeDefined()
+    // @ts-expect-error calling with no args is safe for our generated handlers
+    item!.click()
+    expect(onNewWindow).toHaveBeenCalledTimes(1)
+    // New Window opens a window directly in main; it must NOT route through the
+    // focused-window renderer command channel.
+    expect(send).not.toHaveBeenCalled()
   })
 })
 

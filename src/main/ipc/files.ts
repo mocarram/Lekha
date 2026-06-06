@@ -1,7 +1,8 @@
-import { ipcMain, type BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
+import type { WindowRegistry } from '@main/window'
 import { readTextFile, writeFileAtomic, buildFileTree } from '@main/fs-helpers'
 
 /** Wraps an async handler so filesystem errors surface as clean Error messages
@@ -24,15 +25,14 @@ function safeHandle<T>(
  * Registers IPC handlers for filesystem and settings operations.
  * Also handles the window document-state update (title bar, dirty dot, represented file).
  *
+ * @param registry           - The multi-window registry. setDocumentState
+ *   updates the SENDER's window (title bar, proxy icon, edited dot) and its
+ *   per-window close-guard dirty flag via the matching WindowController.
  * @param onRecentAdded      - Optional callback invoked after a file is added to
  *   recents. The main process uses this to rebuild the Open Recent menu so it
  *   stays in sync with the persisted list without an extra IPC round-trip.
  *   The callback may be async (returning a Promise); the Promise is awaited
  *   inside the IPC handler which already runs in an async context.
- * @param onDocumentState    - Optional callback invoked every time the renderer
- *   sends a setDocumentState message. The main process (index.ts) uses this to
- *   track the latest dirty flag for the close-guard state machine without
- *   duplicating the ipcMain.on registration.
  * @param onSettingsChanged  - Optional callback invoked after every setSettings
  *   call, receiving the full updated Settings. The main process uses this to
  *   rebuild the menu when the theme changes so the radio check stays current.
@@ -40,9 +40,8 @@ function safeHandle<T>(
  */
 export function registerFileHandlers(
   settings: SettingsStore,
-  getWindow: () => BrowserWindow | null,
+  registry: WindowRegistry,
   onRecentAdded?: () => Promise<void> | void,
-  onDocumentState?: (state: { title: string; dirty: boolean; path: string | null }) => void,
   onSettingsChanged?: (updated: Settings) => Promise<void> | void,
 ): void {
   // --- Filesystem ---
@@ -82,20 +81,23 @@ export function registerFileHandlers(
 
   // --- Window document state ---
   // Renderer sends { title, dirty, path } to update the title bar decoration.
+  // Multi-window: the update targets the SENDER's window (the one whose
+  // renderer reported the state), resolved via BrowserWindow.fromWebContents,
+  // never a shared global window.
   // On macOS, setRepresentedFilename drives the proxy icon in the title bar;
   // setDocumentEdited controls the • dot on the window close button.
   ipcMain.on(
     IPC.setDocumentState,
-    (_event, state: { title: string; dirty: boolean; path: string | null }) => {
-      const win = getWindow()
+    (event, state: { title: string; dirty: boolean; path: string | null }) => {
+      const win = BrowserWindow.fromWebContents(event.sender)
       if (!win) return
       win.setTitle(`${state.dirty ? '• ' : ''}${state.title}`)
       if (process.platform === 'darwin') {
         win.setRepresentedFilename(state.path ?? '')
         win.setDocumentEdited(state.dirty)
       }
-      // Notify index.ts so the close-guard state machine stays current.
-      onDocumentState?.(state)
+      // Update THIS window's close-guard dirty flag (per-window state machine).
+      registry.get(win)?.setDirty(state.dirty)
     },
   )
 }

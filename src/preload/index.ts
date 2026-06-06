@@ -58,6 +58,13 @@ const api: LekhaAPI = {
     ipcRenderer.send(IPC.setDocumentState, state)
   },
 
+  // Open a new, independent editor window. Fire-and-forget: main creates the
+  // window. Used by the 'newWindow' AppCommand (renderer-routed path); the
+  // native menu item opens windows directly in main without this round-trip.
+  newWindow(): void {
+    ipcRenderer.send(IPC.newWindow)
+  },
+
   // --- Commands from main ---
   // Subscribes to broadcast commands (e.g. menu items) and returns an unsubscribe
   // function so the renderer can clean up on unmount.

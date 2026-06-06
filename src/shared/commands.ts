@@ -1,5 +1,6 @@
 export type AppCommand =
   | 'new'
+  | 'newWindow'
   | 'open'
   | 'openFolder'
   | 'save'

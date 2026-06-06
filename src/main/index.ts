@@ -1,5 +1,4 @@
-import { app, BrowserWindow, dialog, shell, Menu } from 'electron'
-import { join } from 'node:path'
+import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
@@ -7,6 +6,16 @@ import { registerExportHandlers } from '@main/ipc/export'
 import { registerImageHandlers } from '@main/ipc/images'
 import { registerShellHandlers } from '@main/ipc/shell'
 import { buildMenuTemplate } from '@main/menu'
+import {
+  WindowRegistry,
+  createWindow,
+  runCloseGuard,
+  nextWindowBounds,
+  isSaneBounds,
+  DEFAULT_WINDOW_SIZE,
+  type WindowBounds,
+  type OpenBounds,
+} from '@main/window'
 import { IPC } from '@shared/ipc-channels'
 import { THEMES } from '@shared/types'
 import type { Settings } from '@shared/types'
@@ -23,78 +32,23 @@ process.on('uncaughtException', (err) => {
 
 app.setName('Lekha')
 
-// Single reference to the main window - updated every time a new window is created.
-let mainWindow: BrowserWindow | null = null
-
-function getWindow(): BrowserWindow | null {
-  return mainWindow
-}
-
 // ---------------------------------------------------------------------------
-// Close-guard state machine
+// Multi-window model
 //
-// Three variables track whether the window may be closed safely:
+// Lekha opens N independent windows, each running its own single-document
+// renderer instance. The WindowRegistry tracks every live window and its
+// WindowController (per-window dirty flag + close-guard state machine). All
+// window-scoped logic lives in @main/window; index.ts wires it to the app
+// lifecycle, the menu, and bounds persistence.
 //
-//   documentDirty  - mirrors the renderer's isDirty flag. Updated on every
-//                    setDocumentState message so the close handler always sees
-//                    the current state without an extra IPC round-trip.
-//
-//   forceClose     - set to true when the user picks "Don't Save" in the close
-//                    dialog. The close handler sees this flag and lets the next
-//                    win.close() call through without re-prompting.
-//
-//   pendingClose   - set to true when the user picks "Save" in the close dialog.
-//                    We send a 'save' command to the renderer and wait. When the
-//                    renderer subsequently reports dirty:false via setDocumentState
-//                    while pendingClose is true, we set forceClose=true and call
-//                    win.close() to complete the close. If the user cancels the
-//                    Save As dialog the doc stays dirty; the window stays open and
-//                    pendingClose is reset so a subsequent close will re-prompt.
-//
-// Cmd+Q coverage: Electron fires 'before-quit' then each window's 'close' event
-// when the user presses Cmd+Q or chooses File > Quit. Because we no longer bypass
-// the close handler on quit, the SAME guard that protects the red-button close
-// also protects Cmd+Q - unsaved changes will always prompt the user regardless
-// of how the close was initiated.
-//
-// Test-mode bypass (LEKHA_DISABLE_QUIT_GUARD=1): automated e2e teardown calls
-// ElectronApplication.close() which would hang waiting on the native dialog.
-// Setting this env flag disables the prompt so test runs exit cleanly. This flag
-// must NEVER be set in a real production launch.
+// LEKHA_DISABLE_QUIT_GUARD=1 skips the unsaved-changes prompt entirely. Used
+// ONLY by the e2e test harness so teardown does not hang on a native dialog.
+// This flag must NEVER be set in a real production launch.
 // ---------------------------------------------------------------------------
 
-// LEKHA_DISABLE_QUIT_GUARD=1 skips the unsaved-changes prompt entirely.
-// Used ONLY by the e2e test harness so teardown does not hang on a native dialog.
 const QUIT_GUARD_DISABLED = process.env['LEKHA_DISABLE_QUIT_GUARD'] === '1'
 
-let documentDirty = false
-let forceClose = false
-let pendingClose = false
-
-// ---------------------------------------------------------------------------
-// Minimum sane window dimensions to guard against corrupt saved bounds.
-// ---------------------------------------------------------------------------
-const MIN_WIDTH = 400
-const MIN_HEIGHT = 300
-
-/**
- * Validate that saved window bounds are reasonable: finite numbers, minimum
- * size, and x/y are non-negative (on-screen). Returns true if the bounds can
- * be used safely.
- */
-function isSaneBounds(b: Settings['windowBounds']): b is NonNullable<Settings['windowBounds']> {
-  if (!b) return false
-  return (
-    Number.isFinite(b.x) &&
-    Number.isFinite(b.y) &&
-    Number.isFinite(b.width) &&
-    Number.isFinite(b.height) &&
-    b.width >= MIN_WIDTH &&
-    b.height >= MIN_HEIGHT &&
-    b.x >= 0 &&
-    b.y >= 0
-  )
-}
+const registry = new WindowRegistry()
 
 // ---------------------------------------------------------------------------
 // Menu helpers
@@ -107,99 +61,114 @@ function isSaneBounds(b: Settings['windowBounds']): b is NonNullable<Settings['w
  * and after the renderer notifies main that the theme changed (so the radio
  * check in the Theme submenu reflects the new active theme).
  *
+ * Command/openPath/setTheme route to the FOCUSED window so menu accelerators
+ * act on whichever window the user is currently working in. "New Window" opens
+ * a fresh window directly in main (no renderer round-trip), so it works even
+ * when no window is focused.
+ *
  * @param recentFiles - Current recent-files list for the Open Recent submenu.
  * @param currentTheme - The currently active theme id for the radio check.
  */
 function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void {
   const send = (cmd: AppCommand): void => {
-    getWindow()?.webContents.send(IPC.command, cmd)
+    BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, cmd)
   }
   const openPath = (p: string): void => {
-    getWindow()?.webContents.send(IPC.openPath, p)
+    BrowserWindow.getFocusedWindow()?.webContents.send(IPC.openPath, p)
   }
-  // Forward the chosen theme id to the renderer via the value-carrying
+  // Forward the chosen theme id to the focused renderer via the value-carrying
   // IPC.setTheme channel. The renderer applies + persists the theme and the
-  // next setSettings call will trigger another applyMenu rebuild so the radio
-  // check stays current.
+  // next setSettings call triggers another applyMenu rebuild so the radio check
+  // stays current.
   const setTheme = (id: string): void => {
-    getWindow()?.webContents.send(IPC.setTheme, id)
+    BrowserWindow.getFocusedWindow()?.webContents.send(IPC.setTheme, id)
   }
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
-      buildMenuTemplate(send, recentFiles, openPath, { themes: THEMES, current: currentTheme }, setTheme),
+      buildMenuTemplate(
+        send,
+        recentFiles,
+        openPath,
+        { themes: THEMES, current: currentTheme },
+        setTheme,
+        openNewWindow,
+      ),
     ),
   )
 }
 
 // ---------------------------------------------------------------------------
-// Window creation
+// Bounds persistence
+//
+// Kept simple: settings hold a single windowBounds entry. The last window to
+// move/resize/close updates it; new windows restore from it (additional windows
+// cascade-offset so they don't stack exactly on top of each other).
 // ---------------------------------------------------------------------------
 
-function createWindow(savedBounds?: Settings['windowBounds']): BrowserWindow {
-  const bounds = isSaneBounds(savedBounds)
-    ? { x: savedBounds.x, y: savedBounds.y, width: savedBounds.width, height: savedBounds.height }
-    : { width: 1100, height: 720 }
+let settingsStore: ReturnType<typeof createSettingsStore> | null = null
 
-  const win = new BrowserWindow({
-    ...bounds,
-    show: false,
-    titleBarStyle: 'hiddenInset',
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      preload: join(__dirname, '../preload/index.cjs'),
-    },
-  })
-
-  mainWindow = win
-
-  win.on('closed', () => {
-    if (mainWindow === win) mainWindow = null
-  })
-
-  win.on('ready-to-show', () => {
-    win.show()
-  })
-
-  // Open external links in the system browser, not in the app.
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
-    return { action: 'deny' }
-  })
-
-  if (process.env['ELECTRON_RENDERER_URL']) {
-    void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    void win.loadFile(join(__dirname, '../renderer/index.html'))
-  }
-
-  return win
+function saveBounds(bounds: WindowBounds): void {
+  void settingsStore?.set({ windowBounds: bounds })
 }
-
-// ---------------------------------------------------------------------------
-// Bounds persistence helpers
-// ---------------------------------------------------------------------------
 
 let boundsDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 /**
- * Schedule a debounced save of the current window bounds.
- * Only saves when the window is in a "normal" state (not minimized or
- * fullscreen) to avoid storing useless positions.
+ * Schedule a debounced save of a window's bounds. Only saves when the window is
+ * in a "normal" state (not minimized/fullscreen/destroyed) to avoid storing
+ * useless positions.
  */
-function scheduleBoundsSave(
-  win: BrowserWindow,
-  saveFn: (bounds: NonNullable<Settings['windowBounds']>) => void,
-): void {
+function scheduleBoundsSave(win: BrowserWindow): void {
   if (boundsDebounceTimer !== null) clearTimeout(boundsDebounceTimer)
   boundsDebounceTimer = setTimeout(() => {
     boundsDebounceTimer = null
-    // Skip saving when the window is not in its normal state.
     if (win.isMinimized() || win.isFullScreen() || win.isDestroyed()) return
     const b = win.getBounds()
-    saveFn({ x: b.x, y: b.y, width: b.width, height: b.height })
+    saveBounds({ x: b.x, y: b.y, width: b.width, height: b.height })
   }, 300)
+}
+
+// ---------------------------------------------------------------------------
+// Window opening
+// ---------------------------------------------------------------------------
+
+/**
+ * Open a window at the given bounds and wire up its per-window behaviour:
+ * bounds persistence and the close-guard. The controller already lives in the
+ * registry (created inside createWindow).
+ */
+function openWindowAt(bounds: OpenBounds): BrowserWindow {
+  const controller = createWindow(registry, bounds)
+  const win = controller.win
+
+  win.on('resize', () => { scheduleBoundsSave(win) })
+  win.on('move', () => { scheduleBoundsSave(win) })
+
+  // Per-window close guard. Persist bounds first (before any preventDefault),
+  // then run the unsaved-changes guard for THIS window only.
+  win.on('close', (e) => {
+    if (!win.isMinimized() && !win.isFullScreen() && !win.isDestroyed()) {
+      const b = win.getBounds()
+      saveBounds({ x: b.x, y: b.y, width: b.width, height: b.height })
+    }
+    runCloseGuard(controller, e, QUIT_GUARD_DISABLED)
+  })
+
+  return win
+}
+
+/** Saved bounds for restoring the FIRST window, or undefined when none/invalid. */
+let savedWindowBounds: WindowBounds | undefined
+
+/**
+ * Open an ADDITIONAL window, cascaded down-right from the currently focused
+ * window (or from the saved bounds when none is focused). Invoked by the "New
+ * Window" menu item and the 'newWindow' IPC from the renderer.
+ */
+function openNewWindow(): void {
+  const focused = BrowserWindow.getFocusedWindow()
+  const base: Settings['windowBounds'] = focused ? focused.getBounds() : savedWindowBounds
+  openWindowAt(nextWindowBounds(base))
 }
 
 // ---------------------------------------------------------------------------
@@ -209,125 +178,69 @@ function scheduleBoundsSave(
 void app.whenReady().then(async () => {
   // Settings store backed by the OS user-data directory.
   const settings = createSettingsStore(app.getPath('userData'))
+  settingsStore = settings
 
   // Load persisted settings before creating the window so we can restore
   // window bounds and build the initial menu with saved recents.
   const initialSettings = await settings.get()
 
-  // Register IPC handlers before creating the window so they are ready
-  // the moment the renderer sends its first message.
-  registerDialogHandlers(getWindow)
+  // Register IPC handlers before creating any window so they are ready the
+  // moment a renderer sends its first message. Handlers derive their target
+  // window from the IPC event sender (multi-window safe) rather than a shared
+  // getWindow closure.
+  registerDialogHandlers()
 
-  // Wrap registerFileHandlers so we can rebuild the menu whenever a recent
-  // file is added (keeping Open Recent in sync) or whenever settings change
-  // (keeping the Theme radio check in sync). Also pass onDocumentState so the
-  // close-guard state machine stays current.
+  // Rebuild the menu when recents or settings (theme) change. setDocumentState
+  // updates the sender window's WindowController dirty flag inside the handler.
   registerFileHandlers(
     settings,
-    getWindow,
+    registry,
     async () => {
-      // Rebuild menu after a recent file is added. Read current theme from
-      // settings so the Theme radio stays correct during the rebuild.
+      // Rebuild menu after a recent file is added (Open Recent sync).
       const [recents, allSettings] = await Promise.all([
         settings.getRecentFiles(),
         settings.get(),
       ])
       applyMenu(recents, allSettings.theme)
     },
-    (state) => {
-      documentDirty = state.dirty
-      // If a save triggered by the close guard just completed (pendingClose)
-      // and the document is now clean, proceed with closing the window.
-      if (pendingClose && !state.dirty) {
-        pendingClose = false
-        forceClose = true
-        getWindow()?.close()
-      }
-    },
     async (updated) => {
-      // Rebuild menu after any settings change. This fires when the renderer
-      // calls setSettings({ theme }) so the native Theme menu radio updates
-      // to reflect the newly chosen theme without any extra IPC round-trip.
+      // Rebuild menu after any settings change so the native Theme radio
+      // reflects the newly chosen theme without an extra IPC round-trip.
       const recents = await settings.getRecentFiles()
       applyMenu(recents, updated.theme)
     },
   )
 
-  registerExportHandlers(getWindow)
+  registerExportHandlers()
 
-  // Register image-save IPC handler. Passes the user-data path at call time
-  // so it always reflects the current Electron data directory.
+  // Register image-save IPC handler. Passes the user-data path at call time so
+  // it always reflects the current Electron data directory.
   registerImageHandlers(() => app.getPath('userData'))
 
-  // Register the openExternal IPC handler (scheme-validated link opening for
-  // the link dialog's "Open" button).
+  // Register the openExternal IPC handler (scheme-validated link opening).
   registerShellHandlers()
 
-  // Create the window with restored bounds (or defaults if none saved).
-  const win = createWindow(initialSettings.windowBounds)
+  // Renderer-routed New Window: the 'newWindow' AppCommand calls
+  // window.lekha.newWindow() which sends this IPC. (The native menu item opens
+  // windows directly via openNewWindow without this round-trip.)
+  ipcMain.on(IPC.newWindow, () => { openNewWindow() })
 
-  // Persist window bounds on resize/move (debounced) and on close.
-  const saveBounds = (b: NonNullable<Settings['windowBounds']>): void => {
-    void settings.set({ windowBounds: b })
-  }
+  // Remember valid saved bounds for restoring/cascading future windows.
+  savedWindowBounds = isSaneBounds(initialSettings.windowBounds)
+    ? initialSettings.windowBounds
+    : undefined
 
-  win.on('resize', () => { scheduleBoundsSave(win, saveBounds) })
-  win.on('move',   () => { scheduleBoundsSave(win, saveBounds) })
-
-  // On close, do a final synchronous-ish save of bounds before the window
-  // goes away, and intercept when there are unsaved changes.
-  // We use the 'close' event (before 'closed') so the window is still
-  // accessible via getBounds() and we can call e.preventDefault().
-  win.on('close', (e) => {
-    // Always persist window bounds first (before we might preventDefault).
-    if (!win.isMinimized() && !win.isFullScreen()) {
-      const b = win.getBounds()
-      void settings.set({ windowBounds: { x: b.x, y: b.y, width: b.width, height: b.height } })
-    }
-
-    // Allow the close if:
-    //   - no unsaved changes, OR
-    //   - the user already confirmed "Don't Save" (forceClose), OR
-    //   - the test-mode env flag disables the guard (e2e teardown only).
-    // Note: Cmd+Q reaches here too (Electron fires 'close' for each window
-    // after 'before-quit'), so this guard fires for ALL close paths.
-    if (!documentDirty || forceClose || QUIT_GUARD_DISABLED) {
-      forceClose = false // reset for any future window re-use
-      return
-    }
-
-    // Unsaved changes - prompt the user with a synchronous dialog so the
-    // event loop does not advance while the dialog is open.
-    e.preventDefault()
-
-    const response = dialog.showMessageBoxSync(win, {
-      type: 'warning',
-      buttons: ['Save', "Don't Save", 'Cancel'],
-      defaultId: 0,
-      cancelId: 2,
-      message: 'Do you want to save the changes you made?',
-      detail: "Your changes will be lost if you don't save them.",
-    })
-
-    if (response === 1) {
-      // "Don't Save": mark forceClose so the next win.close() goes through.
-      forceClose = true
-      win.close()
-    } else if (response === 0) {
-      // "Save": ask the renderer to save, then close when dirty goes false.
-      // The onDocumentState callback above handles the follow-through.
-      pendingClose = true
-      win.webContents.send(IPC.command, 'save')
-    }
-    // response === 2 ("Cancel"): do nothing - the window stays open.
-  })
+  // First window: honor saved bounds exactly (no cascade). When none are saved,
+  // open at the default size with x/y omitted so Electron centers it on screen.
+  openWindowAt(savedWindowBounds ?? { ...DEFAULT_WINDOW_SIZE })
 
   // Set up the native application menu with the persisted recent files and theme.
   applyMenu(initialSettings.recentFiles, initialSettings.theme)
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+    // macOS: re-open a window when the dock icon is clicked and none are open.
+    if (registry.size === 0) {
+      openWindowAt(savedWindowBounds ?? { ...DEFAULT_WINDOW_SIZE })
     }
   })
 })

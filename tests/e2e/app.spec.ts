@@ -291,7 +291,48 @@ test('find overlay opens via IPC command, highlights matches, and shows count', 
 })
 
 // ---------------------------------------------------------------------------
-// Test 5: Save round-trip — SKIPPED
+// Test 5: New Window - multi-window support
+// ---------------------------------------------------------------------------
+//
+// Triggers the 'newWindow' AppCommand on the focused window via the same IPC
+// path the native menu/keyboard uses. This exercises the full multi-window
+// chain: renderer dispatch (useCommands) -> preload window.lekha.newWindow()
+// -> IPC window:new -> main openNewWindow() -> a second BrowserWindow.
+//
+// We assert a SECOND window appears and that it has its own independent
+// ProseMirror editor. The extra window is closed at the end so the shared
+// app teardown stays clean. (LEKHA_DISABLE_QUIT_GUARD is set, so closing a
+// dirty window never blocks on a native dialog.)
+
+test('New Window opens a second independent window with its own editor', async () => {
+  // Sanity: start from a single window.
+  expect(sharedApp.windows().length).toBe(1)
+
+  // Trigger 'newWindow' on the first window via the IPC command path.
+  await sendCommand(sharedApp, 'newWindow')
+
+  // Wait for the second window to appear.
+  const secondWin = await sharedApp.waitForEvent('window', { timeout: 10_000 })
+  await secondWin.waitForLoadState('domcontentloaded')
+
+  // Two windows are now open.
+  expect(sharedApp.windows().length).toBe(2)
+
+  // The new window has its OWN ProseMirror editor (independent document).
+  await secondWin.waitForSelector('.ProseMirror', { state: 'visible', timeout: 20_000 })
+  await expect(secondWin.locator('.ProseMirror')).toBeVisible()
+  await expect(secondWin.locator('.ProseMirror h1').first()).toContainText('Welcome to Lekha')
+
+  // The original window still has its own editor (windows are independent).
+  await expect(sharedWin.locator('.ProseMirror')).toBeVisible()
+
+  // Close the extra window so the shared-app teardown is left with one window.
+  await secondWin.close()
+  await expect.poll(() => sharedApp.windows().length, { timeout: 10_000 }).toBe(1)
+})
+
+// ---------------------------------------------------------------------------
+// Test 6: Save round-trip - SKIPPED
 // ---------------------------------------------------------------------------
 // The save flow opens a native OS file-picker dialog that Playwright cannot
 // drive. Save/write logic (IPC handlers, file writing) is fully covered by

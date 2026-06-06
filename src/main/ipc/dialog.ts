@@ -1,4 +1,4 @@
-import { ipcMain, dialog, type BrowserWindow } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 
 /** The three choices the user can make when there are unsaved changes. */
@@ -15,13 +15,23 @@ export function mapUnsavedResponse(index: number): UnsavedChoice {
   return 'cancel'
 }
 
+/**
+ * Resolve the window that sent an IPC request so dialogs are attached (modal)
+ * to the calling window rather than a single shared "main" window. Multi-window
+ * safe: each request targets exactly the window that initiated it.
+ */
+function senderWindow(event: Electron.IpcMainInvokeEvent): BrowserWindow | undefined {
+  return BrowserWindow.fromWebContents(event.sender) ?? undefined
+}
+
 /** Registers IPC handlers for all native file/folder dialog operations. */
-export function registerDialogHandlers(getWindow: () => BrowserWindow | null): void {
+export function registerDialogHandlers(): void {
   // --- Unsaved-changes guard dialog ---
   // Invoked by the renderer before open() / openPath() / newFile() when dirty.
-  ipcMain.handle(IPC.confirmUnsaved, async (): Promise<UnsavedChoice> => {
-    const win = getWindow()
-    const result = await dialog.showMessageBox(win ?? undefined!, {
+  // Modal to the calling window (event.sender), not a global main window.
+  ipcMain.handle(IPC.confirmUnsaved, async (event): Promise<UnsavedChoice> => {
+    const win = senderWindow(event)
+    const result = await dialog.showMessageBox(win!, {
       type: 'warning',
       buttons: ['Save', "Don't Save", 'Cancel'],
       defaultId: 0,
@@ -32,26 +42,26 @@ export function registerDialogHandlers(getWindow: () => BrowserWindow | null): v
     return mapUnsavedResponse(result.response)
   })
 
-  ipcMain.handle(IPC.openFileDialog, async () => {
-    const win = getWindow()
-    const result = await dialog.showOpenDialog(win ?? undefined!, {
+  ipcMain.handle(IPC.openFileDialog, async (event) => {
+    const win = senderWindow(event)
+    const result = await dialog.showOpenDialog(win!, {
       properties: ['openFile'],
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     })
     return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
   })
 
-  ipcMain.handle(IPC.openFolderDialog, async () => {
-    const win = getWindow()
-    const result = await dialog.showOpenDialog(win ?? undefined!, {
+  ipcMain.handle(IPC.openFolderDialog, async (event) => {
+    const win = senderWindow(event)
+    const result = await dialog.showOpenDialog(win!, {
       properties: ['openDirectory'],
     })
     return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0]
   })
 
-  ipcMain.handle(IPC.saveAsDialog, async (_event, suggestedName?: string) => {
-    const win = getWindow()
-    const result = await dialog.showSaveDialog(win ?? undefined!, {
+  ipcMain.handle(IPC.saveAsDialog, async (event, suggestedName?: string) => {
+    const win = senderWindow(event)
+    const result = await dialog.showSaveDialog(win!, {
       ...(suggestedName !== undefined ? { defaultPath: suggestedName } : {}),
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     })

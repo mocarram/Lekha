@@ -13,6 +13,8 @@ export const IPC = {
   getSettings: 'settings:get',
   setSettings: 'settings:set',
   setDocumentState: 'window:setDocumentState',
+  /** Renderer -> main: open a new, independent editor window. */
+  newWindow: 'window:new',
   command: 'app:command',
   /** Main -> renderer: open a specific file path (from the Open Recent menu). */
   openPath: 'app:openPath',
