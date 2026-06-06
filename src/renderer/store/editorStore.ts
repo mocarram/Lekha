@@ -22,6 +22,8 @@ interface EditorState {
   focusMode: boolean
   /** Typewriter mode: keeps the cursor line vertically centered in the viewport. */
   typewriterMode: boolean
+  /** Equation numbering: CSS-only auto-numbering of block math (gated by container class). */
+  equationNumbering: boolean
   /** Auto-save: automatically write saved documents after a short idle period. */
   autoSave: boolean
 }
@@ -51,6 +53,8 @@ interface EditorActions {
   setFocusMode(value: boolean): void
   /** Set typewriter mode to an explicit value. */
   setTypewriterMode(value: boolean): void
+  /** Set equation numbering to an explicit value. */
+  setEquationNumbering(value: boolean): void
   /** Set auto-save to an explicit value. */
   setAutoSave(value: boolean): void
 }
@@ -87,6 +91,7 @@ const INITIAL_STATE: EditorState = {
   selChars: 0,
   focusMode: false,
   typewriterMode: false,
+  equationNumbering: true,
   autoSave: true,
 }
 
@@ -161,6 +166,10 @@ export const useEditorStore = create<EditorStore>()((set) => ({
 
   setTypewriterMode(value) {
     set({ typewriterMode: value })
+  },
+
+  setEquationNumbering(value) {
+    set({ equationNumbering: value })
   },
 
   setAutoSave(value) {

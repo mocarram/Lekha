@@ -20,6 +20,7 @@ const DEFAULTS: Settings = {
   theme: 'github',
   focusMode: false,
   typewriterMode: false,
+  equationNumbering: true,
   fontSize: DEFAULT_FONT_SIZE,
   autoSave: true,
   spellCheck: true,

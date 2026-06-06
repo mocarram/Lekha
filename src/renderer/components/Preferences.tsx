@@ -45,6 +45,7 @@ type FormState = Pick<
   | 'fontSize'
   | 'focusMode'
   | 'typewriterMode'
+  | 'equationNumbering'
   | 'autoSave'
   | 'sidebarVisible'
   | 'sidebarTab'
@@ -57,6 +58,7 @@ const INITIAL_FORM: FormState = {
   fontSize: DEFAULT_FONT_SIZE,
   focusMode: false,
   typewriterMode: false,
+  equationNumbering: true,
   autoSave: true,
   sidebarVisible: true,
   sidebarTab: 'files',
@@ -94,6 +96,7 @@ export function Preferences({ open, onClose }: PreferencesProps) {
         fontSize: s.fontSize,
         focusMode: s.focusMode,
         typewriterMode: s.typewriterMode,
+        equationNumbering: s.equationNumbering,
         autoSave: s.autoSave,
         sidebarVisible: s.sidebarVisible,
         sidebarTab: s.sidebarTab,
@@ -140,6 +143,12 @@ export function Preferences({ open, onClose }: PreferencesProps) {
     setForm((f) => ({ ...f, typewriterMode }))
     useEditorStore.getState().setTypewriterMode(typewriterMode)
     persist({ typewriterMode })
+  }
+
+  const handleEquationNumbering = (equationNumbering: boolean): void => {
+    setForm((f) => ({ ...f, equationNumbering }))
+    useEditorStore.getState().setEquationNumbering(equationNumbering)
+    persist({ equationNumbering })
   }
 
   const handleAutoSave = (autoSave: boolean): void => {
@@ -263,6 +272,16 @@ export function Preferences({ open, onClose }: PreferencesProps) {
               aria-label="Typewriter mode by default"
             />
             Typewriter mode by default
+          </label>
+
+          <label className="prefs-check">
+            <input
+              type="checkbox"
+              checked={form.equationNumbering}
+              onChange={(e) => handleEquationNumbering(e.target.checked)}
+              aria-label="Number block equations"
+            />
+            Number block equations
           </label>
 
           <label className="prefs-check">

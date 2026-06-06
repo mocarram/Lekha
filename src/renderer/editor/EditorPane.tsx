@@ -152,6 +152,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
     // These drive the container class (focus-mode) and data attribute (data-typewriter).
     const focusMode = useEditorStore((s) => s.focusMode)
     const typewriterMode = useEditorStore((s) => s.typewriterMode)
+    const equationNumbering = useEditorStore((s) => s.equationNumbering)
 
     // Canonical markdown snapshot - the bridge between the two editors.
     // Initialized by serializing the parsed initial markdown so it is always
@@ -312,9 +313,14 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
       [mode, markdown, toggleMode],
     )
 
-    // Compose the container class: append `focus-mode` when active so the CSS
-    // dimming rules in github.css (and other themes) can target it.
-    const containerClass = [className, focusMode ? 'focus-mode' : '']
+    // Compose the container class. `focus-mode` enables the dimming rules and
+    // `equation-numbering` enables the CSS counter that numbers block math.
+    // Both are pure CSS gates - they never touch the document or its markdown.
+    const containerClass = [
+      className,
+      focusMode ? 'focus-mode' : '',
+      equationNumbering ? 'equation-numbering' : '',
+    ]
       .filter(Boolean)
       .join(' ')
 

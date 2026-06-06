@@ -42,6 +42,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     theme: 'github',
     focusMode: false,
     typewriterMode: false,
+    equationNumbering: true,
     fontSize: 16,
     autoSave: true,
     spellCheck: true,
@@ -152,6 +153,26 @@ describe('Preferences - editor toggles', () => {
     fireEvent.click(screen.getByLabelText('Typewriter mode by default'))
     expect(setSettingsMock).toHaveBeenCalledWith({ typewriterMode: true })
     expect(useEditorStore.getState().typewriterMode).toBe(true)
+  })
+
+  it('renders the "Number block equations" checkbox', async () => {
+    await renderOpen()
+    expect(screen.getByLabelText('Number block equations')).toBeTruthy()
+  })
+
+  it('reflects equationNumbering=true (default) when seeded from settings', async () => {
+    stubLekha(makeSettings({ equationNumbering: true }))
+    await renderOpen()
+    const el = screen.getByLabelText('Number block equations')
+    expect((el as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('toggling equation numbering off persists it and updates the editor store', async () => {
+    // Default is equationNumbering=true; clicking unchecks it.
+    await renderOpen()
+    fireEvent.click(screen.getByLabelText('Number block equations'))
+    expect(setSettingsMock).toHaveBeenCalledWith({ equationNumbering: false })
+    expect(useEditorStore.getState().equationNumbering).toBe(false)
   })
 })
 

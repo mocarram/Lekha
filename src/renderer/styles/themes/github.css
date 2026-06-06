@@ -897,6 +897,44 @@
   border-radius: 2px;
 }
 
+/* ---------------------------------------------------------------------------
+ * Block-equation auto-numbering (CSS-only)
+ *
+ * Gated by the `equation-numbering` class on the editor container (set by
+ * EditorPane from the equationNumbering setting). The counter is reset on the
+ * ProseMirror root and incremented per block math node; the number is rendered
+ * via ::after so it never enters the document or its serialized markdown.
+ *
+ * The math block is centered (text-align:center) with relative positioning so
+ * the `(n)` label can sit absolutely at the right edge, vertically centered,
+ * without overlapping the equation itself.
+ * --------------------------------------------------------------------------- */
+
+/* Start the equation counter at 0 on the editor root. */
+.editor-pane.equation-numbering .ProseMirror {
+  counter-reset: equation;
+}
+
+/* Each block equation increments the counter and becomes the positioning
+ * context for its number label. */
+.editor-pane.equation-numbering .ProseMirror div.math-block {
+  counter-increment: equation;
+  position: relative;
+}
+
+/* Render the number on the right, vertically centered, in muted text. */
+.editor-pane.equation-numbering .ProseMirror div.math-block .math-render::after {
+  content: '(' counter(equation) ')';
+  position: absolute;
+  right: 0.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.9em;
+  user-select: none;
+  pointer-events: none;
+}
+
 /* ===========================================================================
  * 14. Focus Mode
  *

@@ -53,6 +53,11 @@ export interface Settings {
   focusMode: boolean
   /** Typewriter mode: keeps the cursor line vertically centered in the editor viewport. */
   typewriterMode: boolean
+  /**
+   * Equation numbering: show auto-incrementing `(n)` numbers on the right of
+   * each block math equation (CSS counter only - never mutates the document).
+   */
+  equationNumbering: boolean
   /** Editor content font size in pixels. Applied via the --editor-font-size CSS var. */
   fontSize: number
   /** Auto-save: automatically write saved documents after a short idle period. */

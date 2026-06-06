@@ -54,6 +54,20 @@ describe('createSettingsStore', () => {
     expect(persisted.spellCheckLanguage).toBe('fr')
   })
 
+  it('equationNumbering defaults to true', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.equationNumbering).toBe(true)
+  })
+
+  it('round-trips equationNumbering=false', async () => {
+    const store = createSettingsStore(tmpDir)
+    await store.set({ equationNumbering: false })
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.equationNumbering).toBe(false)
+  })
+
   it('autoSave defaults to true', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()

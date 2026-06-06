@@ -33,13 +33,13 @@ function makeMockLekha(
     getSettings: vi.fn(() => Promise.resolve({
       recentFiles: [], lastFolder: null, sidebarVisible: true,
       sidebarTab: 'files' as const, theme: 'github', focusMode: false,
-      typewriterMode: false, fontSize: 16, autoSave: true,
+      typewriterMode: false, equationNumbering: true, fontSize: 16, autoSave: true,
       spellCheck: true, spellCheckLanguage: 'en-US',
     })),
     setSettings: vi.fn(() => Promise.resolve({
       recentFiles: [], lastFolder: null, sidebarVisible: true,
       sidebarTab: 'files' as const, theme: 'github', focusMode: false,
-      typewriterMode: false, fontSize: 16, autoSave: true,
+      typewriterMode: false, equationNumbering: true, fontSize: 16, autoSave: true,
       spellCheck: true, spellCheckLanguage: 'en-US',
     })),
     getRecentFiles: vi.fn(() => Promise.resolve([])),

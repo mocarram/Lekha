@@ -62,9 +62,10 @@ export function useStartup(_fileOps: FileOps): void {
       // CSS var on <html>; github.css reads it for the .ProseMirror font-size.
       applyFontSize(s.fontSize)
 
-      // Restore focus mode, typewriter mode, and auto-save flags.
+      // Restore focus mode, typewriter mode, equation numbering, and auto-save.
       useEditorStore.getState().setFocusMode(s.focusMode)
       useEditorStore.getState().setTypewriterMode(s.typewriterMode)
+      useEditorStore.getState().setEquationNumbering(s.equationNumbering)
       useEditorStore.getState().setAutoSave(s.autoSave)
 
       // Restore last folder if one was persisted. A missing/deleted folder
