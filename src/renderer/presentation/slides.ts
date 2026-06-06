@@ -14,6 +14,11 @@
  *   slide separators. The front-matter content is stripped from the output
  *   entirely (it is metadata, not slide content).
  *
+ * Code-fence handling:
+ *   Lines that appear inside a fenced code block (delimited by ``` or ~~~,
+ *   each with 3 or more repeated characters) are never treated as slide
+ *   separators, even if they look like `---`, `***`, or `___`.
+ *
  * Empty-slide handling:
  *   After splitting, any segment that trims to an empty string is dropped.
  *   This handles consecutive separators (e.g. `---\n---`) and leading/trailing
@@ -76,11 +81,19 @@ function stripFrontMatter(markdown: string): string {
  * Regex that matches a slide-separator line: a line containing ONLY `---`,
  * `***`, or `___` (any of these exactly three characters, optionally with
  * trailing spaces/tabs before the newline).
- *
- * We split on this pattern across the whole body (after front-matter removal).
- * The `m` flag makes `^`/`$` match line boundaries.
  */
-const SEPARATOR_RE = /^(?:---|[*]{3}|_{3})[ \t]*$/m
+const SEPARATOR_RE = /^(?:---|[*]{3}|_{3})[ \t]*$/
+
+/**
+ * Regex that matches the opening (or closing) line of a fenced code block.
+ * A fence is 3 or more backticks (`) or tildes (~) at the start of the line,
+ * optionally followed by an info string (language tag, etc.) on opening lines.
+ * We detect any line that starts with 3+ of the same fence character - a
+ * closing fence is the same character repeated 3+ times with nothing after.
+ * For simplicity we match either form with this single pattern and use the
+ * fence character captured in group 1 to track open/close state.
+ */
+const FENCE_RE = /^(`{3,}|~{3,})/
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -99,33 +112,83 @@ export function splitSlides(markdown: string): string[] {
   // 1. Strip YAML front-matter so its --- delimiters are never treated as slides.
   const body = stripFrontMatter(markdown)
 
-  // 2. Split on slide separators (---, ***, ___).
-  //    We split on lines matching SEPARATOR_RE. We use a global regex exec loop
-  //    rather than String.split() so that surrounding blank lines are consumed
-  //    as part of the separator, giving clean slide content without leading/
-  //    trailing blank lines on each segment.
-  const segments: string[] = []
-  const remaining = body
+  // 2. Walk the body line by line, tracking fenced-code state, and collect
+  //    the character-offsets of real slide separators (outside fences).
+  //
+  //    Fence tracking:
+  //      - When we encounter a line matching FENCE_RE while NOT inside a fence,
+  //        we record the fence character (` or ~) and enter "inside fence" state.
+  //      - While inside a fence, any line that starts with 3+ of the SAME fence
+  //        character closes the fence (exits "inside fence" state).
+  //      - While inside a fence, separator lines are treated as plain code content
+  //        and are NOT recorded as split points.
+  const lines = body.split('\n')
 
-  const sepGlobal = new RegExp(SEPARATOR_RE.source, 'gm')
-  let lastIndex = 0
-  let match: RegExpExecArray | null
+  // Separator positions: indices into `lines` that are real slide separators.
+  const separatorLineIndices: number[] = []
 
-  while ((match = sepGlobal.exec(remaining)) !== null) {
-    // Segment before this separator
-    segments.push(remaining.slice(lastIndex, match.index))
-    lastIndex = match.index + match[0].length
+  let insideFence = false
+  // The fence character that opened the current fence (`` ` `` or `~`).
+  let fenceChar = ''
+  // The minimum length of the fence that opened the current block (e.g. 3 for
+  // ```, 4 for ````). The closing fence must use the same char and length >= open.
+  let fenceLen = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? ''
+
+    if (insideFence) {
+      // Check whether this line closes the current fence.
+      // A closing fence: same character repeated >= fenceLen times, nothing else
+      // on the line (trailing whitespace is allowed per CommonMark spec).
+      const closeMatch = FENCE_RE.exec(line)
+      if (
+        closeMatch !== null &&
+        closeMatch[1] !== undefined &&
+        closeMatch[1][0] === fenceChar &&
+        closeMatch[1].length >= fenceLen &&
+        line.trim() === closeMatch[1].trim()
+      ) {
+        // Closing fence found - exit fenced-code state.
+        insideFence = false
+        fenceChar = ''
+        fenceLen = 0
+      }
+      // Whether closing or not, this line is inside (or closing) a fence and
+      // is never a slide separator.
+    } else {
+      // Not inside a fence - check if this line opens a new fence.
+      const openMatch = FENCE_RE.exec(line)
+      if (openMatch !== null && openMatch[1] !== undefined) {
+        // Opening fence: record character and length, enter fenced state.
+        insideFence = true
+        fenceChar = openMatch[1][0] ?? ''
+        fenceLen = openMatch[1].length
+      } else if (SEPARATOR_RE.test(line)) {
+        // Outside any fence and matches separator pattern - this is a real split.
+        separatorLineIndices.push(i)
+      }
+    }
   }
 
-  // Last (or only) segment after the final separator
-  segments.push(remaining.slice(lastIndex))
+  // 3. Reconstruct segments from the line array using the collected separator
+  //    indices. Each separator line is excluded from the output.
+  const segments: string[] = []
+  let segStart = 0
 
-  // 3. Trim each segment and drop empty ones.
+  for (const sepIdx of separatorLineIndices) {
+    segments.push(lines.slice(segStart, sepIdx).join('\n'))
+    segStart = sepIdx + 1
+  }
+  // Last (or only) segment
+  segments.push(lines.slice(segStart).join('\n'))
+
+  // 4. Trim each segment and drop empty ones.
   const slides = segments
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
 
-  // 4. If nothing remained (all empty), return the original body trimmed as
+  // 5. If nothing remained (all empty), return the original body trimmed as
   //    a single slide so the presentation is never entirely empty.
   if (slides.length === 0) {
     return [body.trim()]

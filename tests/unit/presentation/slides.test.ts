@@ -206,3 +206,97 @@ describe('splitSlides - non-separator lookalikes', () => {
     expect(joined).toContain('text after')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Code-fence-aware splitting
+// ---------------------------------------------------------------------------
+
+describe('splitSlides - code-fence-aware (--- inside fence must not split)', () => {
+  it('does NOT split on --- inside a backtick-fenced code block', () => {
+    // The --- on the 4th line is inside the code block - must not be a slide separator.
+    // Only the bare --- after the closing fence is the real separator.
+    const md = '# A\n\n```\nfoo\n---\nbar\n```\n\n---\n\n# B'
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    // Slide 1 contains the full code block including the --- line inside it.
+    expect(result[0]).toContain('```')
+    expect(result[0]).toContain('---')
+    expect(result[0]).toContain('foo')
+    expect(result[0]).toContain('bar')
+    // Slide 2 is just the heading.
+    expect(result[1]).toBe('# B')
+  })
+
+  it('does NOT split on --- inside a tilde-fenced code block (~~~)', () => {
+    const md = '# A\n\n~~~\nfoo\n---\nbar\n~~~\n\n---\n\n# B'
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toContain('~~~')
+    expect(result[0]).toContain('---')
+    expect(result[1]).toBe('# B')
+  })
+
+  it('does NOT split on *** inside a backtick-fenced code block', () => {
+    const md = '# A\n\n```\n***\n```\n\n---\n\n# B'
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toContain('***')
+    expect(result[1]).toBe('# B')
+  })
+
+  it('does NOT split on ___ inside a backtick-fenced code block', () => {
+    const md = '# A\n\n```js\n___\n```\n\n---\n\n# B'
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toContain('___')
+    expect(result[1]).toBe('# B')
+  })
+
+  it('still splits on a real --- that appears AFTER a closed fence', () => {
+    // Fence opens and closes, then a real separator follows - it must split.
+    const md = '```\nsome code\n```\n\n---\n\nSlide 2'
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toContain('some code')
+    expect(result[1]).toBe('Slide 2')
+  })
+
+  it('handles multiple code blocks each with --- inside, only real separators split', () => {
+    // Two code blocks, each with a --- inside, and one real separator between slides.
+    const md = [
+      '# Slide 1',
+      '',
+      '```yaml',
+      'key: val',
+      '---',
+      'other: val',
+      '```',
+      '',
+      '---',
+      '',
+      '# Slide 2',
+      '',
+      '```diff',
+      '- removed line',
+      '---',
+      '+ added line',
+      '```',
+    ].join('\n')
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toContain('# Slide 1')
+    expect(result[0]).toContain('```yaml')
+    expect(result[1]).toContain('# Slide 2')
+    expect(result[1]).toContain('```diff')
+  })
+
+  it('handles a code fence that uses 4 or more backticks', () => {
+    // A fence opened with 4 backticks must be closed with 4 backticks.
+    // A --- inside must NOT split.
+    const md = '# A\n\n````\nfoo\n---\n````\n\n---\n\n# B'
+    const result = splitSlides(md)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toContain('---')
+    expect(result[1]).toBe('# B')
+  })
+})
