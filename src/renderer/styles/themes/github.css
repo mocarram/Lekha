@@ -206,6 +206,10 @@
   --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.14);   /* small elevation (toolbars) */
   --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.28); /* large elevation (palette) */
 
+  /* Soft accent focus ring shared by inputs, checkboxes, and switches. Derived
+   * from --accent so every theme gets a coherent glow. */
+  --focus-ring:          0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+
   /* Override the structural fallbacks defined in global.css */
   --color-bg:         var(--bg);
   --color-surface:    var(--surface);
@@ -654,13 +658,17 @@
 
 .editor-pane .ProseMirror li.task-item > span[contenteditable="false"] {
   flex-shrink: 0;
-  margin-top: 3px;
+  /* Nudge the 16px checkbox down so it sits on the first text line's optical
+     center (line-height 1.7). */
+  margin-top: 4px;
 }
 
+/* The checkbox itself inherits the app-wide Apple-style treatment defined in
+   global.css (rounded square, accent fill, white tick); we only set the size
+   here so it reads well against the editor's body text. */
 .editor-pane .ProseMirror li.task-item input[type="checkbox"] {
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .editor-pane .ProseMirror li.task-item > span:last-child {

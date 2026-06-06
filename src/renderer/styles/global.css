@@ -1199,3 +1199,106 @@ body,
   pointer-events: none;
   user-select: none;
 }
+
+/* ---------------------------------------------------------------------------
+ * Apple-style form controls
+ *
+ * A single, token-driven treatment so the app's interactive controls feel
+ * crafted rather than browser-default: rounded checkboxes with a crisp tick,
+ * iOS-style switches in Preferences, soft accent focus rings on inputs, and
+ * refined buttons. All colors derive from --color-* / --accent so every theme
+ * adapts automatically.
+ * --------------------------------------------------------------------------- */
+
+/* --- Checkbox: rounded square, accent fill + white tick when checked --- */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid color-mix(in srgb, var(--color-text-muted) 55%, transparent);
+  border-radius: 5px;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px 11px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  vertical-align: middle;
+}
+
+input[type="checkbox"]:hover {
+  border-color: var(--color-accent);
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.4l3 3 6-6.2'/%3E%3C/svg%3E");
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* --- Preferences switches: iOS-style sliding toggle ---
+ * The .prefs-check label is reversed so the text sits left and the switch
+ * right. The checkbox itself becomes the track; a white knob (background image)
+ * slides across when checked. */
+.prefs-check {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prefs-check input[type="checkbox"] {
+  width: 38px;
+  height: 22px;
+  border: none;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--color-text-muted) 45%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='9' fill='%23ffffff'/%3E%3C/svg%3E");
+  background-size: 18px 18px;
+  background-position: 2px center;
+  transition: background-color 0.2s ease, background-position 0.2s ease,
+    box-shadow 0.15s ease;
+}
+
+.prefs-check input[type="checkbox"]:hover {
+  border: none;
+}
+
+.prefs-check input[type="checkbox"]:checked {
+  background-color: var(--color-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='9' fill='%23ffffff'/%3E%3C/svg%3E");
+  background-position: 18px center;
+}
+
+/* --- Inputs: soft accent focus ring (not just a border swap) --- */
+.dialog-input:focus,
+.cmdk__input:focus,
+.find-replace-input:focus,
+.folder-search__input:focus,
+.file-tree__rename-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+/* --- Buttons: refined radius, transitions, and press feedback --- */
+.dialog-btn {
+  border-radius: 6px;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    filter 0.12s ease, transform 0.05s ease;
+}
+
+.dialog-btn:active {
+  transform: translateY(0.5px);
+}
+
+.dialog-btn-primary {
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
