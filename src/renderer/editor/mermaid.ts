@@ -4,7 +4,11 @@
  * Thin wrapper around the mermaid library for safe, async diagram rendering.
  *
  * Responsibilities:
- *   - Initialize mermaid ONCE at module load (startOnLoad:false so it does not
+ *   - Lazy-load the mermaid library on first render (it is one of the heaviest
+ *     renderer deps). The module is dynamic-imported once and cached so it stays
+ *     out of the initial chunk; the code_block NodeView shows its "Rendering
+ *     diagram..." placeholder until the SVG resolves.
+ *   - Initialize mermaid ONCE on first load (startOnLoad:false so it does not
  *     scan the DOM; securityLevel:strict for XSS safety).
  *   - Export `renderMermaid(id, code)` that wraps mermaid.render() with
  *     try/catch, returning a discriminated union so callers never need to
@@ -14,7 +18,32 @@
  *     left in the DOM by mermaid's internal bookkeeping.
  */
 
-import mermaid from 'mermaid'
+import type mermaid from 'mermaid'
+
+// ---------------------------------------------------------------------------
+// Lazy module loader
+//
+// mermaid is large and only needed once a diagram is actually rendered, so we
+// dynamic-import it on first use. The promise is cached so the chunk is fetched
+// exactly once; on resolution we initialize mermaid with the current app theme.
+// `import('mermaid')` is statically analysable by Rollup, so mermaid (and its
+// diagram sub-bundles) are emitted as separate, deferred chunks.
+// ---------------------------------------------------------------------------
+
+type Mermaid = typeof mermaid
+
+let mermaidPromise: Promise<Mermaid> | null = null
+
+function loadMermaid(): Promise<Mermaid> {
+  mermaidPromise ??= import('mermaid').then((m) => {
+    const instance = m.default
+    // Initialize with the live theme as soon as the module arrives so the first
+    // render uses the correct colours.
+    initMermaid(instance, currentMermaidTheme())
+    return instance
+  })
+  return mermaidPromise
+}
 
 // ---------------------------------------------------------------------------
 // Theme sync
@@ -56,11 +85,11 @@ function currentMermaidTheme(): MermaidTheme {
 }
 
 /**
- * (Re)initialize mermaid with the given theme. Called once at module load with
- * the live theme, and again on every app theme change via setMermaidTheme.
+ * (Re)initialize mermaid with the given theme. Called on first load with the
+ * live theme, and again on every app theme change via setMermaidTheme.
  */
-function initMermaid(theme: MermaidTheme): void {
-  mermaid.initialize({
+function initMermaid(instance: Mermaid, theme: MermaidTheme): void {
+  instance.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
     theme,
@@ -74,23 +103,31 @@ export const MERMAID_RERENDER_EVENT = 'lekha-mermaid-rerender'
 /**
  * Re-initialize mermaid for the given app `data-theme` and ask every live
  * diagram NodeView to re-render. Called by the theme-change listener below.
+ *
+ * If mermaid has not been loaded yet (no diagram rendered so far) there is
+ * nothing to re-initialize and no diagram on screen, so we skip the work; the
+ * next render will pick up the current theme via loadMermaid().
  */
 export function setMermaidTheme(dataTheme: string | undefined): void {
-  initMermaid(mermaidThemeFor(dataTheme))
-  if (typeof document !== 'undefined') {
-    document.dispatchEvent(new CustomEvent(MERMAID_RERENDER_EVENT))
+  if (mermaidPromise !== null) {
+    void mermaidPromise.then((instance) =>
+      initMermaid(instance, mermaidThemeFor(dataTheme)),
+    )
+    if (typeof document !== 'undefined') {
+      document.dispatchEvent(new CustomEvent(MERMAID_RERENDER_EVENT))
+    }
   }
 }
 
 // ---------------------------------------------------------------------------
-// One-time initialization (uses the live app theme)
-// ---------------------------------------------------------------------------
-
-initMermaid(currentMermaidTheme())
-
+// Theme-change wiring
+//
 // Re-init + re-render whenever applyTheme dispatches the theme-change event.
 // Registered once at module load; the renderer process keeps this module alive
-// for the app lifetime so no teardown is needed.
+// for the app lifetime so no teardown is needed. The mermaid library itself is
+// not loaded until the first diagram render (setMermaidTheme no-ops until then).
+// ---------------------------------------------------------------------------
+
 if (typeof document !== 'undefined') {
   document.addEventListener(THEME_CHANGE_EVENT, (e) => {
     const detail = (e as CustomEvent<{ theme?: string }>).detail
@@ -146,9 +183,12 @@ export async function renderMermaid(
 ): Promise<RenderResult> {
   const renderId = nextRenderId(id)
   try {
+    // Lazy-load mermaid on first render (cached thereafter). Until this resolves
+    // the NodeView shows its "Rendering diagram..." placeholder.
+    const instance = await loadMermaid()
     // mermaid.render() returns { svg, diagramType, bindFunctions? }
     // We only need the svg string for display.
-    const result = await mermaid.render(renderId, code)
+    const result = await instance.render(renderId, code)
     return { svg: result.svg }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

@@ -27,6 +27,27 @@ function firstOfType(doc: Node, type: string): Node {
   return found
 }
 
+/**
+ * Poll for a descendant matching `selector` to appear under `root`, resolving
+ * with it once present. Used because KaTeX is lazy-loaded, so the rendered
+ * `.katex` element appears only after the dynamic `import('katex')` resolves.
+ */
+async function waitForSelector(
+  root: ParentNode,
+  selector: string,
+  timeoutMs = 5000,
+): Promise<Element> {
+  const start = Date.now()
+  for (;;) {
+    const el = root.querySelector(selector)
+    if (el) return el
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`timed out waiting for "${selector}"`)
+    }
+    await new Promise((r) => setTimeout(r, 10))
+  }
+}
+
 /** Mount a minimal view with math nodeviews and input rules. */
 function mountView(markdown: string): EditorView {
   const doc = parseMarkdown(markdown)
@@ -199,12 +220,13 @@ describe('serializer round-trip', () => {
 // ---------------------------------------------------------------------------
 
 describe('mathInlineNodeView DOM rendering', () => {
-  it('renders KaTeX output (.katex) inside .math-inline', () => {
+  it('renders KaTeX output (.katex) inside .math-inline', async () => {
     view = mountView('$x^2$')
     const mathEl = document.querySelector('.math-inline')
     expect(mathEl).not.toBeNull()
-    // KaTeX appends a .katex element inside our wrapper
-    const katex = mathEl!.querySelector('.katex')
+    // KaTeX is now lazy-loaded on first render, so wait for the dynamic import
+    // to resolve and the .katex element to be inserted into our wrapper.
+    const katex = await waitForSelector(mathEl!, '.katex')
     expect(katex).not.toBeNull()
   })
 
@@ -231,11 +253,12 @@ describe('mathInlineNodeView DOM rendering', () => {
 })
 
 describe('mathBlockNodeView DOM rendering', () => {
-  it('renders KaTeX output (.katex) inside .math-block', () => {
+  it('renders KaTeX output (.katex) inside .math-block', async () => {
     view = mountView('$$\n\\int_0^1 x\\,dx\n$$')
     const mathEl = document.querySelector('.math-block')
     expect(mathEl).not.toBeNull()
-    const katex = mathEl!.querySelector('.katex')
+    // KaTeX is lazy-loaded; wait for the dynamic import + render to complete.
+    const katex = await waitForSelector(mathEl!, '.katex')
     expect(katex).not.toBeNull()
   })
 })

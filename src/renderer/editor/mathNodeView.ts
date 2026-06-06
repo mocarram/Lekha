@@ -26,23 +26,57 @@
  *     editor for cursor / DOM mutation ownership.
  */
 
-import katex from 'katex'
+import type katex from 'katex'
 import { type Node } from 'prosemirror-model'
 import { type EditorView, type NodeView, type NodeViewConstructor } from 'prosemirror-view'
 
 // ---------------------------------------------------------------------------
+// Lazy KaTeX loader
+//
+// KaTeX is one of the heaviest renderer deps (~480 kB) and is only needed once
+// the document actually contains math. We dynamic-import it on first render and
+// cache the module promise so the chunk is fetched exactly once. Until it
+// resolves, math nodes show a muted placeholder, then render in place.
+// `import('katex')` is statically analysable by Rollup, so KaTeX is emitted as
+// a separate, deferred chunk.
+// ---------------------------------------------------------------------------
+
+type Katex = typeof katex
+
+let katexPromise: Promise<Katex> | null = null
+
+function loadKatex(): Promise<Katex> {
+  katexPromise ??= import('katex').then((m) => m.default)
+  return katexPromise
+}
+
+// ---------------------------------------------------------------------------
 // KaTeX rendering helper
 // ---------------------------------------------------------------------------
+
+/** Insert the muted placeholder shown for empty math or before KaTeX loads. */
+function setPlaceholder(container: HTMLElement, text: string): void {
+  container.innerHTML = ''
+  const placeholder = document.createElement('span')
+  placeholder.className = 'math-placeholder'
+  placeholder.textContent = text
+  container.appendChild(placeholder)
+}
 
 /**
  * Render `latex` into `container` using KaTeX.
  * On empty latex, insert a muted placeholder.
  * KaTeX errors are rendered as KaTeX's own error span (throwOnError:false).
  *
+ * KaTeX is lazy-loaded: until the module arrives the container shows a "Loading
+ * math..." placeholder, then the rendered output replaces it. Because loads
+ * are async, callers that re-render quickly (typing) may resolve out of order,
+ * so we guard against rendering stale latex by re-reading nothing here - the
+ * caller passes the latest latex and the cached module makes subsequent renders
+ * synchronous-fast.
+ *
  * Uses `renderToString` + `innerHTML` assignment for maximum compatibility
- * across environments (including happy-dom in tests). The `render()` API
- * modifies the container in place but may behave differently in non-browser
- * environments.
+ * across environments (including happy-dom in tests).
  */
 function renderKatex(
   container: HTMLElement,
@@ -51,26 +85,32 @@ function renderKatex(
 ): void {
   if (!latex.trim()) {
     // Placeholder for empty math
-    container.innerHTML = ''
-    const placeholder = document.createElement('span')
-    placeholder.className = 'math-placeholder'
-    placeholder.textContent = displayMode ? 'Empty math block' : '$ $'
-    container.appendChild(placeholder)
+    setPlaceholder(container, displayMode ? 'Empty math block' : '$ $')
     return
   }
 
-  try {
-    const html = katex.renderToString(latex, {
-      displayMode,
-      throwOnError: false,
-      trust: false,
-      strict: 'ignore',
+  // Show a load placeholder until KaTeX arrives (no-op visual jump once cached,
+  // since the promise resolves on the same microtask after the first load).
+  setPlaceholder(container, displayMode ? 'Loading math...' : '...')
+
+  void loadKatex()
+    .then((katexModule) => {
+      try {
+        container.innerHTML = katexModule.renderToString(latex, {
+          displayMode,
+          throwOnError: false,
+          trust: false,
+          strict: 'ignore',
+        })
+      } catch {
+        // Should not happen (throwOnError:false), but guard anyway
+        container.textContent = latex
+      }
     })
-    container.innerHTML = html
-  } catch {
-    // Should not happen (throwOnError:false), but guard anyway
-    container.textContent = latex
-  }
+    .catch(() => {
+      // Module failed to load - fall back to showing the raw latex source.
+      container.textContent = latex
+    })
 }
 
 // ---------------------------------------------------------------------------
