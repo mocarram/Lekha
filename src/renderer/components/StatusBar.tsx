@@ -6,6 +6,12 @@ interface StatusBarProps {
    * The parent (App) toggles the editor mode and syncs the store.
    */
   onToggleSource: () => void
+  /**
+   * Called when the user clicks the word-count area. The parent (App) toggles
+   * the detailed WordCountPanel popover. Optional so existing callers/tests
+   * that don't wire the panel keep working.
+   */
+  onShowStats?: () => void
 }
 
 /**
@@ -15,7 +21,7 @@ interface StatusBarProps {
  * WYSIWYG and Source editing modes. Reads from useEditorStore so it stays
  * in sync with the rest of the app without any prop drilling.
  */
-export function StatusBar({ onToggleSource }: StatusBarProps) {
+export function StatusBar({ onToggleSource, onShowStats }: StatusBarProps) {
   const wordCount = useEditorStore((s) => s.wordCount)
   const charCount = useEditorStore((s) => s.charCount)
   const selWords = useEditorStore((s) => s.selWords)
@@ -30,14 +36,20 @@ export function StatusBar({ onToggleSource }: StatusBarProps) {
 
   return (
     <div className="status-bar">
-      <div className="status-bar__counts">
+      <button
+        type="button"
+        className="status-bar__counts no-drag"
+        onClick={onShowStats}
+        aria-label="Show document statistics"
+        title="Show document statistics"
+      >
         {hasSelection && (
           <span className="status-bar__sel-label">Selected:</span>
         )}
         <span className="status-bar__stat">{words} words</span>
         <span className="status-bar__sep" aria-hidden="true">·</span>
         <span className="status-bar__stat">{chars} chars</span>
-      </div>
+      </button>
 
       <button
         type="button"

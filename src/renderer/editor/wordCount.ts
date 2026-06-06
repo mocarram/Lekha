@@ -22,7 +22,7 @@ import type { DocCounts } from '@shared/types'
  * - `words`: whitespace-separated non-empty tokens in the joined string, i.e.
  *   `(joined.match(/\S+/g) ?? []).length`.
  */
-export function countWords(doc: Node): DocCounts {
+function textSegments(doc: Node): string[] {
   const segments: string[] = []
 
   doc.descendants((node) => {
@@ -38,6 +38,22 @@ export function countWords(doc: Node): DocCounts {
       }
     }
   })
+
+  return segments
+}
+
+/**
+ * Extract the document's text as a single string: each leaf text-block's
+ * content joined with a newline so block boundaries become line breaks. Shared
+ * source of truth used by `countWords` and consumed by `documentStats` (via the
+ * markdown the caller passes). Exported for reuse by panels/exports.
+ */
+export function docText(doc: Node): string {
+  return textSegments(doc).join('\n')
+}
+
+export function countWords(doc: Node): DocCounts {
+  const segments = textSegments(doc)
 
   // chars: total raw character count across all text blocks (no join spaces).
   const chars = segments.reduce((sum, s) => sum + s.length, 0)
@@ -66,4 +82,44 @@ export function countWords(doc: Node): DocCounts {
 export function countSelection(text: string): DocCounts {
   const words = (text.match(/\S+/g) ?? []).length
   return { words, chars: text.length }
+}
+
+/** Average adult reading speed (words per minute) used for reading-time. */
+const WORDS_PER_MINUTE = 200
+
+/** Detailed statistics for the document-stats panel. */
+export interface DocumentStats {
+  words: number
+  characters: number
+  charactersNoSpaces: number
+  lines: number
+  paragraphs: number
+  /** Estimated reading time, ceil(words / 200). 0 when there are no words. */
+  readingTimeMinutes: number
+}
+
+/**
+ * Compute detailed statistics from a plain-text/markdown string.
+ *
+ * Pure helper (no ProseMirror dependency) so it can run anywhere - the panel
+ * passes the editor's current markdown via getMarkdown(). Counting rules:
+ *
+ *   - words:              non-whitespace tokens (`/\S+/g`).
+ *   - characters:         the raw string length (whitespace included).
+ *   - charactersNoSpaces: length after removing every whitespace character.
+ *   - lines:              number of `\n`-separated lines (an empty string is 0).
+ *   - paragraphs:         non-empty blocks separated by one or more blank lines.
+ *   - readingTimeMinutes: ceil(words / 200); 0 when there are no words.
+ */
+export function documentStats(text: string): DocumentStats {
+  const words = (text.match(/\S+/g) ?? []).length
+  const characters = text.length
+  const charactersNoSpaces = text.replace(/\s+/g, '').length
+  const lines = characters === 0 ? 0 : text.split('\n').length
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .filter((block) => block.trim().length > 0).length
+  const readingTimeMinutes = Math.ceil(words / WORDS_PER_MINUTE)
+
+  return { words, characters, charactersNoSpaces, lines, paragraphs, readingTimeMinutes }
 }

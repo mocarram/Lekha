@@ -60,22 +60,32 @@ describe('StatusBar', () => {
   it('shows "WYSIWYG" label when mode is wysiwyg', () => {
     useEditorStore.getState().setMode('wysiwyg')
     const { getByRole } = render(<StatusBar onToggleSource={() => {}} />)
-    const btn = getByRole('button')
+    const btn = getByRole('button', { name: 'WYSIWYG' })
     expect(btn.textContent).toContain('WYSIWYG')
   })
 
   it('shows "Source" label when mode is source', () => {
     useEditorStore.getState().setMode('source')
     const { getByRole } = render(<StatusBar onToggleSource={() => {}} />)
-    const btn = getByRole('button')
+    const btn = getByRole('button', { name: 'Source' })
     expect(btn.textContent).toContain('Source')
   })
 
-  it('calls onToggleSource when toggle button is clicked', () => {
+  it('calls onToggleSource when the mode button is clicked', () => {
     const onToggle = vi.fn()
+    useEditorStore.getState().setMode('wysiwyg')
     const { getByRole } = render(<StatusBar onToggleSource={onToggle} />)
-    fireEvent.click(getByRole('button'))
+    fireEvent.click(getByRole('button', { name: 'WYSIWYG' }))
     expect(onToggle).toHaveBeenCalledOnce()
+  })
+
+  it('calls onShowStats when the counts area is clicked', () => {
+    const onShowStats = vi.fn()
+    const { getByRole } = render(
+      <StatusBar onToggleSource={() => {}} onShowStats={onShowStats} />,
+    )
+    fireEvent.click(getByRole('button', { name: 'Show document statistics' }))
+    expect(onShowStats).toHaveBeenCalledOnce()
   })
 
   it('applies the status-bar class to the root element', () => {

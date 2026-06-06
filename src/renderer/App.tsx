@@ -19,6 +19,7 @@ import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
 import { ImageDialog } from '@renderer/components/ImageDialog'
 import { Preferences } from '@renderer/components/Preferences'
+import { WordCountPanel } from '@renderer/components/WordCountPanel'
 import { TableToolbar } from '@renderer/components/TableToolbar'
 import { ImageZoom } from '@renderer/components/ImageZoom'
 import type { LinkInfo } from '@renderer/editor/EditorView'
@@ -101,6 +102,24 @@ export default function App() {
 
   // Preferences modal open/closed state.
   const [prefsOpen, setPrefsOpen] = useState(false)
+
+  // Word-count panel open/closed state and the text snapshot it displays.
+  // The text is captured from the live editor when the panel opens so the
+  // stats reflect exactly what is on screen at that moment.
+  const [statsState, setStatsState] = useState<{ open: boolean; text: string }>({
+    open: false,
+    text: '',
+  })
+
+  // Toggle the stats panel. When opening, snapshot the current markdown so the
+  // panel computes stats from the live document; re-clicking the trigger closes.
+  const toggleStatsPanel = useCallback(() => {
+    setStatsState((prev) => {
+      if (prev.open) return { open: false, text: '' }
+      const text = editorRef.current?.getMarkdown() ?? ''
+      return { open: true, text }
+    })
+  }, [])
 
   // Image zoom (lightbox) state: open/closed, current src and alt.
   const [imageZoomState, setImageZoomState] = useState<{
@@ -264,7 +283,7 @@ export default function App() {
         />
       </div>
 
-      <StatusBar onToggleSource={handleToggleSource} />
+      <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
 
       <FindReplace
         open={findState.open}
@@ -302,6 +321,12 @@ export default function App() {
       />
 
       <Preferences open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+
+      <WordCountPanel
+        open={statsState.open}
+        text={statsState.text}
+        onClose={() => setStatsState({ open: false, text: '' })}
+      />
 
       <ImageZoom
         open={imageZoomState.open}

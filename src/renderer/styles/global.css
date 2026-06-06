@@ -176,7 +176,7 @@ body,
 .status-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   height: var(--statusbar-height);
   flex-shrink: 0;
   padding: 0 12px;
@@ -188,10 +188,24 @@ body,
   gap: 8px;
 }
 
+/* The counts are a button (opens the document-statistics panel). Reset the
+ * native button styling so it reads as plain status-bar text. */
 .status-bar__counts {
   display: flex;
   align-items: center;
   gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.status-bar__counts:hover {
+  color: var(--color-text);
 }
 
 .status-bar__mode-btn {
@@ -413,6 +427,73 @@ body,
 
 .dialog-btn-danger {
   color: #c0392b;
+}
+
+/* ---------------------------------------------------------------------------
+ * Word-count panel (document statistics popover)
+ *
+ * Opened from the status-bar counts. A transparent full-screen backdrop
+ * captures outside clicks; the panel itself is anchored just above the status
+ * bar in the bottom-left, token-themed to match the dialogs.
+ * ------------------------------------------------------------------------- */
+.wc-panel__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.wc-panel {
+  position: fixed;
+  left: 12px;
+  bottom: calc(var(--statusbar-height) + 8px);
+  z-index: 101;
+  width: 240px;
+  max-width: calc(100vw - 24px);
+  padding: 14px 16px;
+  border-radius: 8px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-ui);
+}
+
+.wc-panel:focus {
+  outline: none;
+}
+
+.wc-panel__title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wc-panel__list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wc-panel__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wc-panel__label {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.wc-panel__value {
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
 }
 
 /* ---------------------------------------------------------------------------
