@@ -41,7 +41,15 @@ export interface PreferencesProps {
 /** The subset of Settings the Preferences form edits. */
 type FormState = Pick<
   Settings,
-  'theme' | 'fontSize' | 'focusMode' | 'typewriterMode' | 'autoSave' | 'sidebarVisible' | 'sidebarTab'
+  | 'theme'
+  | 'fontSize'
+  | 'focusMode'
+  | 'typewriterMode'
+  | 'autoSave'
+  | 'sidebarVisible'
+  | 'sidebarTab'
+  | 'spellCheck'
+  | 'spellCheckLanguage'
 >
 
 const INITIAL_FORM: FormState = {
@@ -52,7 +60,19 @@ const INITIAL_FORM: FormState = {
   autoSave: true,
   sidebarVisible: true,
   sidebarTab: 'files',
+  spellCheck: true,
+  spellCheckLanguage: 'en-US',
 }
+
+/** Available spell-check languages surfaced in Preferences. */
+const SPELL_CHECK_LANGUAGES: { value: string; label: string }[] = [
+  { value: 'en-US', label: 'English (US)' },
+  { value: 'en-GB', label: 'English (UK)' },
+  { value: 'es',    label: 'Spanish' },
+  { value: 'fr',    label: 'French' },
+  { value: 'de',    label: 'German' },
+  { value: 'pt-BR', label: 'Portuguese (Brazil)' },
+]
 
 // ---------------------------------------------------------------------------
 // Component
@@ -77,6 +97,8 @@ export function Preferences({ open, onClose }: PreferencesProps) {
         autoSave: s.autoSave,
         sidebarVisible: s.sidebarVisible,
         sidebarTab: s.sidebarTab,
+        spellCheck: s.spellCheck,
+        spellCheckLanguage: s.spellCheckLanguage,
       })
     })
     dialogRef.current?.focus()
@@ -124,6 +146,16 @@ export function Preferences({ open, onClose }: PreferencesProps) {
     setForm((f) => ({ ...f, autoSave }))
     useEditorStore.getState().setAutoSave(autoSave)
     persist({ autoSave })
+  }
+
+  const handleSpellCheck = (spellCheck: boolean): void => {
+    setForm((f) => ({ ...f, spellCheck }))
+    persist({ spellCheck })
+  }
+
+  const handleSpellCheckLanguage = (spellCheckLanguage: string): void => {
+    setForm((f) => ({ ...f, spellCheckLanguage }))
+    persist({ spellCheckLanguage })
   }
 
   const handleSidebarVisible = (sidebarVisible: boolean): void => {
@@ -242,6 +274,35 @@ export function Preferences({ open, onClose }: PreferencesProps) {
             />
             Auto-save
           </label>
+
+          <label className="prefs-check">
+            <input
+              type="checkbox"
+              checked={form.spellCheck}
+              onChange={(e) => handleSpellCheck(e.target.checked)}
+              aria-label="Check spelling"
+            />
+            Check spelling
+          </label>
+
+          <div className="dialog-field">
+            <label className="dialog-label" htmlFor="prefs-spell-lang">
+              Spell-check language
+            </label>
+            <select
+              id="prefs-spell-lang"
+              className="dialog-input"
+              value={form.spellCheckLanguage}
+              onChange={(e) => handleSpellCheckLanguage(e.target.value)}
+              aria-label="Spell-check language"
+            >
+              {SPELL_CHECK_LANGUAGES.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </section>
 
         {/* ---------------------------------------------------------------- */}

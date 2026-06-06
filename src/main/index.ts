@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, session } from 'electron'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
@@ -7,6 +7,10 @@ import { registerImageHandlers } from '@main/ipc/images'
 import { registerShellHandlers } from '@main/ipc/shell'
 import { buildMenuTemplate } from '@main/menu'
 import { setupAutoUpdater, checkForUpdates } from '@main/updater'
+import { applySpellCheck } from '@main/spellCheck'
+import { buildContextMenuTemplate } from '@main/contextMenu'
+import type { ContextMenuParams as LocalContextMenuParams } from '@main/contextMenu'
+import type { ContextMenuParams as ElectronContextMenuParams } from 'electron'
 import {
   WindowRegistry,
   createWindow,
@@ -138,8 +142,8 @@ function scheduleBoundsSave(win: BrowserWindow): void {
 
 /**
  * Open a window at the given bounds and wire up its per-window behaviour:
- * bounds persistence and the close-guard. The controller already lives in the
- * registry (created inside createWindow).
+ * bounds persistence, the close-guard, and the right-click context menu.
+ * The controller already lives in the registry (created inside createWindow).
  */
 function openWindowAt(bounds: OpenBounds): BrowserWindow {
   const controller = createWindow(registry, bounds)
@@ -156,6 +160,28 @@ function openWindowAt(bounds: OpenBounds): BrowserWindow {
       saveBounds({ x: b.x, y: b.y, width: b.width, height: b.height })
     }
     runCloseGuard(controller, e, QUIT_GUARD_DISABLED)
+  })
+
+  // Right-click context menu: build a pure template and hand it to Electron.
+  // The template builder (buildContextMenuTemplate) is Electron-free + tested;
+  // the Electron wiring (Menu, replaceMisspelling, addWordToSpellCheckerDictionary)
+  // all lives here in this thin handler.
+  //
+  // Electron's ContextMenuParams is a superset of our local interface; the cast
+  // is safe because our local type only uses fields that exist on Electron's type.
+  win.webContents.on('context-menu', (_event, electronParams: ElectronContextMenuParams) => {
+    const params = electronParams as unknown as LocalContextMenuParams
+    const send = (cmd: AppCommand): void => {
+      win.webContents.send(IPC.command, cmd)
+    }
+    const onReplace = (suggestion: string): void => {
+      win.webContents.replaceMisspelling(suggestion)
+    }
+    const onAddToDictionary = (word: string): void => {
+      win.webContents.session.addWordToSpellCheckerDictionary(word)
+    }
+    const template = buildContextMenuTemplate(params, { send, onReplace, onAddToDictionary })
+    Menu.buildFromTemplate(template).popup({ window: win })
   })
 
   return win
@@ -212,6 +238,11 @@ void app.whenReady().then(async () => {
       // reflects the newly chosen theme without an extra IPC round-trip.
       const recents = await settings.getRecentFiles()
       applyMenu(recents, updated.theme)
+      // Re-apply spell-check settings whenever the user changes them in Preferences.
+      applySpellCheck(session.defaultSession, {
+        spellCheck: updated.spellCheck,
+        language: updated.spellCheckLanguage,
+      })
     },
   )
 
@@ -233,6 +264,13 @@ void app.whenReady().then(async () => {
   savedWindowBounds = isSaneBounds(initialSettings.windowBounds)
     ? initialSettings.windowBounds
     : undefined
+
+  // Apply spell-check session configuration before windows open so the setting
+  // is active from the very first keystroke.
+  applySpellCheck(session.defaultSession, {
+    spellCheck: initialSettings.spellCheck,
+    language: initialSettings.spellCheckLanguage,
+  })
 
   // First window: honor saved bounds exactly (no cascade). When none are saved,
   // open at the default size with x/y omitted so Electron centers it on screen.

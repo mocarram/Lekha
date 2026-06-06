@@ -26,6 +26,34 @@ describe('createSettingsStore', () => {
     expect(settings.fontSize).toBe(16)
   })
 
+  it('spellCheck defaults to true', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.spellCheck).toBe(true)
+  })
+
+  it('spellCheckLanguage defaults to "en-US"', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.spellCheckLanguage).toBe('en-US')
+  })
+
+  it('round-trips spellCheck=false', async () => {
+    const store = createSettingsStore(tmpDir)
+    await store.set({ spellCheck: false })
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.spellCheck).toBe(false)
+  })
+
+  it('round-trips spellCheckLanguage="fr"', async () => {
+    const store = createSettingsStore(tmpDir)
+    await store.set({ spellCheckLanguage: 'fr' })
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.spellCheckLanguage).toBe('fr')
+  })
+
   it('autoSave defaults to true', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()

@@ -215,6 +215,9 @@ export function createWindow(
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Enable the native Chromium spell-checker. Language configuration is
+      // applied separately via session.setSpellCheckerLanguages in index.ts.
+      spellcheck: true,
       preload: join(__dirname, '../preload/index.cjs'),
     },
   })

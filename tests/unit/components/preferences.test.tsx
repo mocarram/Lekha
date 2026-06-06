@@ -44,6 +44,8 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     typewriterMode: false,
     fontSize: 16,
     autoSave: true,
+    spellCheck: true,
+    spellCheckLanguage: 'en-US',
     ...overrides,
   }
 }
@@ -205,6 +207,65 @@ describe('Preferences - sidebar', () => {
     })
     expect(setSettingsMock).toHaveBeenCalledWith({ sidebarTab: 'outline' })
     expect(useWorkspaceStore.getState().sidebarTab).toBe('outline')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Spell check
+// ---------------------------------------------------------------------------
+
+describe('Preferences - spell check', () => {
+  it('renders the "Check spelling" checkbox', async () => {
+    await renderOpen()
+    expect(screen.getByLabelText('Check spelling')).toBeTruthy()
+  })
+
+  it('renders the spell-check language select', async () => {
+    await renderOpen()
+    expect(screen.getByLabelText('Spell-check language')).toBeTruthy()
+  })
+
+  it('toggling spell check off persists it', async () => {
+    // Default is spellCheck=true; clicking unchecks it.
+    await renderOpen()
+    fireEvent.click(screen.getByLabelText('Check spelling'))
+    expect(setSettingsMock).toHaveBeenCalledWith({ spellCheck: false })
+  })
+
+  it('toggling spell check on persists it when seeded false', async () => {
+    stubLekha(makeSettings({ spellCheck: false }))
+    await renderOpen()
+    fireEvent.click(screen.getByLabelText('Check spelling'))
+    expect(setSettingsMock).toHaveBeenCalledWith({ spellCheck: true })
+  })
+
+  it('reflects spellCheck=false when seeded from settings', async () => {
+    stubLekha(makeSettings({ spellCheck: false }))
+    await renderOpen()
+    const el = screen.getByLabelText('Check spelling')
+    expect((el as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('reflects spellCheck=true when seeded from settings', async () => {
+    stubLekha(makeSettings({ spellCheck: true }))
+    await renderOpen()
+    const el = screen.getByLabelText('Check spelling')
+    expect((el as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('changing spell-check language persists it', async () => {
+    await renderOpen()
+    fireEvent.change(screen.getByLabelText('Spell-check language'), {
+      target: { value: 'fr' },
+    })
+    expect(setSettingsMock).toHaveBeenCalledWith({ spellCheckLanguage: 'fr' })
+  })
+
+  it('reflects spellCheckLanguage="de" when seeded from settings', async () => {
+    stubLekha(makeSettings({ spellCheckLanguage: 'de' }))
+    await renderOpen()
+    const el = screen.getByLabelText('Spell-check language')
+    expect((el as HTMLSelectElement).value).toBe('de')
   })
 })
 

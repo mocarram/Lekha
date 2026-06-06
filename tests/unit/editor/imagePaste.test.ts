@@ -117,6 +117,8 @@ function makeMockLekha(
         typewriterMode: false,
         fontSize: 16,
         autoSave: true,
+        spellCheck: true,
+        spellCheckLanguage: 'en-US',
       }),
     ),
     setSettings: vi.fn(() =>
@@ -130,6 +132,8 @@ function makeMockLekha(
         typewriterMode: false,
         fontSize: 16,
         autoSave: true,
+        spellCheck: true,
+        spellCheckLanguage: 'en-US',
       }),
     ),
     getRecentFiles: vi.fn(() => Promise.resolve([] as string[])),

@@ -22,6 +22,8 @@ const DEFAULTS: Settings = {
   typewriterMode: false,
   fontSize: DEFAULT_FONT_SIZE,
   autoSave: true,
+  spellCheck: true,
+  spellCheckLanguage: 'en-US',
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

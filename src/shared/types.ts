@@ -44,6 +44,13 @@ export interface Settings {
   fontSize: number
   /** Auto-save: automatically write saved documents after a short idle period. */
   autoSave: boolean
+  /** Spell check: enable the Electron/Chromium native spell-checker underlines. */
+  spellCheck: boolean
+  /**
+   * BCP-47 language tag for the spell-checker (e.g. 'en-US', 'fr').
+   * Applied via session.setSpellCheckerLanguages.
+   */
+  spellCheckLanguage: string
 }
 
 /** Default editor font size (px). Shared by the settings store and the renderer. */
