@@ -35,8 +35,33 @@ export default defineConfig({
     resolve: { alias },
     plugins: [react()],
     build: {
+      // The heavy vendors (katex, mermaid, codemirror) are now split into their
+      // own chunks and lazy-loaded on demand, so the entry chunk is far smaller.
+      // Bump the warning limit so the legitimately large (but lazy) vendor
+      // chunks - e.g. mermaid's diagram bundles - don't spam warnings.
+      chunkSizeWarningLimit: 1500,
       rollupOptions: {
         input: { index: resolve('src/renderer/index.html') },
+        output: {
+          // Split big vendors into their own chunks. Eager ones (react,
+          // prosemirror) stay cacheable across releases; lazy ones (katex,
+          // mermaid, codemirror) are only fetched when math/diagram/source mode
+          // is first used, keeping them out of the initial entry chunk.
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('katex')) return 'katex'
+              if (id.includes('mermaid')) return 'mermaid'
+              if (id.includes('@codemirror') || id.includes('@lezer')) {
+                return 'codemirror'
+              }
+              if (id.includes('prosemirror')) return 'prosemirror'
+              if (id.includes('lowlight') || id.includes('highlight.js')) {
+                return 'highlight'
+              }
+            }
+            return undefined
+          },
+        },
       },
     },
   },
