@@ -49,3 +49,21 @@ export function countWords(doc: Node): DocCounts {
 
   return { words, chars }
 }
+
+/**
+ * Count words and characters in a plain selection string.
+ *
+ * Used for the status-bar selection counter. ProseMirror's
+ * `doc.textBetween(from, to, '\n')` yields the selected text with block breaks
+ * as newlines; we count:
+ *   - `chars`: the raw length of the selected string (newlines included, which
+ *     matches what the user perceives as "selected characters").
+ *   - `words`: non-whitespace tokens (`/\S+/g`), so block boundaries split words
+ *     just like countWords.
+ *
+ * An empty / whitespace-only selection yields `{ words: 0, chars: <len> }`.
+ */
+export function countSelection(text: string): DocCounts {
+  const words = (text.match(/\S+/g) ?? []).length
+  return { words, chars: text.length }
+}

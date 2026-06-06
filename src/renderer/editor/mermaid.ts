@@ -17,14 +17,86 @@
 import mermaid from 'mermaid'
 
 // ---------------------------------------------------------------------------
-// One-time initialization
+// Theme sync
+//
+// Mermaid's built-in themes are independent of the app theme, so we map the
+// app's data-theme attribute to a mermaid theme: the dark app theme ('night')
+// uses mermaid's 'dark' theme; every other app theme uses 'default'. The
+// mapping is a pure function so it is unit-testable.
+//
+// LIVE re-render: applyTheme (themes/index.ts) dispatches a 'lekha-theme-change'
+// event after switching. We listen for it here, re-initialize mermaid with the
+// new theme, and broadcast 'lekha-mermaid-rerender' so every code_block NodeView
+// re-renders its diagram with the new colours. NEW diagrams always use the
+// current theme because runRender reads the live mermaid config.
 // ---------------------------------------------------------------------------
 
-mermaid.initialize({
-  startOnLoad: false,
-  securityLevel: 'strict',
-  theme: 'default',
-})
+/** Mermaid theme name. Kept narrow - we only use these two. */
+export type MermaidTheme = 'default' | 'dark'
+
+/**
+ * Map an app `data-theme` attribute value to the matching mermaid theme.
+ * 'night' (the dark app theme) -> 'dark'; anything else -> 'default'.
+ *
+ * Pure: takes the raw attribute (which may be undefined when unset) and returns
+ * the mermaid theme name. Unit-tested in mermaid theme tests.
+ */
+export function mermaidThemeFor(dataTheme: string | undefined): MermaidTheme {
+  return dataTheme === 'night' ? 'dark' : 'default'
+}
+
+/** Read the live app theme from the document, defaulting to mermaid 'default'. */
+function currentMermaidTheme(): MermaidTheme {
+  // In non-DOM environments (should not happen in the renderer) fall back safely.
+  const dataTheme =
+    typeof document !== 'undefined'
+      ? document.documentElement.dataset['theme']
+      : undefined
+  return mermaidThemeFor(dataTheme)
+}
+
+/**
+ * (Re)initialize mermaid with the given theme. Called once at module load with
+ * the live theme, and again on every app theme change via setMermaidTheme.
+ */
+function initMermaid(theme: MermaidTheme): void {
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    theme,
+  })
+}
+
+// Custom DOM events used to sync mermaid with the app theme.
+export const THEME_CHANGE_EVENT = 'lekha-theme-change'
+export const MERMAID_RERENDER_EVENT = 'lekha-mermaid-rerender'
+
+/**
+ * Re-initialize mermaid for the given app `data-theme` and ask every live
+ * diagram NodeView to re-render. Called by the theme-change listener below.
+ */
+export function setMermaidTheme(dataTheme: string | undefined): void {
+  initMermaid(mermaidThemeFor(dataTheme))
+  if (typeof document !== 'undefined') {
+    document.dispatchEvent(new CustomEvent(MERMAID_RERENDER_EVENT))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One-time initialization (uses the live app theme)
+// ---------------------------------------------------------------------------
+
+initMermaid(currentMermaidTheme())
+
+// Re-init + re-render whenever applyTheme dispatches the theme-change event.
+// Registered once at module load; the renderer process keeps this module alive
+// for the app lifetime so no teardown is needed.
+if (typeof document !== 'undefined') {
+  document.addEventListener(THEME_CHANGE_EVENT, (e) => {
+    const detail = (e as CustomEvent<{ theme?: string }>).detail
+    setMermaidTheme(detail?.theme)
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Unique ID counter

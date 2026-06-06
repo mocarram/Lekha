@@ -36,6 +36,14 @@ export function applyTheme(id: string): void {
   // use this attribute to select the correct token overrides. Setting it on
   // documentElement (not document.body) ensures :root selectors also match.
   document.documentElement.dataset['theme'] = resolved
+
+  // Notify theme-aware, non-CSS consumers that the app theme changed. Mermaid
+  // listens for this to re-initialize with a matching theme ('night' -> 'dark')
+  // and re-render existing diagrams. Using a DOM CustomEvent (rather than a
+  // direct import) keeps themes/index.ts free of an eager mermaid dependency.
+  document.dispatchEvent(
+    new CustomEvent('lekha-theme-change', { detail: { theme: resolved } }),
+  )
 }
 
 /**

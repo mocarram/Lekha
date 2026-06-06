@@ -14,6 +14,10 @@ interface EditorState {
   outline: OutlineItem[]
   wordCount: number
   charCount: number
+  /** Words in the current selection (0 when the selection is empty). */
+  selWords: number
+  /** Characters in the current selection (0 when the selection is empty). */
+  selChars: number
   /** Focus mode: dims non-active top-level blocks (gated by CSS container class). */
   focusMode: boolean
   /** Typewriter mode: keeps the cursor line vertically centered in the viewport. */
@@ -29,6 +33,8 @@ interface EditorActions {
   setMarkdown(md: string): void
   setOutline(items: OutlineItem[]): void
   setCounts(counts: DocCounts): void
+  /** Update the selection word/char counts (0/0 clears the selection display). */
+  setSelectionCounts(counts: DocCounts): void
   markDirty(): void
   markClean(): void
   /** Update path and re-derive title. */
@@ -73,6 +79,8 @@ const INITIAL_STATE: EditorState = {
   outline: [],
   wordCount: 0,
   charCount: 0,
+  selWords: 0,
+  selChars: 0,
   focusMode: false,
   typewriterMode: false,
 }
@@ -112,6 +120,10 @@ export const useEditorStore = create<EditorStore>()((set) => ({
 
   setCounts({ words, chars }) {
     set({ wordCount: words, charCount: chars })
+  },
+
+  setSelectionCounts({ words, chars }) {
+    set({ selWords: words, selChars: chars })
   },
 
   markDirty() {

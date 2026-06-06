@@ -34,7 +34,7 @@ import {
   type NodeViewConstructor,
   type ViewMutationRecord,
 } from 'prosemirror-view'
-import { renderMermaid } from './mermaid'
+import { renderMermaid, MERMAID_RERENDER_EVENT } from './mermaid'
 
 // ---------------------------------------------------------------------------
 // Diagram language registry
@@ -149,6 +149,19 @@ function makeCodeBlockNodeView(
       .replace(/"/g, '&quot;')
   }
 
+  // ---- Re-render on app theme change --------------------------------------
+  // When the app theme changes, mermaid re-initializes and broadcasts this
+  // event. Diagram blocks re-render immediately so their colours match the new
+  // theme (live dark-mode sync). Non-diagram blocks ignore it.
+  function onThemeRerender(): void {
+    if (isDiagram(currentLanguage)) {
+      void runRender()
+    }
+  }
+  if (typeof document !== 'undefined') {
+    document.addEventListener(MERMAID_RERENDER_EVENT, onThemeRerender)
+  }
+
   // ---- Initial setup -------------------------------------------------------
   attachPreviewIfNeeded()
   if (isDiagram(currentLanguage)) {
@@ -230,11 +243,14 @@ function makeCodeBlockNodeView(
       return false
     },
 
-    /** Clean up the debounce timer when PM tears down this view. */
+    /** Clean up the debounce timer + theme listener when PM tears down this view. */
     destroy(): void {
       if (debounceTimer !== null) {
         clearTimeout(debounceTimer)
         debounceTimer = null
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener(MERMAID_RERENDER_EVENT, onThemeRerender)
       }
     },
   }

@@ -37,6 +37,26 @@ describe('StatusBar', () => {
     expect(getByText(/0 chars/)).toBeTruthy()
   })
 
+  it('shows selection counts (with "Selected:" label) when selWords > 0', () => {
+    useEditorStore.getState().setCounts({ words: 142, chars: 800 })
+    useEditorStore.getState().setSelectionCounts({ words: 12, chars: 70 })
+    const { getByText, queryByText } = render(<StatusBar onToggleSource={() => {}} />)
+    // Selection counts take over the display.
+    expect(getByText('Selected:')).toBeTruthy()
+    expect(getByText(/12 words/)).toBeTruthy()
+    expect(getByText(/70 chars/)).toBeTruthy()
+    // Document counts are not shown while a selection is active.
+    expect(queryByText(/142 words/)).toBeNull()
+  })
+
+  it('falls back to document counts when selection is empty (selWords = 0)', () => {
+    useEditorStore.getState().setCounts({ words: 142, chars: 800 })
+    useEditorStore.getState().setSelectionCounts({ words: 0, chars: 0 })
+    const { getByText, queryByText } = render(<StatusBar onToggleSource={() => {}} />)
+    expect(getByText(/142 words/)).toBeTruthy()
+    expect(queryByText('Selected:')).toBeNull()
+  })
+
   it('shows "WYSIWYG" label when mode is wysiwyg', () => {
     useEditorStore.getState().setMode('wysiwyg')
     const { getByRole } = render(<StatusBar onToggleSource={() => {}} />)

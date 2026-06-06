@@ -18,6 +18,7 @@ import { editorCommandMap } from './editorCommands'
 import { schema } from './schema'
 import { imageEditorProps } from './imagePaste'
 import { useEditorStore } from '../store/editorStore'
+import { countSelection } from './wordCount'
 import {
   setFindQuery,
   findNext as _findNext,
@@ -194,6 +195,18 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           if (tr.docChanged) {
             onChangeRef.current?.(newState.doc)
           }
+          // Keep the status-bar selection counter in sync. Recompute whenever
+          // the selection or document changed. An empty (collapsed) selection
+          // resets the counts to 0 so the status bar falls back to doc counts.
+          if (tr.selectionSet || tr.docChanged) {
+            const { from, to } = newState.selection
+            if (from === to) {
+              useEditorStore.getState().setSelectionCounts({ words: 0, chars: 0 })
+            } else {
+              const text = newState.doc.textBetween(from, to, '\n')
+              useEditorStore.getState().setSelectionCounts(countSelection(text))
+            }
+          }
         },
       })
 
@@ -202,6 +215,9 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
       return () => {
         view.destroy()
         viewRef.current = null
+        // Clear the selection counter when the view unmounts (e.g. mode switch)
+        // so a stale selection count never lingers in the status bar.
+        useEditorStore.getState().setSelectionCounts({ words: 0, chars: 0 })
       }
       // Intentionally empty deps: create once, read markdown via closure only
       // at mount time. Subsequent markdown changes go through setMarkdown().

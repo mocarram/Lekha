@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseMarkdown } from '@renderer/editor/parser'
-import { countWords } from '@renderer/editor/wordCount'
+import { countWords, countSelection } from '@renderer/editor/wordCount'
 
 describe('countWords', () => {
   it('counts words and chars', () => {
@@ -37,5 +37,29 @@ describe('countWords', () => {
     const c = countWords(parseMarkdown('**bold** text'))
     expect(c.words).toBe(2)
     expect(c.chars).toBe('bold text'.length)
+  })
+})
+
+describe('countSelection', () => {
+  it('counts words and chars in a selected string', () => {
+    const c = countSelection('hello brave new world')
+    expect(c.words).toBe(4)
+    expect(c.chars).toBe('hello brave new world'.length)
+  })
+
+  it('empty selection is zero words', () => {
+    expect(countSelection('')).toEqual({ words: 0, chars: 0 })
+  })
+
+  it('whitespace-only selection is zero words', () => {
+    const c = countSelection('   \n  ')
+    expect(c.words).toBe(0)
+    expect(c.chars).toBe('   \n  '.length)
+  })
+
+  it('counts words split across block-break newlines', () => {
+    // textBetween yields block breaks as '\n'; "end" and "start" must be 2 words
+    const c = countSelection('end\nstart')
+    expect(c.words).toBe(2)
   })
 })

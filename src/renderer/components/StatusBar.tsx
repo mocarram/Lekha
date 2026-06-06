@@ -18,14 +18,25 @@ interface StatusBarProps {
 export function StatusBar({ onToggleSource }: StatusBarProps) {
   const wordCount = useEditorStore((s) => s.wordCount)
   const charCount = useEditorStore((s) => s.charCount)
+  const selWords = useEditorStore((s) => s.selWords)
+  const selChars = useEditorStore((s) => s.selChars)
   const mode = useEditorStore((s) => s.mode)
+
+  // When there is a non-empty selection, show the SELECTED word/char count
+  // (prefixed with "Selected:") instead of the whole-document counts.
+  const hasSelection = selWords > 0
+  const words = hasSelection ? selWords : wordCount
+  const chars = hasSelection ? selChars : charCount
 
   return (
     <div className="status-bar">
       <div className="status-bar__counts">
-        <span className="status-bar__stat">{wordCount} words</span>
+        {hasSelection && (
+          <span className="status-bar__sel-label">Selected:</span>
+        )}
+        <span className="status-bar__stat">{words} words</span>
         <span className="status-bar__sep" aria-hidden="true">·</span>
-        <span className="status-bar__stat">{charCount} chars</span>
+        <span className="status-bar__stat">{chars} chars</span>
       </div>
 
       <button
