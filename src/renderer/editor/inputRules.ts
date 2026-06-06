@@ -8,7 +8,7 @@ import {
   ellipsis,
   emDash,
 } from 'prosemirror-inputrules'
-import { type Plugin } from 'prosemirror-state'
+import { type Plugin, TextSelection } from 'prosemirror-state'
 import emojiDefs from 'markdown-it-emoji/lib/data/full.mjs'
 
 // ---------------------------------------------------------------------------
@@ -123,6 +123,56 @@ function emojiInputRule(): InputRule {
 }
 
 // ---------------------------------------------------------------------------
+// Task-list input rule
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a plain paragraph into a checkbox task item when the user types
+ * `[ ] `, `[] `, or `[x] ` (case-insensitive) at its start - matching WYSIWYG's
+ * gesture. The `- ` bullet rule fires before `- [ ] ` can ever complete, so
+ * this rule deliberately keys off the bracket marker alone.
+ *
+ * Scope: only fires on a paragraph that lives directly in the document (or a
+ * blockquote), never one already inside a list_item / task_item, where wrapping
+ * it in a fresh task_list would nest awkwardly. Inside a list, /task and the
+ * Format menu remain the path.
+ */
+function taskListInputRule(schema: Schema): InputRule {
+  const taskListType = schema.nodes['task_list']
+  const taskItemType = schema.nodes['task_item']
+  const paragraphType = schema.nodes['paragraph']
+
+  return new InputRule(/^\s*\[([ xX]?)\]\s$/, (state, match, start, end) => {
+    if (!taskListType || !taskItemType || !paragraphType) return null
+
+    const $start = state.doc.resolve(start)
+    if ($start.parent.type !== paragraphType) return null
+
+    const grandparent = $start.node($start.depth - 1)
+    if (
+      grandparent.type.name === 'list_item' ||
+      grandparent.type.name === 'task_item'
+    ) {
+      return null
+    }
+
+    const checked = (match[1] ?? '').toLowerCase() === 'x'
+    // Preserve any text already typed after the marker.
+    const remaining = $start.parent.content.cut(end - start)
+    const paragraph = paragraphType.create(null, remaining)
+    const item = taskItemType.create({ checked }, paragraph)
+    const list = taskListType.create(null, item)
+
+    const from = $start.before()
+    const to = $start.after()
+    const tr = state.tr.replaceWith(from, to, list)
+    // Place the cursor at the start of the new task item's text content
+    // (open tokens: task_list + task_item + paragraph = 3 positions).
+    return tr.setSelection(TextSelection.create(tr.doc, from + 3))
+  })
+}
+
+// ---------------------------------------------------------------------------
 // buildInputRules
 // ---------------------------------------------------------------------------
 
@@ -147,6 +197,10 @@ export function buildInputRules(schema: Schema): Plugin {
 
     // Blockquote: `> `
     wrappingInputRule(/^\s*>\s$/, schema.nodes['blockquote']!),
+
+    // Task list: `[ ] `, `[] `, `[x] ` (must precede the bullet rule so a bare
+    // bracket marker is handled here rather than slipping through).
+    taskListInputRule(schema),
 
     // Bullet list: `- `, `* `, `+ `
     wrappingInputRule(/^\s*([-*+])\s$/, schema.nodes['bullet_list']!),

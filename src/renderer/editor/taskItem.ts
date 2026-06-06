@@ -53,9 +53,11 @@ export function taskItemNodeView(
   view: EditorView,
   getPos: () => number | undefined,
 ): NodeView {
-  // Outer <li>
+  // Outer <li>. The `data-checked` attribute mirrors the node's checked state
+  // so the theme CSS can dim + strike-through completed items (WYSIWYG-style).
   const dom = document.createElement('li')
   dom.className = 'task-item'
+  dom.dataset['checked'] = String(node.attrs['checked'] as boolean)
 
   // Non-editable wrapper so clicks reach the checkbox, not the cursor handler
   const checkboxWrapper = document.createElement('span')
@@ -95,8 +97,11 @@ export function taskItemNodeView(
      */
     update(updatedNode: Node): boolean {
       if (updatedNode.type.name !== 'task_item') return false
-      // Keep checkbox in sync with the latest `checked` attr
-      checkbox.checked = updatedNode.attrs['checked'] as boolean
+      // Keep both the checkbox and the data-checked attr in sync with the
+      // latest `checked` attr so the completed-item styling updates on toggle.
+      const checked = updatedNode.attrs['checked'] as boolean
+      checkbox.checked = checked
+      dom.dataset['checked'] = String(checked)
       return true
     },
 

@@ -208,3 +208,44 @@ describe('em mark input rule (_ variant, KNOWN FIX)', () => {
     expect(hasMark(view, 'em', 'italic')).toBe(true)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Task-list input rule: `[ ] ` / `[] ` / `[x] ` -> task_list > task_item
+// ---------------------------------------------------------------------------
+
+describe('task-list input rule', () => {
+  it('[ ] + space -> unchecked task item', () => {
+    typeText(view, '[ ] ')
+    const block = firstBlock(view)
+    expect(block.type.name).toBe('task_list')
+    expect(block.firstChild!.type.name).toBe('task_item')
+    expect(block.firstChild!.attrs['checked']).toBe(false)
+  })
+
+  it('[] + space (empty brackets) -> unchecked task item', () => {
+    typeText(view, '[] ')
+    const block = firstBlock(view)
+    expect(block.type.name).toBe('task_list')
+    expect(block.firstChild!.attrs['checked']).toBe(false)
+  })
+
+  it('[x] + space -> checked task item', () => {
+    typeText(view, '[x] ')
+    const block = firstBlock(view)
+    expect(block.type.name).toBe('task_list')
+    expect(block.firstChild!.attrs['checked']).toBe(true)
+  })
+
+  it('[X] + space (uppercase) -> checked task item', () => {
+    typeText(view, '[X] ')
+    expect(firstBlock(view).firstChild!.attrs['checked']).toBe(true)
+  })
+
+  it('does not fire inside an existing bullet list item', () => {
+    typeText(view, '- ')
+    expect(firstBlock(view).type.name).toBe('bullet_list')
+    typeText(view, '[ ] ')
+    // Still a bullet list - the marker text is left as-is, not converted.
+    expect(firstBlock(view).type.name).toBe('bullet_list')
+  })
+})

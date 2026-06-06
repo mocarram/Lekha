@@ -181,4 +181,26 @@ describe('taskItemNodeView (DOM integration)', () => {
     expect(wrapper).not.toBeNull()
     expect(wrapper!.getAttribute('contenteditable')).toBe('false')
   })
+
+  it('sets data-checked on the <li> matching the item state (drives the completed-item styling)', () => {
+    const { container } = render(
+      <EditorView markdown={'- [ ] todo\n- [x] done'} />,
+    )
+    const items = container.querySelectorAll('li.task-item')
+    expect(items.length).toBe(2)
+    expect(items[0]!.getAttribute('data-checked')).toBe('false')
+    expect(items[1]!.getAttribute('data-checked')).toBe('true')
+  })
+
+  it('updates data-checked when the checkbox is toggled', () => {
+    const { container } = render(<EditorView markdown="- [ ] buy milk" />)
+    const li = container.querySelector('li.task-item')!
+    expect(li.getAttribute('data-checked')).toBe('false')
+
+    const cb = container.querySelector<HTMLInputElement>('input[type="checkbox"]')!
+    act(() => {
+      cb.click()
+    })
+    expect(li.getAttribute('data-checked')).toBe('true')
+  })
 })
