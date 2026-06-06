@@ -203,4 +203,15 @@ describe('taskItemNodeView (DOM integration)', () => {
     })
     expect(li.getAttribute('data-checked')).toBe('true')
   })
+
+  it('reflects the checked property on the input after a click toggle', () => {
+    const { container } = render(<EditorView markdown="- [ ] buy milk" />)
+    const cb = container.querySelector<HTMLInputElement>('input[type="checkbox"]')!
+    expect(cb.checked).toBe(false)
+    act(() => {
+      cb.click()
+    })
+    // The glyph (input.checked), not just the doc attr, must follow the toggle.
+    expect(cb.checked).toBe(true)
+  })
 })

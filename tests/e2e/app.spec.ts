@@ -414,7 +414,51 @@ test('CSP allows KaTeX math and mermaid diagrams to render', async () => {
 })
 
 // ---------------------------------------------------------------------------
-// Test 7: Save round-trip - SKIPPED
+// Test 7: Task checkbox glyph toggles on click (real-Chromium regression)
+// ---------------------------------------------------------------------------
+// happy-dom does not replicate Chromium's "revert checked state after a click
+// whose handler called preventDefault()" behavior, so this bug (text styling
+// toggled but the tick glyph did not) only surfaced in real Electron. This
+// test guards the input's actual `checked` property, not just the doc/attr.
+test('clicking a task checkbox toggles the tick glyph, not just the text', async () => {
+  const win = sharedWin
+
+  // Ensure WYSIWYG mode.
+  if (await win.locator('.cm-editor').isVisible()) {
+    await win.locator('.status-bar__mode-btn').click()
+    await expect(win.locator('.ProseMirror')).toBeVisible()
+  }
+
+  // Clear the doc to a single empty paragraph first. This test runs after the
+  // others, which leave a trailing mermaid code block at the doc end - typing
+  // there would land inside the code block where input rules don't fire. A
+  // clean paragraph makes the checkbox input rule reliable and order-independent.
+  await win.locator('.ProseMirror').click()
+  await win.keyboard.press('Meta+a')
+  await win.keyboard.press('Backspace')
+
+  // Type a checkbox into existence via the `[ ] ` input rule.
+  await win.keyboard.type('[ ] e2e checkbox')
+
+  const item = win.locator('.ProseMirror li.task-item', { hasText: 'e2e checkbox' })
+  await expect(item).toBeVisible()
+
+  const box = item.locator('input[type="checkbox"]')
+  await expect(box).not.toBeChecked()
+
+  // Click -> the glyph itself must become checked (the regression).
+  await box.click()
+  await expect(box).toBeChecked()
+  await expect(item).toHaveAttribute('data-checked', 'true')
+
+  // Click again -> back to unchecked.
+  await box.click()
+  await expect(box).not.toBeChecked()
+  await expect(item).toHaveAttribute('data-checked', 'false')
+})
+
+// ---------------------------------------------------------------------------
+// Test 8: Save round-trip - SKIPPED
 // ---------------------------------------------------------------------------
 // The save flow opens a native OS file-picker dialog that Playwright cannot
 // drive. Save/write logic (IPC handlers, file writing) is fully covered by

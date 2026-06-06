@@ -67,10 +67,20 @@ export function taskItemNodeView(
   checkbox.type = 'checkbox'
   checkbox.checked = node.attrs['checked'] as boolean
 
-  // Toggle on click: dispatch the command through the live EditorView.
-  // Kept as a named reference so destroy() can remove the same listener.
+  // Toggle on click: dispatch the command through the live EditorView, which
+  // flips the node's `checked` attr and triggers update() below to re-sync the
+  // glyph + data-checked.
+  //
+  // IMPORTANT: do NOT call e.preventDefault() here. Cancelling a checkbox click
+  // makes Chromium revert the input's `checked` property to its pre-click value
+  // *after* our handler returns - which would clobber the value update() just
+  // set, leaving the glyph stuck (the text styling, driven by the data-checked
+  // attribute, is not reverted, hence the "text strikes but tick won't move"
+  // symptom). Letting the native toggle stand keeps the glyph in sync, and the
+  // dispatch below keeps the document the source of truth. We only stop the
+  // event from bubbling so ProseMirror doesn't also treat it as a selection.
   const handleClick = (e: MouseEvent): void => {
-    e.preventDefault()
+    e.stopPropagation()
     const pos = getPos()
     if (pos === undefined) return
     toggleTaskItem(pos)(view.state, view.dispatch)
