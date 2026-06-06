@@ -252,3 +252,25 @@ describe('FindReplace - close', () => {
     expect(onClose).toHaveBeenCalled()
   })
 })
+
+describe('FindReplace - seed from selection (WYSIWYG parity)', () => {
+  it('prefills the find input with the editor selection on open', () => {
+    const { editorRef, handle } = makeMockHandle()
+    handle.getSelectionText = vi.fn(() => 'needle')
+    render(
+      <FindReplace open={true} mode="find" editorRef={editorRef} onClose={vi.fn()} />,
+    )
+    const input = screen.getByLabelText('Find') as HTMLInputElement
+    expect(input.value).toBe('needle')
+  })
+
+  it('does not seed from a multi-line selection', () => {
+    const { editorRef, handle } = makeMockHandle()
+    handle.getSelectionText = vi.fn(() => 'line one\nline two')
+    render(
+      <FindReplace open={true} mode="find" editorRef={editorRef} onClose={vi.fn()} />,
+    )
+    const input = screen.getByLabelText('Find') as HTMLInputElement
+    expect(input.value).toBe('')
+  })
+})

@@ -10,6 +10,7 @@ import {
 import { goToNextCell } from 'prosemirror-tables'
 import { undoInputRule } from 'prosemirror-inputrules'
 import { editorCommandMap } from './editorCommands'
+import { addRowOnTab } from './tableCommands'
 
 // ---------------------------------------------------------------------------
 // keymapBindings
@@ -44,6 +45,8 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
   )
   const tabCmd = chainCommands(
     goToNextCell(1),
+    // In the last table cell, Tab appends a new row (WYSIWYG behavior).
+    addRowOnTab,
     sinkListItem(listItemType),
     sinkListItem(taskItemType),
   )

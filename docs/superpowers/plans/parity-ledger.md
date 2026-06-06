@@ -507,3 +507,11 @@ Implemented:
 
 Tests: +2 (auto-expand reveals nested active file; active class applied). 1171 unit + 7 e2e green.
 Note: the active file's own ancestor folders can't be manually collapsed while active (pure-derivation tradeoff to satisfy the react-hooks/refs lint - no effect/ref/setState). Acceptable + WYSIWYG-like.
+
+### Wave 3 - Table & find interaction parity (`feat/wysiwyg-table-find`)
+Implemented:
+- **Tab in the last table cell appends a new row** and moves into its first cell (`addRowOnTab` in tableCommands.ts, chained into the Tab binding) - build a table fully from the keyboard.
+- **Find seeds its query from the current selection** on open (short single-line selections) - FindReplace.tsx.
+- **Find scrolls the current match into view as you type** (`setFindQuery` jumps to the current match) - findHighlight.ts.
+
+Tests: +5 (Tab adds row; find seed-from-selection incl. multi-line skip). 1174 unit + 7 e2e green.

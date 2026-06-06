@@ -7,7 +7,7 @@
  * `align` cell attr onto every cell of the column the cursor is in, which the
  * serializer then renders as GFM separator markers (`:--`/`:-:`/`--:`).
  */
-import type { Command } from 'prosemirror-state'
+import { type Command, TextSelection } from 'prosemirror-state'
 import {
   addRowBefore,
   addRowAfter,
@@ -80,6 +80,37 @@ function setColumnAlign(align: Align): Command {
     if (tr.docChanged) dispatch(tr)
     return true
   }
+}
+
+/**
+ * Tab-at-end-of-table command (WYSIWYG parity): when the caret is in the very
+ * last cell of a table, append a new empty row and move into its first cell, so
+ * a table can be built entirely from the keyboard.
+ *
+ * Intended to be chained AFTER `goToNextCell(1)` in the Tab binding: if normal
+ * next-cell navigation already succeeded this never runs; it only fires when
+ * goToNextCell failed (i.e. we are in the last cell) and we are in a table.
+ */
+export const addRowOnTab: Command = (state, dispatch) => {
+  if (!isInTable(state)) return false
+  if (!dispatch) return true
+
+  // Capture addRowAfter's transaction so we can also move the selection in the
+  // same dispatch (addRowAfter alone leaves the caret in the old cell).
+  let tr = null as ReturnType<typeof state.tr.scrollIntoView> | null
+  addRowAfter(state, (t) => {
+    tr = t
+  })
+  if (!tr) return false
+
+  // Locate the first cell of the newly-added (now last) row in the new doc.
+  const newState = state.apply(tr)
+  const rect = selectedRect(newState)
+  const lastRowFirstCell =
+    rect.tableStart + rect.map.map[(rect.map.height - 1) * rect.map.width]!
+  const sel = TextSelection.near(tr.doc.resolve(lastRowFirstCell + 1))
+  dispatch(tr.setSelection(sel).scrollIntoView())
+  return true
 }
 
 /**

@@ -315,3 +315,41 @@ describe('keymapBindings - Backspace undoes input rules', () => {
     expect(fired).toBe(false)
   })
 })
+
+// ---------------------------------------------------------------------------
+// WYSIWYG-parity: Tab in the last table cell appends a row
+// ---------------------------------------------------------------------------
+
+describe('keymapBindings - Tab appends a table row at the end', () => {
+  function oneRowTable(): EditorState {
+    const cell = (t: string) =>
+      schema.node('table_cell', null, [
+        schema.node('paragraph', null, [schema.text(t)]),
+      ])
+    const row = schema.node('table_row', null, [cell('a'), cell('b')])
+    const table = schema.node('table', null, [row])
+    const doc = schema.node('doc', null, [table])
+    return EditorState.create({ schema, doc })
+  }
+
+  function rowCount(state: EditorState): number {
+    let n = 0
+    state.doc.descendants((node) => {
+      if (node.type.name === 'table_row') n++
+    })
+    return n
+  }
+
+  it('adds a second row when Tab is pressed in the last cell', () => {
+    let state = oneRowTable()
+    expect(rowCount(state)).toBe(1)
+    // Tab: first cell -> second (last) cell
+    state = applyCmd(state, bindings['Tab']!)!
+    expect(state).not.toBeNull()
+    expect(rowCount(state)).toBe(1)
+    // Tab again from the last cell -> appends a row
+    state = applyCmd(state, bindings['Tab']!)!
+    expect(state).not.toBeNull()
+    expect(rowCount(state)).toBe(2)
+  })
+})
