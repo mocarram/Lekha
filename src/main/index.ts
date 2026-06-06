@@ -207,10 +207,66 @@ function openNewWindow(): void {
 // App startup
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Content-Security-Policy (defense-in-depth)
+//
+// A restrictive CSP for the renderer, applied via onHeadersReceived so it
+// covers the file:// document loaded in production. The renderer is fully
+// self-contained:
+//   - script-src 'self'           : only the bundled renderer JS (no inline,
+//                                    no eval, no remote scripts).
+//   - style-src 'self' 'unsafe-inline' : bundled CSS plus the inline <style>
+//                                    that KaTeX and mermaid inject at runtime.
+//   - img-src 'self' data: file: blob: : bundled assets, data:/blob: images
+//                                    (paste, mermaid), and local file: images.
+//   - font-src 'self' data:       : bundled fonts + data: (KaTeX/embedded).
+//   - connect-src 'self'          : no outbound network from the renderer.
+//   - object-src 'none' / frame-src 'none' : no plugins/iframes.
+//
+// Applied ONLY on the production/file load path (when ELECTRON_RENDERER_URL is
+// unset). In dev, electron-vite serves the renderer from a Vite dev server that
+// needs inline/eval scripts and a websocket for HMR; injecting this CSP there
+// would break hot reload, so we skip it. e2e runs the built app via the file://
+// path, so the CSP IS exercised (and gated) by the e2e suite.
+// ---------------------------------------------------------------------------
+
+const CSP_DIRECTIVES = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: file: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "frame-src 'none'",
+].join('; ')
+
+/**
+ * Attach the renderer CSP via response headers on the given session. No-op in
+ * dev (Vite dev server) so HMR keeps working; active on the packaged/file path.
+ */
+function applyContentSecurityPolicy(targetSession: Electron.Session): void {
+  // Dev server present -> skip (would break Vite HMR's inline/eval + ws).
+  if (process.env['ELECTRON_RENDERER_URL']) return
+
+  targetSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [CSP_DIRECTIVES],
+      },
+    })
+  })
+}
+
 void app.whenReady().then(async () => {
   // Settings store backed by the OS user-data directory.
   const settings = createSettingsStore(app.getPath('userData'))
   settingsStore = settings
+
+  // Apply the renderer Content-Security-Policy before any window loads so the
+  // very first document is covered. No-op in dev (see function comment).
+  applyContentSecurityPolicy(session.defaultSession)
 
   // Load persisted settings before creating the window so we can restore
   // window bounds and build the initial menu with saved recents.

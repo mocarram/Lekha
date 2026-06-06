@@ -332,7 +332,89 @@ test('New Window opens a second independent window with its own editor', async (
 })
 
 // ---------------------------------------------------------------------------
-// Test 6: Save round-trip - SKIPPED
+// Test 6: CSP does not break rendering (math + mermaid)
+// ---------------------------------------------------------------------------
+//
+// The production renderer runs under a restrictive Content-Security-Policy
+// (script-src 'self'; style-src 'self' 'unsafe-inline'; img-src ... data:
+// file: blob:; ...) applied in main via onHeadersReceived. This test proves
+// the CSP does NOT break the two rendering paths most likely to trip a CSP:
+//   - KaTeX math (injects inline <style> and renders .katex markup), and
+//   - mermaid diagrams (worker/blob: + inline <style> + inline <svg>).
+//
+// It also fails if the renderer logs a CSP violation ("Refused to ..." /
+// "Content Security Policy") to the console during the run.
+
+test('CSP allows KaTeX math and mermaid diagrams to render', async () => {
+  // Reload the shared window to start from a clean welcome document - earlier
+  // tests accumulate typed content, which makes input-rule positions and async
+  // render timing unreliable for this rendering-sensitive check. Reloading (vs.
+  // launching a second Electron instance) avoids cross-process resource
+  // contention that slows mermaid's async diagram-bundle import.
+  const win = sharedWin
+  await win.reload()
+  await win.waitForSelector('.ProseMirror', { state: 'visible', timeout: 20_000 })
+
+  // Collect any CSP-violation console errors emitted while we render.
+  const cspErrors: string[] = []
+  const onConsole = (msg: { type: () => string; text: () => string }): void => {
+    const text = msg.text()
+    if (/content security policy|refused to (load|execute|apply)/i.test(text)) {
+      cspErrors.push(text)
+    }
+  }
+  win.on('console', onConsole)
+
+  try {
+    const editor = win.locator('.ProseMirror')
+    await editor.click()
+    // Clear the welcome document so typed math/mermaid source can't get mixed
+    // with existing paragraph text (mermaid would otherwise parse the trailing
+    // welcome text as part of the diagram and emit a parse error).
+    await win.keyboard.press('Meta+A')
+    await win.keyboard.press('Backspace')
+
+    // Inline math: "$x^2$" fires the math input rule -> KaTeX render.
+    await win.keyboard.type('Energy $x^2$ done ')
+    // KaTeX output is keyed off the .katex class; its presence proves math
+    // rendered under script-src 'self' + style-src 'unsafe-inline'.
+    await expect(win.locator('.ProseMirror .katex').first()).toBeVisible({ timeout: 10_000 })
+
+    // Mermaid fenced code block -> inline SVG diagram preview.
+    // "```mermaid " at the start of a paragraph fires the code-block input rule
+    // with language=mermaid; the node view then renders the diagram async.
+    await win.keyboard.press('Meta+End')
+    await win.keyboard.type('\n```mermaid ')
+    // Confirm the code block became a diagram block (preview container appears).
+    await expect(win.locator('.ProseMirror .diagram-preview').first()).toBeVisible({
+      timeout: 10_000,
+    })
+    // Type the diagram source; the node view debounces (250ms) then renders.
+    await win.keyboard.type('graph TD; A-->B;')
+    // The diagram preview contains an inline <svg>. mermaid uses inline <style>
+    // (style-src 'unsafe-inline') and blob:/data: (img-src) - all CSP-allowed.
+    // If the CSP blocked mermaid, no <svg> would ever appear here.
+    await expect
+      .poll(
+        async () => win.locator('.ProseMirror .diagram-preview svg').count(),
+        { timeout: 20_000 },
+      )
+      .toBeGreaterThan(0)
+
+    await win.screenshot({
+      path: path.join(SCREENSHOTS_DIR, 'csp-math-mermaid.png'),
+      fullPage: false,
+    })
+
+    // No CSP violations should have been logged.
+    expect(cspErrors, `CSP violations: ${cspErrors.join(' | ')}`).toEqual([])
+  } finally {
+    win.off('console', onConsole)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Test 7: Save round-trip - SKIPPED
 // ---------------------------------------------------------------------------
 // The save flow opens a native OS file-picker dialog that Playwright cannot
 // drive. Save/write logic (IPC handlers, file writing) is fully covered by
