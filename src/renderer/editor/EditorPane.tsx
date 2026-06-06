@@ -7,7 +7,13 @@ import {
 } from 'react'
 import type { Node } from 'prosemirror-model'
 import { type EditorMode } from '@shared/types'
-import { EditorView, type EditorHandle } from './EditorView'
+import {
+  EditorView,
+  type EditorHandle,
+  type LinkInfo,
+  type ApplyLinkArgs,
+  type ApplyImageArgs,
+} from './EditorView'
 import { SourceView, type SourceHandle } from './SourceView'
 import { parseMarkdown } from './parser'
 import { serializeMarkdown } from './serializer'
@@ -68,6 +74,19 @@ export interface EditorPaneHandle {
    * `current` is 1-based (0 when there are no matches).
    */
   getMatchInfo(): { current: number; count: number }
+
+  // --- Link / image dialogs (WYSIWYG mode only) ---
+
+  /** Return the link mark covering the cursor/selection, or null. */
+  getLinkAt(): LinkInfo | null
+  /** Return the currently selected text (empty string when collapsed). */
+  getSelectionText(): string
+  /** Insert/update a link from the dialog. */
+  applyLink(args: ApplyLinkArgs): void
+  /** Remove the link at the cursor. */
+  removeLink(): void
+  /** Insert an image node from the dialog. */
+  insertImage(args: ApplyImageArgs): void
 }
 
 interface EditorPaneProps {
@@ -78,6 +97,8 @@ interface EditorPaneProps {
    * Receives the new markdown string so the app can track dirty state.
    */
   onChange?: (markdown: string) => void
+  /** Called when the user clicks a link in the WYSIWYG editor. */
+  onLinkClick?: (info: LinkInfo) => void
   /** CSS class name applied to the wrapper div. */
   className?: string
 }
@@ -100,7 +121,7 @@ interface EditorPaneProps {
  * only one is visible at a time (we conditionally render, not hide).
  */
 export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
-  function EditorPane({ initialMarkdown, onChange, className }, ref) {
+  function EditorPane({ initialMarkdown, onChange, onLinkClick, className }, ref) {
     const [mode, setMode] = useState<EditorMode>('wysiwyg')
 
     // Read focus/typewriter mode from the store.
@@ -233,6 +254,27 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           if (mode !== 'wysiwyg') return { current: 0, count: 0 }
           return wysiwygRef.current?.getMatchInfo() ?? { current: 0, count: 0 }
         },
+
+        getLinkAt(): LinkInfo | null {
+          if (mode !== 'wysiwyg') return null
+          return wysiwygRef.current?.getLinkAt() ?? null
+        },
+        getSelectionText(): string {
+          if (mode !== 'wysiwyg') return ''
+          return wysiwygRef.current?.getSelectionText() ?? ''
+        },
+        applyLink(args: ApplyLinkArgs): void {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.applyLink(args)
+        },
+        removeLink(): void {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.removeLink()
+        },
+        insertImage(args: ApplyImageArgs): void {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.insertImage(args)
+        },
       }),
       [mode, markdown, toggleMode],
     )
@@ -257,6 +299,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
             ref={wysiwygRef}
             markdown={markdown}
             onChange={handleWysiwygChange}
+            {...(onLinkClick ? { onLinkClick } : {})}
           />
         ) : (
           <SourceView

@@ -41,6 +41,11 @@ interface MockEditorResult {
   runCommand: ReturnType<typeof vi.fn>
   toggleMode: ReturnType<typeof vi.fn>
   getMode: ReturnType<typeof vi.fn>
+  getLinkAt: ReturnType<typeof vi.fn>
+  getSelectionText: ReturnType<typeof vi.fn>
+  applyLink: ReturnType<typeof vi.fn>
+  removeLink: ReturnType<typeof vi.fn>
+  insertImage: ReturnType<typeof vi.fn>
 }
 
 function makeMockEditor(): MockEditorResult {
@@ -59,6 +64,11 @@ function makeMockEditor(): MockEditorResult {
   const replaceAll = vi.fn(() => 0)
   const clearFind = vi.fn()
   const getMatchInfo = vi.fn(() => ({ current: 0, count: 0 }))
+  const getLinkAt = vi.fn(() => null)
+  const getSelectionText = vi.fn(() => '')
+  const applyLink = vi.fn()
+  const removeLink = vi.fn()
+  const insertImage = vi.fn()
 
   const handle: EditorPaneHandle = {
     runCommand,
@@ -75,13 +85,28 @@ function makeMockEditor(): MockEditorResult {
     replaceAll,
     clearFind,
     getMatchInfo,
+    getLinkAt,
+    getSelectionText,
+    applyLink,
+    removeLink,
+    insertImage,
   }
 
   const ref = createRef<EditorPaneHandle | null>()
   // Bypass read-only current for testing
   Object.defineProperty(ref, 'current', { value: handle, writable: true })
 
-  return { ref, runCommand, toggleMode, getMode }
+  return {
+    ref,
+    runCommand,
+    toggleMode,
+    getMode,
+    getLinkAt,
+    getSelectionText,
+    applyLink,
+    removeLink,
+    insertImage,
+  }
 }
 
 interface MockFileOpsResult {
@@ -121,6 +146,7 @@ function stubLekha(): void {
       return unsubscribeMock
     }),
     onOpenPath: vi.fn(() => () => undefined),
+    openExternal: vi.fn(() => Promise.resolve()),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
     exportDocx: vi.fn(() => Promise.resolve()),
@@ -147,7 +173,7 @@ describe('useCommands - subscription lifecycle', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
 
     // Verify onCommand was called; use capturedDispatch as the indicator
     // (avoids unbound-method lint on window.lekha.onCommand)
@@ -161,7 +187,7 @@ describe('useCommands - subscription lifecycle', () => {
     const onReplace = vi.fn()
 
     const { unmount } = renderHook(() =>
-      useCommands(ref, fileOps, { onFind, onReplace }),
+      useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }),
     )
 
     unmount()
@@ -181,7 +207,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('save') })
 
     expect(save).toHaveBeenCalledOnce()
@@ -193,7 +219,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('new') })
 
     expect(newFile).toHaveBeenCalledOnce()
@@ -205,7 +231,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('open') })
 
     expect(open).toHaveBeenCalledOnce()
@@ -217,7 +243,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('saveAs') })
 
     expect(saveAs).toHaveBeenCalledOnce()
@@ -229,7 +255,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('openFolder') })
 
     expect(openFolder).toHaveBeenCalledOnce()
@@ -247,7 +273,7 @@ describe('useCommands - editor command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('bold') })
 
     expect(runCommand).toHaveBeenCalledWith('bold')
@@ -259,7 +285,7 @@ describe('useCommands - editor command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('heading2') })
 
     expect(runCommand).toHaveBeenCalledWith('heading2')
@@ -271,7 +297,7 @@ describe('useCommands - editor command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('undo') })
 
     expect(runCommand).toHaveBeenCalledWith('undo')
@@ -291,7 +317,7 @@ describe('useCommands - sidebar and mode routing', () => {
 
     useWorkspaceStore.setState({ sidebarVisible: true })
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('toggleSidebar') })
 
     expect(useWorkspaceStore.getState().sidebarVisible).toBe(false)
@@ -303,7 +329,7 @@ describe('useCommands - sidebar and mode routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('toggleSource') })
 
     expect(toggleMode).toHaveBeenCalledOnce()
@@ -318,7 +344,7 @@ describe('useCommands - sidebar and mode routing', () => {
 
     useEditorStore.setState({ mode: 'wysiwyg' })
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('toggleSource') })
 
     // The store must reflect the NEW mode returned by toggleMode(), not a stale read.
@@ -337,7 +363,7 @@ describe('useCommands - find/replace routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('find') })
 
     expect(onFind).toHaveBeenCalledOnce()
@@ -349,7 +375,7 @@ describe('useCommands - find/replace routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('replace') })
 
     expect(onReplace).toHaveBeenCalledOnce()
@@ -371,7 +397,7 @@ describe('useCommands - export command routing', () => {
     const handle = ref.current!
     vi.spyOn(handle, 'getMarkdown').mockReturnValue('# Hello')
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('exportHtml') })
 
     // exportHtml is async (calls buildExportHtml then the mock). Flush promises.
@@ -392,7 +418,7 @@ describe('useCommands - export command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('exportPdf') })
 
     await new Promise<void>((resolve) => setTimeout(resolve, 50))
@@ -410,7 +436,7 @@ describe('useCommands - export command routing', () => {
     const handle = ref.current!
     vi.spyOn(handle, 'getMarkdown').mockReturnValue('# My Doc')
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn() }))
     act(() => { capturedDispatch!('exportDocx') })
 
     const { exportDocx } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
@@ -419,5 +445,88 @@ describe('useCommands - export command routing', () => {
     const callArgs = firstCall?.[0]
     expect(callArgs?.markdown).toBe('# My Doc')
     expect(callArgs?.suggestedName).toMatch(/\.docx$/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test: link / image dialog routing
+// ---------------------------------------------------------------------------
+
+describe('useCommands - link/image dialog routing', () => {
+  it('dispatching "link" with a link at the cursor opens the dialog in edit mode', () => {
+    const { ref, getLinkAt } = makeMockEditor()
+    getLinkAt.mockReturnValue({
+      href: 'https://example.com',
+      text: 'docs',
+      from: 1,
+      to: 5,
+    })
+    const { fileOps } = makeMockFileOps()
+    const onLink = vi.fn()
+    const onInsertImage = vi.fn()
+
+    renderHook(() =>
+      useCommands(ref, fileOps, {
+        onFind: vi.fn(),
+        onReplace: vi.fn(),
+        onLink,
+        onInsertImage,
+      }),
+    )
+    act(() => { capturedDispatch!('link') })
+
+    expect(onLink).toHaveBeenCalledTimes(1)
+    const arg = onLink.mock.calls[0]?.[0] as {
+      mode: 'insert' | 'edit'
+      initial: { text: string; href: string }
+    }
+    expect(arg.mode).toBe('edit')
+    expect(arg.initial.href).toBe('https://example.com')
+    expect(arg.initial.text).toBe('docs')
+  })
+
+  it('dispatching "link" with no link opens the dialog in insert mode using the selection text', () => {
+    const { ref, getLinkAt, getSelectionText } = makeMockEditor()
+    getLinkAt.mockReturnValue(null)
+    getSelectionText.mockReturnValue('selected words')
+    const { fileOps } = makeMockFileOps()
+    const onLink = vi.fn()
+
+    renderHook(() =>
+      useCommands(ref, fileOps, {
+        onFind: vi.fn(),
+        onReplace: vi.fn(),
+        onLink,
+        onInsertImage: vi.fn(),
+      }),
+    )
+    act(() => { capturedDispatch!('link') })
+
+    expect(onLink).toHaveBeenCalledTimes(1)
+    const arg = onLink.mock.calls[0]?.[0] as {
+      mode: 'insert' | 'edit'
+      initial: { text: string; href: string }
+    }
+    expect(arg.mode).toBe('insert')
+    expect(arg.initial.text).toBe('selected words')
+    expect(arg.initial.href).toBe('')
+  })
+
+  it('dispatching "insertImage" opens the image dialog', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onInsertImage = vi.fn()
+
+    renderHook(() =>
+      useCommands(ref, fileOps, {
+        onFind: vi.fn(),
+        onReplace: vi.fn(),
+        onLink: vi.fn(),
+        onInsertImage,
+      }),
+    )
+    act(() => { capturedDispatch!('insertImage') })
+
+    expect(onInsertImage).toHaveBeenCalledTimes(1)
   })
 })

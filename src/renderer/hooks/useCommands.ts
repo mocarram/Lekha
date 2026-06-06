@@ -26,11 +26,21 @@ import { buildExportHtml } from '@renderer/export/buildHtml'
 // Types
 // ---------------------------------------------------------------------------
 
+/** Payload passed to onLink describing how the link dialog should open. */
+export interface LinkDialogRequest {
+  mode: 'insert' | 'edit'
+  initial: { text: string; href: string; title?: string }
+}
+
 export interface CommandOpts {
   /** Called when the "find" command is dispatched. Shown in M13. */
   onFind: () => void
   /** Called when the "replace" command is dispatched. Shown in M13. */
   onReplace: () => void
+  /** Open the link dialog (insert or edit) with the given prefill. */
+  onLink: (request: LinkDialogRequest) => void
+  /** Open the image dialog. */
+  onInsertImage: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -120,6 +130,43 @@ export function useCommands(
       }
       if (cmd === 'replace') {
         o.onReplace()
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Link dialog (insert / edit)
+      //
+      // If the cursor sits on an existing link, open in edit mode prefilled
+      // with its text/href. Otherwise open in insert mode, prefilling the
+      // text with the current selection (so "select text -> Cmd+K" links it).
+      // ------------------------------------------------------------------
+      if (cmd === 'link') {
+        const editor = editorRef.current
+        if (!editor) return
+        const link = editor.getLinkAt()
+        if (link) {
+          o.onLink({
+            mode: 'edit',
+            initial: {
+              text: link.text,
+              href: link.href,
+              ...(link.title ? { title: link.title } : {}),
+            },
+          })
+        } else {
+          o.onLink({
+            mode: 'insert',
+            initial: { text: editor.getSelectionText(), href: '' },
+          })
+        }
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Image dialog
+      // ------------------------------------------------------------------
+      if (cmd === 'insertImage') {
+        o.onInsertImage()
         return
       }
 

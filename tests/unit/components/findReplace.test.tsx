@@ -43,6 +43,11 @@ function makeMockHandle() {
     replaceAll,
     clearFind,
     getMatchInfo,
+    getLinkAt: vi.fn(() => null),
+    getSelectionText: vi.fn(() => ''),
+    applyLink: vi.fn(),
+    removeLink: vi.fn(),
+    insertImage: vi.fn(),
   }
 
   const editorRef = createRef<EditorPaneHandle | null>()

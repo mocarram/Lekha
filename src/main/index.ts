@@ -5,6 +5,7 @@ import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
 import { registerExportHandlers } from '@main/ipc/export'
 import { registerImageHandlers } from '@main/ipc/images'
+import { registerShellHandlers } from '@main/ipc/shell'
 import { buildMenuTemplate } from '@main/menu'
 import { IPC } from '@shared/ipc-channels'
 import { THEMES } from '@shared/types'
@@ -257,6 +258,10 @@ void app.whenReady().then(async () => {
   // Register image-save IPC handler. Passes the user-data path at call time
   // so it always reflects the current Electron data directory.
   registerImageHandlers(() => app.getPath('userData'))
+
+  // Register the openExternal IPC handler (scheme-validated link opening for
+  // the link dialog's "Open" button).
+  registerShellHandlers()
 
   // Create the window with restored bounds (or defaults if none saved).
   const win = createWindow(initialSettings.windowBounds)

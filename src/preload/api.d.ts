@@ -68,6 +68,13 @@ export interface LekhaAPI {
     ext: string
     docPath: string | null
   }): Promise<{ insertPath: string }>
+
+  // --- Shell ---
+  /**
+   * Open a URL in the system browser. The main process validates the scheme
+   * (http/https/mailto only) before opening; unsafe URLs are ignored.
+   */
+  openExternal(url: string): Promise<void>
 }
 
 declare global {

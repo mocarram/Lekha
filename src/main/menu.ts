@@ -213,6 +213,9 @@ export function buildMenuTemplate(
       item('Strikethrough', undefined,            'strikethrough', send),
       item('Code',          undefined,            'inlineCode',    send),
       sep,
+      item('Insert Link…',  'CmdOrCtrl+K',        'link',        send),
+      item('Insert Image…', 'CmdOrCtrl+Shift+I',  'insertImage', send),
+      sep,
       // Headings 1-6
       ...(([1, 2, 3, 4, 5, 6] as const).map((level) =>
         item(

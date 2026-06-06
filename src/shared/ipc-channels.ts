@@ -30,4 +30,6 @@ export const IPC = {
   pandocAvailable: 'export:pandocAvailable',
   // Image channels
   saveImage: 'fs:saveImage',
+  /** Renderer -> main: open a URL in the system browser (scheme-validated). */
+  openExternal: 'shell:openExternal',
 } as const

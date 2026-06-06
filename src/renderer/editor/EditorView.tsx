@@ -28,7 +28,18 @@ import {
 } from './plugins/findHighlight'
 import { replaceAllTr } from './find'
 import type { FindOptions } from './find'
+import {
+  getLinkAt as _getLinkAt,
+  applyLink as _applyLink,
+  removeLink as _removeLink,
+  applyImage as _applyImage,
+  type LinkInfo,
+  type ApplyLinkArgs,
+  type ApplyImageArgs,
+} from './linkCommands'
 import type { AppCommand } from '@shared/commands'
+
+export type { LinkInfo, ApplyLinkArgs, ApplyImageArgs }
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -80,6 +91,19 @@ export interface EditorHandle {
    * `count` is the total number of matches.
    */
   getMatchInfo(): { current: number; count: number }
+
+  // --- Link / image dialogs ---
+
+  /** Return the link mark covering the cursor/selection, or null. */
+  getLinkAt(): LinkInfo | null
+  /** Return the currently selected text (empty string when collapsed). */
+  getSelectionText(): string
+  /** Insert/update a link from the dialog. */
+  applyLink(args: ApplyLinkArgs): void
+  /** Remove the link at the cursor. */
+  removeLink(): void
+  /** Insert an image node from the dialog. */
+  insertImage(args: ApplyImageArgs): void
 }
 
 // Build the command map once per module (schema is a singleton)
@@ -90,6 +114,11 @@ interface EditorViewProps {
   markdown: string
   /** Called on every doc-changing transaction with the new document. */
   onChange?: (doc: Node) => void
+  /**
+   * Called when the user left-clicks a link in the editor. Receives the
+   * full link info (href/text/range) so the host can open an edit dialog.
+   */
+  onLinkClick?: (info: LinkInfo) => void
   /** CSS class name applied to the wrapper div. */
   className?: string
 }
@@ -108,14 +137,16 @@ interface EditorViewProps {
  * - Destroys the view on unmount (no leak).
  */
 export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
-  function EditorView({ markdown, onChange, className }, ref) {
+  function EditorView({ markdown, onChange, onLinkClick, className }, ref) {
     const mountRef = useRef<HTMLDivElement>(null)
     const viewRef = useRef<ProseMirrorView | null>(null)
 
     // Ref-to-latest-callback: keeps onChange current without recreating the view
     const onChangeRef = useRef(onChange)
+    const onLinkClickRef = useRef(onLinkClick)
     useEffect(() => {
       onChangeRef.current = onChange
+      onLinkClickRef.current = onLinkClick
     })
 
     // Create the view once on mount; destroy on unmount
@@ -142,6 +173,21 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
         },
         handlePaste,
         handleDrop,
+        // Plain left-click on a link opens the edit dialog. We only react to a
+        // primary click with no modifiers so text selection, shift-click, and
+        // right-click behave normally. Returning false lets ProseMirror place
+        // the cursor as usual (we don't consume the event).
+        handleClick(clickView, pos, event) {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return false
+          }
+          const $pos = clickView.state.doc.resolve(pos)
+          const linkMark = schema.marks['link']!.isInSet($pos.marks())
+          if (!linkMark) return false
+          const info = _getLinkAt(clickView.state, pos)
+          if (info) onLinkClickRef.current?.(info)
+          return false
+        },
         dispatchTransaction(tr) {
           const newState = view.state.apply(tr)
           view.updateState(newState)
@@ -247,6 +293,37 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
             current: pluginState.current + 1,
             count: pluginState.matches.length,
           }
+        },
+
+        getLinkAt(): LinkInfo | null {
+          const view = viewRef.current
+          if (!view) return null
+          return _getLinkAt(view.state)
+        },
+        getSelectionText(): string {
+          const view = viewRef.current
+          if (!view) return ''
+          const { from, to } = view.state.selection
+          if (from === to) return ''
+          return view.state.doc.textBetween(from, to)
+        },
+        applyLink(args: ApplyLinkArgs): void {
+          const view = viewRef.current
+          if (!view) return
+          _applyLink(view.state, view.dispatch, args)
+          view.focus()
+        },
+        removeLink(): void {
+          const view = viewRef.current
+          if (!view) return
+          _removeLink(view.state, view.dispatch)
+          view.focus()
+        },
+        insertImage(args: ApplyImageArgs): void {
+          const view = viewRef.current
+          if (!view) return
+          _applyImage(view.state, view.dispatch, args)
+          view.focus()
         },
       }),
       [],

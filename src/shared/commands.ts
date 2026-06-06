@@ -13,6 +13,7 @@ export type AppCommand =
   | 'strikethrough'
   | 'inlineCode'
   | 'link'
+  | 'insertImage'
   | 'heading1'
   | 'heading2'
   | 'heading3'

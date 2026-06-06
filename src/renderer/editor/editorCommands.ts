@@ -108,9 +108,9 @@ function insertHorizontalRule(schema: Schema): Command {
  * mode toggle) are intentionally absent - the caller (useCommands) routes
  * those independently.
  *
- * link: a simple toggleMark with an empty href placeholder is provided.
- * A richer link dialog is planned for a later task (M13). The command is
- * commented as provisional.
+ * link / insertImage are NOT in this map: they are dialog-driven (see
+ * linkCommands.ts + LinkDialog/ImageDialog), routed by useCommands rather than
+ * by a zero-arg ProseMirror command.
  */
 export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Command>> {
   // -------------------------------------------------------------------------
@@ -120,10 +120,6 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   const italic = toggleMark(schema.marks['em']!)
   const strikethrough = toggleMark(schema.marks['strikethrough']!)
   const inlineCode = toggleMark(schema.marks['code']!)
-
-  // link: provisional - toggles the link mark with an empty href.
-  // A proper dialog-based flow is deferred to the find/replace task (M13).
-  const link = toggleMark(schema.marks['link']!, { href: '' })
 
   // -------------------------------------------------------------------------
   // Block type setters
@@ -158,7 +154,6 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     italic,
     strikethrough,
     inlineCode,
-    link, // provisional - see comment above
 
     // Block types
     paragraph,

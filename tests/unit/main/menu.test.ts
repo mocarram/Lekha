@@ -425,3 +425,39 @@ describe('buildMenuTemplate - Export submenu', () => {
     expect(send).toHaveBeenCalledWith('exportDocx')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Insert Link / Insert Image menu items
+// ---------------------------------------------------------------------------
+
+describe('buildMenuTemplate - Insert Link / Insert Image', () => {
+  it('Format submenu contains Insert Link and Insert Image', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const format = template.find((t) => t.label === 'Format')
+    const items = format!.submenu as MenuItemConstructorOptions[]
+    const labels = items.map((i) => i.label)
+    expect(labels).toContain('Insert Link…')
+    expect(labels).toContain('Insert Image…')
+  })
+
+  it('Insert Link… fires send("link") and has CmdOrCtrl+K accelerator', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const found = findItem(template, (i) => i.label === 'Insert Link…')
+    expect(found).toBeDefined()
+    expect(found?.accelerator).toBe('CmdOrCtrl+K')
+    clickItem(found!)
+    expect(send).toHaveBeenCalledWith('link')
+  })
+
+  it('Insert Image… fires send("insertImage") and has CmdOrCtrl+Shift+I accelerator', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const found = findItem(template, (i) => i.label === 'Insert Image…')
+    expect(found).toBeDefined()
+    expect(found?.accelerator).toBe('CmdOrCtrl+Shift+I')
+    clickItem(found!)
+    expect(send).toHaveBeenCalledWith('insertImage')
+  })
+})

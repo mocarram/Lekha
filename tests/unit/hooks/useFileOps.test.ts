@@ -54,6 +54,11 @@ function makeMockEditor(initialMarkdown = '# X') {
     replaceAll,
     clearFind,
     getMatchInfo,
+    getLinkAt: vi.fn(() => null),
+    getSelectionText: vi.fn(() => ''),
+    applyLink: vi.fn(),
+    removeLink: vi.fn(),
+    insertImage: vi.fn(),
   }
   return { handle, setMarkdown, getMarkdown }
 }
@@ -101,6 +106,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     exportDocx: vi.fn(() => Promise.resolve()),
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
     saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/image-000001.png' })),
+    openExternal: vi.fn(() => Promise.resolve()),
     ...overrides,
   }
 }

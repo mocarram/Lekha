@@ -11,6 +11,9 @@ import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { Sidebar } from '@renderer/components/Sidebar'
 import { FindReplace } from '@renderer/components/FindReplace'
+import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
+import { ImageDialog } from '@renderer/components/ImageDialog'
+import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
 
 // ---------------------------------------------------------------------------
@@ -62,10 +65,56 @@ export default function App() {
     mode: 'find' | 'replace'
   }>({ open: false, mode: 'find' })
 
+  // Link dialog state (insert / edit), controlled by App. `seq` increments on
+  // each open and is used as the dialog's React `key` so it remounts fresh with
+  // the new prefill (the dialog seeds its form state at mount).
+  const [linkState, setLinkState] = useState<{
+    open: boolean
+    seq: number
+    mode: LinkDialogMode
+    initial: { text: string; href: string; title?: string }
+  }>({ open: false, seq: 0, mode: 'insert', initial: { text: '', href: '' } })
+
+  // Image dialog state.
+  const [imageState, setImageState] = useState<{
+    open: boolean
+    seq: number
+    initial: { src: string; alt: string }
+  }>({ open: false, seq: 0, initial: { src: '', alt: '' } })
+
+  // Open the link dialog from a click on a link in the editor (edit mode).
+  const openLinkFromClick = useCallback((info: LinkInfo) => {
+    setLinkState((prev) => ({
+      open: true,
+      seq: prev.seq + 1,
+      mode: 'edit',
+      initial: {
+        text: info.text,
+        href: info.href,
+        ...(info.title ? { title: info.title } : {}),
+      },
+    }))
+  }, [])
+
   // Wire native menu commands to editor / file ops / sidebar / find
   useCommands(editorRef, fileOps, {
     onFind: () => { setFindState({ open: true, mode: 'find' }) },
     onReplace: () => { setFindState({ open: true, mode: 'replace' }) },
+    onLink: (request) => {
+      setLinkState((prev) => ({
+        open: true,
+        seq: prev.seq + 1,
+        mode: request.mode,
+        initial: request.initial,
+      }))
+    },
+    onInsertImage: () => {
+      setImageState((prev) => ({
+        open: true,
+        seq: prev.seq + 1,
+        initial: { src: '', alt: '' },
+      }))
+    },
   })
 
   // Subscribe to Open Recent path messages from the main process.
@@ -161,6 +210,7 @@ export default function App() {
           ref={editorRef}
           initialMarkdown={WELCOME_MARKDOWN}
           onChange={handleChange}
+          onLinkClick={openLinkFromClick}
           className="editor-pane"
         />
       </div>
@@ -172,6 +222,34 @@ export default function App() {
         mode={findState.mode}
         editorRef={editorRef}
         onClose={() => setFindState((prev) => ({ ...prev, open: false }))}
+      />
+
+      <LinkDialog
+        key={`link-${linkState.seq}`}
+        open={linkState.open}
+        mode={linkState.mode}
+        initial={linkState.initial}
+        onSubmit={({ text, href, title }) => {
+          editorRef.current?.applyLink({ href, text, ...(title ? { title } : {}) })
+          setLinkState((prev) => ({ ...prev, open: false }))
+        }}
+        onRemove={() => {
+          editorRef.current?.removeLink()
+          setLinkState((prev) => ({ ...prev, open: false }))
+        }}
+        onOpenUrl={(url) => { void window.lekha.openExternal(url) }}
+        onClose={() => setLinkState((prev) => ({ ...prev, open: false }))}
+      />
+
+      <ImageDialog
+        key={`image-${imageState.seq}`}
+        open={imageState.open}
+        initial={imageState.initial}
+        onSubmit={({ src, alt }) => {
+          editorRef.current?.insertImage({ src, ...(alt ? { alt } : {}) })
+          setImageState((prev) => ({ ...prev, open: false }))
+        }}
+        onClose={() => setImageState((prev) => ({ ...prev, open: false }))}
       />
     </div>
   )

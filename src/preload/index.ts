@@ -103,6 +103,11 @@ const api: LekhaAPI = {
   saveImage(args: { data: ArrayBuffer; ext: string; docPath: string | null }): Promise<{ insertPath: string }> {
     return ipcRenderer.invoke(IPC.saveImage, args) as Promise<{ insertPath: string }>
   },
+
+  // --- Shell ---
+  openExternal(url: string): Promise<void> {
+    return ipcRenderer.invoke(IPC.openExternal, url) as Promise<void>
+  },
 }
 
 contextBridge.exposeInMainWorld('lekha', Object.freeze(api))

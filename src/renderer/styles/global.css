@@ -282,3 +282,95 @@ body,
 .no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ---------------------------------------------------------------------------
+ * Modal dialogs (Link / Image). Token-themed so they work in light + dark.
+ * --------------------------------------------------------------------------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.dialog {
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  padding: 18px;
+  border-radius: 8px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-ui);
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.dialog-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.dialog-input {
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+}
+
+.dialog-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialog-spacer {
+  flex: 1;
+}
+
+.dialog-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.dialog-btn:hover {
+  background-color: var(--color-border);
+}
+
+.dialog-btn-primary {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #ffffff;
+}
+
+.dialog-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.dialog-btn-danger {
+  color: #c0392b;
+}
