@@ -121,12 +121,16 @@ export function Preferences({ open, onClose }: PreferencesProps) {
   const handleSidebarVisible = (sidebarVisible: boolean): void => {
     setForm((f) => ({ ...f, sidebarVisible }))
     useWorkspaceStore.getState().setSidebarVisible(sidebarVisible)
+    // Intentional duplicate: useStartup's store subscriber also persists this
+    // change (after a debounce), but we persist eagerly here too so the value
+    // is written even if the subscriber is not mounted (e.g. in tests). Harmless.
     persist({ sidebarVisible })
   }
 
   const handleSidebarTab = (sidebarTab: 'files' | 'outline'): void => {
     setForm((f) => ({ ...f, sidebarTab }))
     useWorkspaceStore.getState().setSidebarTab(sidebarTab)
+    // Intentional duplicate: same reason as handleSidebarVisible above.
     persist({ sidebarTab })
   }
 

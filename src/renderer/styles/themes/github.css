@@ -409,7 +409,7 @@
 /* --- Paragraph --- */
 .editor-pane .ProseMirror p {
   margin: 0 0 1em;
-  font-size: 16px;
+  font-size: inherit; /* inherits var(--editor-font-size) from .ProseMirror */
 }
 
 /* --- Links --- */

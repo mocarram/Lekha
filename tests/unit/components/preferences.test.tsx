@@ -8,6 +8,8 @@
  *
  * window.lekha and applyTheme are mocked so we can assert the calls.
  */
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { Settings } from '../../../src/shared/types'
@@ -189,5 +191,78 @@ describe('Preferences - close', () => {
     await renderOpen(onClose)
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// CSS regression guard: paragraph font-size must not be hardcoded in px
+// ---------------------------------------------------------------------------
+
+describe('Preferences - CSS regression guard', () => {
+  it('github.css .ProseMirror p rule does not hardcode a px font-size', () => {
+    // Read the CSS source directly and assert the paragraph rule uses `inherit`
+    // (or a CSS var), NOT a bare px value. This guard will fail if the fix is
+    // ever reverted, because happy-dom does not apply stylesheet cascade to
+    // computed styles reliably enough to detect it at runtime.
+    const cssPath = path.resolve(
+      __dirname,
+      '../../../src/renderer/styles/themes/github.css',
+    )
+    const css = fs.readFileSync(cssPath, 'utf8')
+
+    // Find the `.ProseMirror p` rule block (up to the closing brace).
+    const match = css.match(/\.editor-pane \.ProseMirror p\s*\{([^}]*)\}/)
+    expect(match, 'Expected to find .editor-pane .ProseMirror p rule in github.css').toBeTruthy()
+    const ruleBody = match![1]
+
+    // The rule must NOT contain a bare px font-size (e.g. "font-size: 16px").
+    // Using em, inherit, or a CSS var is all acceptable.
+    expect(ruleBody).not.toMatch(/font-size\s*:\s*\d+px/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Seeded values: opening with non-default settings renders them
+// ---------------------------------------------------------------------------
+
+describe('Preferences - seeded values', () => {
+  it('renders the correct values when opened with non-default settings', async () => {
+    const nonDefaults: Settings = makeSettings({
+      theme: 'night',
+      fontSize: 20,
+      sidebarTab: 'outline',
+      focusMode: true,
+    })
+    stubLekha(nonDefaults)
+
+    await renderOpen()
+
+    const themeEl = screen.getByLabelText('Theme')
+    const fontEl = screen.getByLabelText('Font size')
+    const tabEl = screen.getByLabelText('Sidebar default tab')
+    const focusEl = screen.getByLabelText('Focus mode by default')
+
+    expect((themeEl as HTMLSelectElement).value).toBe('night')
+    expect((fontEl as HTMLInputElement).valueAsNumber).toBe(20)
+    expect((tabEl as HTMLSelectElement).value).toBe('outline')
+    expect((focusEl as HTMLInputElement).checked).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Font-size boundary clamping
+// ---------------------------------------------------------------------------
+
+describe('Preferences - font size clamping', () => {
+  it('clamps a value above MAX_FONT_SIZE (24) down to 24', async () => {
+    await renderOpen()
+    fireEvent.change(screen.getByLabelText('Font size'), { target: { value: '999' } })
+    expect(setSettingsMock).toHaveBeenCalledWith({ fontSize: 24 })
+  })
+
+  it('clamps a value below MIN_FONT_SIZE (12) up to 12', async () => {
+    await renderOpen()
+    fireEvent.change(screen.getByLabelText('Font size'), { target: { value: '2' } })
+    expect(setSettingsMock).toHaveBeenCalledWith({ fontSize: 12 })
   })
 })
