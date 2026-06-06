@@ -12,7 +12,7 @@ import type { DocCounts } from '@shared/types'
  *   a single token ("endstart"), while the joining character itself does not
  *   add phantom words.
  *
- * - Code blocks: included (matches WYSIWYG's behaviour — the user can see and
+ * - Code blocks: included (matches WYSIWYG's behaviour - the user can see and
  *   edit that text, so it contributes to the document length).
  *
  * - `chars`: the sum of `textContent.length` for every leaf text-block, before
@@ -27,7 +27,7 @@ export function countWords(doc: Node): DocCounts {
 
   doc.descendants((node) => {
     // Collect text from every leaf block (paragraphs, headings, code blocks,
-    // list items, table cells, blockquotes — anything that isBlock and isLeaf
+    // list items, table cells, blockquotes - anything that isBlock and isLeaf
     // in the ProseMirror sense, i.e. has no block children but does have text).
     // `node.isTextblock` already covers code_block nodes (they are textblocks
     // per the schema: content 'text*', code: true). No separate branch needed.

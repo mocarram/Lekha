@@ -165,6 +165,28 @@ describe('headingFoldPlugin decorations', () => {
     expect(after[0]!.from).toBe(before[0]!.from + 1)
   })
 
+  it('drops a fold when the folded heading is deleted', () => {
+    // Fold a heading, then delete that heading node entirely. The plugin must
+    // drop the stale fold entry because the heading no longer exists in the doc.
+    const md = '# One\n\nAlpha\n\n# Two\n\nBeta'
+    const state = makeState(md)
+    const h1 = headingPos(state.doc, 0)
+
+    // Fold the first heading.
+    const folded = state.apply(state.tr.setMeta(headingFoldKey, toggleFoldMeta(h1)))
+    expect(foldedRanges(folded).length).toBeGreaterThan(0)
+
+    // Delete the first heading node from the document.
+    const headingNode = folded.doc.nodeAt(h1)!
+    const deleteEnd = h1 + headingNode.nodeSize
+    const afterDelete = folded.apply(folded.tr.delete(h1, deleteEnd))
+
+    // The fold for the now-deleted heading must be gone.
+    expect(foldedRanges(afterDelete)).toHaveLength(0)
+    // Confirm the plugin state's folded set is also empty.
+    expect(headingFoldKey.getState(afterDelete)!.folded.size).toBe(0)
+  })
+
   it('serializing a doc with a folded heading still yields the FULL markdown (visual-only)', () => {
     const md = '# One\n\nAlpha\n\nBeta\n\n# Two\n\nGamma'
     const state = makeState(md)

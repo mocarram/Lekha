@@ -1,5 +1,5 @@
 /**
- * useAutoSave — automatically saves the document after a short debounce.
+ * useAutoSave - automatically saves the document after a short debounce.
  *
  * Behaviour (WYSIWYG-like):
  *   - When `enabled`, `isDirty`, AND `hasPath`: schedules save() ~1500ms after

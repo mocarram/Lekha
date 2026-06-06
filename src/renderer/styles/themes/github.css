@@ -1055,7 +1055,7 @@
  *
  * A leading `---\nyaml\n---` block rendered as a styled monospace region.
  * The label provides a subtle "Front Matter" affordance. The <pre> inside
- * is the ProseMirror contentDOM — fully editable, whitespace preserved.
+ * is the ProseMirror contentDOM - fully editable, whitespace preserved.
  * =========================================================================== */
 
 .editor-pane .ProseMirror div.front-matter {

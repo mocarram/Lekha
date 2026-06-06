@@ -68,7 +68,7 @@ function lekhaTaskLists(state: StateCore): boolean {
 
   // Promote checkbox `<li>`s ONLY inside a promoted `task_list`. Ordered lists
   // with checkboxes keep `ordered_list`/`list_item` (the checkbox marker is
-  // dropped — acceptable, GFM task lists are unordered-only). Tracking the
+  // dropped - acceptable, GFM task lists are unordered-only). Tracking the
   // enclosing list type also prevents emitting `task_item`s into an
   // `ordered_list`, whose schema content (`list_item+`) would reject them.
   const listStack: ('task' | 'other')[] = []

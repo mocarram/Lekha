@@ -9,7 +9,7 @@ import { useEditorStore } from '@renderer/store/editorStore'
  *
  * A dirty indicator dot (•) appears next to the title when isDirty is true.
  * Interactive children must carry no-drag so clicks are not swallowed by the
- * drag region (none currently — the title is not interactive).
+ * drag region (none currently - the title is not interactive).
  */
 export function TitleBar() {
   const title = useEditorStore((s) => s.title)
