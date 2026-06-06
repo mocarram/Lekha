@@ -21,8 +21,9 @@
  */
 
 [data-theme="graphite"] {
-  /* --- Editor layout (the "WYSIWYG feel"): wider column + larger type --- */
-  --editor-max-width:   860px;
+  /* --- Editor layout (the "WYSIWYG feel"): larger type + looser spacing.
+     The column width uses the app-wide WYSIWYG-like default (min(1150px, 88%)
+     from github.css); Graphite only bumps the type scale + line spacing. --- */
   --editor-font-scale:  1.12;
   --editor-line-height: 1.75;
 

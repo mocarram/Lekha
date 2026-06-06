@@ -196,8 +196,11 @@
   --font-ui:     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 
   /* Editor layout metrics (theme-overridable). A theme can widen the reading
-     column, scale the type, or loosen line spacing without touching the engine. */
-  --editor-max-width:  820px;
+     column, scale the type, or loosen line spacing without touching the engine.
+     The width is WYSIWYG-like: it expands to fill the available pane (88%) up to
+     a 1150px cap, so wide windows use the space instead of leaving big empty
+     gutters, while narrower windows keep comfortable side margins. */
+  --editor-max-width:  min(1150px, 88%);
   --editor-font-scale: 1;
   --editor-line-height: 1.7;
 
@@ -836,7 +839,8 @@
 
 .editor-pane > div > .cm-editor .cm-content {
   padding: 40px 30px;
-  max-width: 800px;
+  /* Match the WYSIWYG column so source mode is the same width. */
+  max-width: var(--editor-max-width, 1150px);
   margin: 0 auto;
   color: var(--text);
 }
