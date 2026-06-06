@@ -39,6 +39,8 @@ export interface LekhaAPI {
    * the target exists or the name is invalid. Returns the new absolute path.
    */
   renamePath(oldPath: string, newName: string): Promise<string>
+  /** Duplicate the file at `path` in place ("name copy.md"); returns new path. */
+  duplicatePath(path: string): Promise<string>
   /**
    * Move `path` to the OS trash (RECOVERABLE - uses shell.trashItem, never a
    * permanent delete).

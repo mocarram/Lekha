@@ -8,6 +8,8 @@ export type AppCommand =
   | 'revertToSaved'
   | 'showInFinder'
   | 'revealInFileTree'
+  | 'duplicateFile'
+  | 'deleteFile'
   | 'toggleSource'
   | 'toggleSidebar'
   | 'find'

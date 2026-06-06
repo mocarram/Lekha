@@ -17,8 +17,8 @@
  *     which rejects path separators and traversal sequences ("..", "/", "\")
  *     so a name can never escape its parent directory.
  */
-import { mkdir, rename, writeFile, access } from 'node:fs/promises'
-import { dirname, extname, join } from 'node:path'
+import { mkdir, rename, writeFile, access, copyFile } from 'node:fs/promises'
+import { basename, dirname, extname, join } from 'node:path'
 import { shell } from 'electron'
 
 const DEFAULT_EXTENSION = '.md'
@@ -68,6 +68,17 @@ export function targetPath(dir: string, name: string, options: TargetPathOptions
  */
 export function renamedPath(oldPath: string, newName: string): string {
   return join(dirname(oldPath), newName)
+}
+
+/**
+ * The default duplicate path for `srcPath`: same directory, base name suffixed
+ * with " copy", extension preserved (e.g. `notes.md` -> `notes copy.md`).
+ * Pure; the IO wrapper {@link duplicatePath} resolves collisions on top of this.
+ */
+export function duplicatedPath(srcPath: string): string {
+  const ext = extname(srcPath)
+  const base = basename(srcPath, ext)
+  return join(dirname(srcPath), `${base} copy${ext}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -132,6 +143,27 @@ export async function renamePath(oldPath: string, newName: string): Promise<stri
   }
   await rename(oldPath, newPath)
   return newPath
+}
+
+/**
+ * Duplicates the file at `srcPath` in the same directory. Uses the " copy"
+ * suffix from {@link duplicatedPath}, then appends " copy 2", " copy 3" … until
+ * it finds a free name (so repeated duplicates never overwrite). Returns the
+ * new absolute path.
+ */
+export async function duplicatePath(srcPath: string): Promise<string> {
+  const ext = extname(srcPath)
+  const base = basename(srcPath, ext)
+  const dir = dirname(srcPath)
+
+  let candidate = duplicatedPath(srcPath)
+  let n = 2
+  while (await pathExists(candidate)) {
+    candidate = join(dir, `${base} copy ${n}${ext}`)
+    n++
+  }
+  await copyFile(srcPath, candidate)
+  return candidate
 }
 
 /**

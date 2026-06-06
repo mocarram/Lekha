@@ -5,8 +5,17 @@
  * (createFile, createFolder, renamePath, deletePath, revealPath) are
  * Electron/IO-bound thin wrappers and are exercised manually, not unit-tested.
  */
-import { describe, it, expect } from 'vitest'
-import { isValidEntryName, targetPath, renamedPath } from '../../../src/main/fileOps'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { mkdtempSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import {
+  isValidEntryName,
+  targetPath,
+  renamedPath,
+  duplicatedPath,
+  duplicatePath,
+} from '../../../src/main/fileOps'
 
 describe('isValidEntryName', () => {
   it('accepts a plain markdown filename', () => {
@@ -87,5 +96,46 @@ describe('renamedPath', () => {
 
   it('does NOT default a missing extension (rename keeps the exact new name)', () => {
     expect(renamedPath('/a/b/old.md', 'README')).toBe('/a/b/README')
+  })
+})
+
+describe('duplicatedPath (pure)', () => {
+  it('appends " copy" before the extension', () => {
+    expect(duplicatedPath('/a/b/notes.md')).toBe('/a/b/notes copy.md')
+  })
+
+  it('handles names without an extension', () => {
+    expect(duplicatedPath('/a/b/README')).toBe('/a/b/README copy')
+  })
+})
+
+describe('duplicatePath (IO)', () => {
+  let tmpDir: string
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'lekha-dup-'))
+  })
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('copies a file to "<name> copy.md" with the same content', async () => {
+    const src = join(tmpDir, 'doc.md')
+    writeFileSync(src, '# Hello', 'utf8')
+    const out = await duplicatePath(src)
+    expect(out).toBe(join(tmpDir, 'doc copy.md'))
+    expect(existsSync(out)).toBe(true)
+    expect(readFileSync(out, 'utf8')).toBe('# Hello')
+    // Original is untouched.
+    expect(existsSync(src)).toBe(true)
+  })
+
+  it('avoids collisions with " copy 2", " copy 3", …', async () => {
+    const src = join(tmpDir, 'doc.md')
+    writeFileSync(src, 'a', 'utf8')
+    const first = await duplicatePath(src)
+    const second = await duplicatePath(src)
+    expect(first).toBe(join(tmpDir, 'doc copy.md'))
+    expect(second).toBe(join(tmpDir, 'doc copy 2.md'))
+    expect(existsSync(second)).toBe(true)
   })
 })

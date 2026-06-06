@@ -157,6 +157,14 @@ export function useCommands(
         void fo.revertToSaved()
         return
       }
+      if (cmd === 'duplicateFile') {
+        void fo.duplicateCurrent()
+        return
+      }
+      if (cmd === 'deleteFile') {
+        void fo.deleteCurrent()
+        return
+      }
       if (cmd === 'showInFinder') {
         // Reveal the current document in the OS file manager.
         const path = useEditorStore.getState().path

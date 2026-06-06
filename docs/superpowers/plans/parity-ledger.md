@@ -539,3 +539,11 @@ Wired into AppCommand, useCommands dispatch, the File menu, and the command regi
 
 Tests: +1 useCommands dispatch + registry/menu coverage of the 3 commands. 1188 unit + 7 e2e green.
 Remaining in build-order (b): Rename, Duplicate, Move To, Delete (need new fs IPC for duplicate/move), Save All (multi-window) - next sub-wave.
+
+### Wave 7 - Doc-level file ops, part 2: Duplicate + Delete (`feat/wysiwyg-fileops-2`)
+Implemented (build order b cont.):
+- **Duplicate** - new main `duplicatedPath` (pure) + `duplicatePath` (IO, copies to "name copy.md", auto-increments " copy 2/3…" on collision); new `fs:duplicatePath` IPC + preload; `useFileOps.duplicateCurrent` duplicates the open file, refreshes the tree, opens the copy. File menu + registry + command.
+- **Move to Trash** - `useFileOps.deleteCurrent` confirms, trashes the current file (existing deletePath), resets to a blank doc, refreshes the tree. File menu + registry + command.
+
+Tests: +6 (duplicatedPath pure, duplicatePath IO incl. collision, duplicateFile dispatch; updated 4 LekhaAPI/FileOps mocks). 1193 unit + 7 e2e green.
+Remaining in (b): Rename current (name prompt), Move To (folder picker + new fs:movePath IPC), Save All (multi-window) - next sub-wave.

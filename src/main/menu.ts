@@ -188,7 +188,9 @@ export function buildMenuTemplate(
       sep,
       item('Save',          'CmdOrCtrl+S',       'save',       send),
       item('Save As…',      'CmdOrCtrl+Shift+S', 'saveAs',     send),
+      item('Duplicate',       undefined,         'duplicateFile', send),
       item('Revert to Saved', undefined,         'revertToSaved', send),
+      item('Move to Trash…',  undefined,         'deleteFile',    send),
       sep,
       {
         label: 'Export',

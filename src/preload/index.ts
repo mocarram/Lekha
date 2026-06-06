@@ -55,6 +55,10 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.renamePath, oldPath, newName) as Promise<string>
   },
 
+  duplicatePath(path: string): Promise<string> {
+    return ipcRenderer.invoke(IPC.duplicatePath, path) as Promise<string>
+  },
+
   deletePath(path: string): Promise<void> {
     return ipcRenderer.invoke(IPC.deletePath, path) as Promise<void>
   },

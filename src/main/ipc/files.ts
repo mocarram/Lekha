@@ -8,6 +8,7 @@ import {
   createFile,
   createFolder,
   renamePath,
+  duplicatePath,
   deletePath,
   revealPath,
 } from '@main/fileOps'
@@ -79,6 +80,10 @@ export function registerFileHandlers(
 
   safeHandle(IPC.renamePath, async (oldPath, newName) => {
     return renamePath(String(oldPath), String(newName))
+  })
+
+  safeHandle(IPC.duplicatePath, async (path) => {
+    return duplicatePath(String(path))
   })
 
   safeHandle(IPC.deletePath, async (path) => {

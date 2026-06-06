@@ -23,6 +23,8 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'revertToSaved',
   'showInFinder',
   'revealInFileTree',
+  'duplicateFile',
+  'deleteFile',
   'toggleSource',
   'toggleSidebar',
   'find',

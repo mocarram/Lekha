@@ -41,6 +41,16 @@ export interface FileOps {
    * the document is dirty.
    */
   revertToSaved(): Promise<void>
+  /**
+   * Duplicate the current file on disk ("name copy.md"), refresh the tree, and
+   * open the copy. No-op when the document has no path (unsaved).
+   */
+  duplicateCurrent(): Promise<void>
+  /**
+   * Move the current file to the OS trash (after confirming), then reset to a
+   * blank document and refresh the tree. No-op when the document has no path.
+   */
+  deleteCurrent(): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +250,31 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     await loadInto(path, md)
   }, [editorStore, loadInto])
 
+  // Duplicate the current file on disk and open the copy.
+  const duplicateCurrent = useCallback(async (): Promise<void> => {
+    const { path } = editorStore.getState()
+    if (path === null) return
+    const newPath = await window.lekha.duplicatePath(path)
+    await refreshTree()
+    await openPath(newPath)
+  }, [editorStore, refreshTree, openPath])
+
+  // Move the current file to trash (after confirm), then reset to a blank doc.
+  const deleteCurrent = useCallback(async (): Promise<void> => {
+    const { path } = editorStore.getState()
+    if (path === null) return
+    if (
+      !window.confirm(
+        'Move this file to the Trash? You can restore it from the system Trash.',
+      )
+    ) {
+      return
+    }
+    await window.lekha.deletePath(path)
+    await newFile()
+    await refreshTree()
+  }, [editorStore, newFile, refreshTree])
+
   return {
     open,
     openPath,
@@ -250,5 +285,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     refreshTree,
     guardUnsaved,
     revertToSaved,
+    duplicateCurrent,
+    deleteCurrent,
   }
 }
