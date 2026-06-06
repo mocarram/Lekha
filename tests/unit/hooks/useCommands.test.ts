@@ -178,7 +178,7 @@ describe('useCommands - subscription lifecycle', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
 
     // Verify onCommand was called; use capturedDispatch as the indicator
     // (avoids unbound-method lint on window.lekha.onCommand)
@@ -192,7 +192,7 @@ describe('useCommands - subscription lifecycle', () => {
     const onReplace = vi.fn()
 
     const { unmount } = renderHook(() =>
-      useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }),
+      useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }),
     )
 
     unmount()
@@ -212,7 +212,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('save') })
 
     expect(save).toHaveBeenCalledOnce()
@@ -224,7 +224,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('new') })
 
     expect(newFile).toHaveBeenCalledOnce()
@@ -236,7 +236,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('newWindow') })
 
     const { newWindow } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
@@ -249,7 +249,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('open') })
 
     expect(open).toHaveBeenCalledOnce()
@@ -261,7 +261,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('saveAs') })
 
     expect(saveAs).toHaveBeenCalledOnce()
@@ -273,7 +273,7 @@ describe('useCommands - file operation routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('openFolder') })
 
     expect(openFolder).toHaveBeenCalledOnce()
@@ -291,7 +291,7 @@ describe('useCommands - editor command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('bold') })
 
     expect(runCommand).toHaveBeenCalledWith('bold')
@@ -303,7 +303,7 @@ describe('useCommands - editor command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('heading2') })
 
     expect(runCommand).toHaveBeenCalledWith('heading2')
@@ -315,7 +315,7 @@ describe('useCommands - editor command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('undo') })
 
     expect(runCommand).toHaveBeenCalledWith('undo')
@@ -335,7 +335,7 @@ describe('useCommands - sidebar and mode routing', () => {
 
     useWorkspaceStore.setState({ sidebarVisible: true })
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('toggleSidebar') })
 
     expect(useWorkspaceStore.getState().sidebarVisible).toBe(false)
@@ -347,7 +347,7 @@ describe('useCommands - sidebar and mode routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('toggleSource') })
 
     expect(toggleMode).toHaveBeenCalledOnce()
@@ -362,7 +362,7 @@ describe('useCommands - sidebar and mode routing', () => {
 
     useEditorStore.setState({ mode: 'wysiwyg' })
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('toggleSource') })
 
     // The store must reflect the NEW mode returned by toggleMode(), not a stale read.
@@ -381,7 +381,7 @@ describe('useCommands - find/replace routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('find') })
 
     expect(onFind).toHaveBeenCalledOnce()
@@ -393,7 +393,7 @@ describe('useCommands - find/replace routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('replace') })
 
     expect(onReplace).toHaveBeenCalledOnce()
@@ -415,7 +415,7 @@ describe('useCommands - export command routing', () => {
     const handle = ref.current!
     vi.spyOn(handle, 'getMarkdown').mockReturnValue('# Hello')
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('exportHtml') })
 
     // exportHtml is async (calls buildExportHtml then the mock). Flush promises.
@@ -436,7 +436,7 @@ describe('useCommands - export command routing', () => {
     const onFind = vi.fn()
     const onReplace = vi.fn()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn() }))
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn() }))
     act(() => { capturedDispatch!('exportPdf') })
 
     await new Promise<void>((resolve) => setTimeout(resolve, 50))
@@ -470,6 +470,7 @@ describe('useCommands - export command routing', () => {
           onPreferences: vi.fn(),
           onCommandPalette: vi.fn(),
           onQuickOpen: vi.fn(),
+          onPresentation: vi.fn(),
         }),
       )
       act(() => {
@@ -513,6 +514,7 @@ describe('useCommands - copy as html/markdown routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('copyAsMarkdown') })
@@ -541,6 +543,7 @@ describe('useCommands - copy as html/markdown routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('copyAsHtml') })
@@ -583,6 +586,7 @@ describe('useCommands - link/image dialog routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('link') })
@@ -613,6 +617,7 @@ describe('useCommands - link/image dialog routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('link') })
@@ -641,6 +646,7 @@ describe('useCommands - link/image dialog routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('insertImage') })
@@ -668,6 +674,7 @@ describe('useCommands - preferences routing', () => {
         onPreferences,
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('preferences') })
@@ -695,6 +702,7 @@ describe('useCommands - command palette / quick-open routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette,
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('commandPalette') })
@@ -716,6 +724,7 @@ describe('useCommands - command palette / quick-open routing', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen,
+        onPresentation: vi.fn(),
       }),
     )
     act(() => { capturedDispatch!('quickOpen') })
@@ -742,6 +751,7 @@ describe('useCommands - returned dispatch', () => {
         onPreferences: vi.fn(),
         onCommandPalette: vi.fn(),
         onQuickOpen: vi.fn(),
+        onPresentation: vi.fn(),
       }),
     )
 

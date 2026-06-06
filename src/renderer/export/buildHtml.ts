@@ -280,6 +280,35 @@ export interface BuildHtmlOptions {
 }
 
 /**
+ * Render `markdown` to an HTML body fragment (no `<html>`/`<head>` wrapper).
+ *
+ * The returned string is the inner HTML of a `.markdown-body` container:
+ * headings, paragraphs, code blocks (highlighted), math (KaTeX), and mermaid
+ * diagrams (inline SVG). It does NOT include a doctype, `<html>`, `<head>`,
+ * or `<body>` tag.
+ *
+ * This is the shared rendering core used by both `buildExportHtml` (which wraps
+ * the result in a full standalone document) and the presentation overlay (which
+ * injects the fragment directly into a slide `<div>`).
+ *
+ * @param markdown - Raw markdown source text.
+ * @returns        Rendered HTML body fragment as a string.
+ */
+export async function renderMarkdownBody(markdown: string): Promise<string> {
+  // 1. Extract mermaid blocks and render them asynchronously
+  const { processed, blocks } = await extractAndRenderMermaid(markdown)
+
+  // 2. Build and run the markdown-it renderer
+  const md = buildMarkdownIt()
+  let body = md.render(processed)
+
+  // 3. Reinsert the rendered mermaid SVGs
+  body = reinsertMermaid(body, blocks)
+
+  return body
+}
+
+/**
  * Render `markdown` to a complete, self-contained HTML document.
  *
  * The document includes:
@@ -292,6 +321,9 @@ export interface BuildHtmlOptions {
  *
  * All CSS is inlined so the output file is self-contained (no network requests).
  *
+ * Internally delegates to `renderMarkdownBody` so the rendering pipeline is
+ * shared with the presentation overlay (DRY - no duplication).
+ *
  * @param markdown - Raw markdown source text.
  * @param opts     - Optional title for the HTML document.
  * @returns        Full `<!DOCTYPE html>` document as a string.
@@ -302,19 +334,12 @@ export async function buildExportHtml(
 ): Promise<string> {
   const title = opts?.title ?? 'Untitled'
 
-  // 1. Extract mermaid blocks and render them asynchronously
-  const { processed, blocks } = await extractAndRenderMermaid(markdown)
+  // 1. Render the markdown body (mermaid + math + code highlighting)
+  const body = await renderMarkdownBody(markdown)
 
-  // 2. Build and run the markdown-it renderer
-  const md = buildMarkdownIt()
-  let body = md.render(processed)
-
-  // 3. Reinsert the rendered mermaid SVGs
-  body = reinsertMermaid(body, blocks)
-
-  // 4. Concatenate all CSS (github theme + katex + hljs)
+  // 2. Concatenate all CSS (github theme + katex + hljs)
   const cssBlob = [githubCss, katexCss, hljsCss].join('\n\n')
 
-  // 5. Assemble the complete HTML document
+  // 3. Assemble the complete HTML document
   return buildDocument(body, title, cssBlob)
 }

@@ -283,6 +283,8 @@ export function buildMenuTemplate(
       // The renderer owns the checked/active state (store + container class/attr);
       // these items simply dispatch the toggle command. This keeps buildMenuTemplate
       // synchronous and avoids the complexity of checkbox state in the menu template.
+      item('Enter Presentation', 'F5', 'presentation', send),
+      sep,
       item('Focus Mode',      'F8', 'toggleFocusMode',      send),
       item('Typewriter Mode', 'F9', 'toggleTypewriterMode', send),
       sep,

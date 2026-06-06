@@ -31,6 +31,7 @@ export const COMMANDS: CommandDef[] = [
   { id: 'saveAs', label: 'Save As…', group: 'File', shortcut: '⌘⇧S' },
 
   // View
+  { id: 'presentation', label: 'Enter Presentation', group: 'View', shortcut: 'F5' },
   { id: 'toggleSidebar', label: 'Toggle Sidebar', group: 'View', shortcut: '⌘\\' },
   { id: 'toggleSource', label: 'Toggle Source Mode', group: 'View', shortcut: '⌘⌥S' },
   { id: 'toggleFocusMode', label: 'Focus Mode', group: 'View', shortcut: 'F8' },

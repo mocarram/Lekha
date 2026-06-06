@@ -23,6 +23,8 @@ import { WordCountPanel } from '@renderer/components/WordCountPanel'
 import { TableToolbar } from '@renderer/components/TableToolbar'
 import { ImageZoom } from '@renderer/components/ImageZoom'
 import { CommandPalette, type PaletteMode } from '@renderer/components/CommandPalette'
+import { Presentation } from '@renderer/components/Presentation'
+import { splitSlides } from '@renderer/presentation/slides'
 import { COMMANDS } from '@renderer/commands/registry'
 import { flattenFiles } from '@renderer/commands/files'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
@@ -153,6 +155,16 @@ export default function App() {
     mode: PaletteMode
   }>({ open: false, seq: 0, mode: 'commands' })
 
+  // Presentation overlay state: open/closed + the pre-split slides for the
+  // document snapshot captured at the moment the overlay opens. `seq` increments
+  // on each open, used as the React `key` so the component remounts fresh with
+  // the new slides (avoids the need for internal derived-state resets).
+  const [presState, setPresState] = useState<{
+    open: boolean
+    seq: number
+    slides: string[]
+  }>({ open: false, seq: 0, slides: [] })
+
   // Workspace file tree (for quick-open) + root, kept live from the store.
   const fileTree = useWorkspaceStore((s) => s.fileTree)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
@@ -207,6 +219,12 @@ export default function App() {
     },
     onQuickOpen: () => {
       setPaletteState((prev) => ({ open: true, seq: prev.seq + 1, mode: 'files' }))
+    },
+    onPresentation: () => {
+      // Snapshot the current markdown and split into slides when the overlay opens.
+      const markdown = editorRef.current?.getMarkdown() ?? ''
+      const slides = splitSlides(markdown)
+      setPresState((prev) => ({ open: true, seq: prev.seq + 1, slides }))
     },
   })
 
@@ -479,6 +497,17 @@ export default function App() {
           void fileOps.openPath(path)
         }}
         onClose={() => setPaletteState((prev) => ({ ...prev, open: false }))}
+      />
+
+      <Presentation
+        key={`presentation-${presState.seq}`}
+        open={presState.open}
+        slides={presState.slides}
+        onExit={() => {
+          setPresState((prev) => ({ ...prev, open: false }))
+          // Restore focus to the editor after exiting the presentation.
+          editorRef.current?.focus()
+        }}
       />
 
       {tableState.inTable && tableState.rect ? (

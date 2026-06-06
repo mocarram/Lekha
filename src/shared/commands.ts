@@ -44,3 +44,4 @@ export type AppCommand =
   | 'copyAsMarkdown'
   | 'commandPalette'
   | 'quickOpen'
+  | 'presentation'

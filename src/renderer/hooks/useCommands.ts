@@ -60,6 +60,8 @@ export interface CommandOpts {
   onCommandPalette: () => void
   /** Open the command palette in 'files' (quick-open) mode (Cmd+P). */
   onQuickOpen: () => void
+  /** Open the presentation (slideshow) overlay. */
+  onPresentation: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +218,14 @@ export function useCommands(
       }
       if (cmd === 'quickOpen') {
         o.onQuickOpen()
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Presentation mode (slides overlay)
+      // ------------------------------------------------------------------
+      if (cmd === 'presentation') {
+        o.onPresentation()
         return
       }
 

@@ -59,6 +59,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'copyAsMarkdown',
   'commandPalette',
   'quickOpen',
+  'presentation',
 ])
 
 describe('COMMANDS registry', () => {

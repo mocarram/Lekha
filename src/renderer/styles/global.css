@@ -1048,3 +1048,121 @@ body,
   color: #ffffff;
   text-decoration: underline;
 }
+
+/* ---------------------------------------------------------------------------
+ * Presentation overlay (slideshow mode)
+ *
+ * Full-screen, high z-index overlay that covers the entire app. Dark background
+ * with centered slide content scaled up for readability. Token-themed counter
+ * in the bottom center. Two invisible click zones (left / right halves) for
+ * mouse navigation without visible buttons.
+ * --------------------------------------------------------------------------- */
+.pres-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Left click zone (prev) - transparent, covers the left 40% */
+.pres__click-prev {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40%;
+  height: 100%;
+  z-index: 10;
+  cursor: w-resize;
+}
+
+/* Right click zone (next) - transparent, covers the right 60% */
+.pres__click-next {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  z-index: 10;
+  cursor: e-resize;
+}
+
+/* The stage contains the slide and scales it for presentation readability */
+.pres__stage {
+  position: relative;
+  z-index: 20;
+  width: 90vw;
+  max-width: 1100px;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* The slide content box - uses .markdown-body for rendering compatibility */
+.pres__slide.markdown-body {
+  pointer-events: none;
+  width: 100%;
+  font-size: clamp(18px, 2.5vw, 28px);
+  line-height: 1.7;
+  color: #f0f0f0;
+  background: transparent;
+  /* Override github.css / export styles that assume a white background */
+  --gh-text: #f0f0f0;
+  --gh-font-body: var(--font-editor, Georgia, serif);
+}
+
+/* Headings: slightly accent-colored for slide clarity */
+.pres__slide.markdown-body h1,
+.pres__slide.markdown-body h2,
+.pres__slide.markdown-body h3 {
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Code blocks in slides */
+.pres__slide.markdown-body pre,
+.pres__slide.markdown-body code {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+/* Blockquotes in slides */
+.pres__slide.markdown-body blockquote {
+  border-left-color: rgba(255, 255, 255, 0.3);
+  color: #c0c0c0;
+}
+
+/* Tables in slides */
+.pres__slide.markdown-body table {
+  color: #f0f0f0;
+}
+
+.pres__slide.markdown-body th,
+.pres__slide.markdown-body td {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Slide counter: fixed at the bottom center, above click zones */
+.pres__counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  user-select: none;
+}
