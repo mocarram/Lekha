@@ -523,3 +523,9 @@ Implemented (menu/settings parity):
 - Fixed pre-existing lint debt in findReplace.test.tsx (Wave 3 test slipped past eslint): use `getByLabelText<HTMLInputElement>`.
 
 Tests: +12 (highlight/sup/sub/clear command toggles + registry/menu coverage). 1183 unit + 7 e2e green.
+
+### Wave 5 - Underline mark (`feat/wysiwyg-underline`)
+Implemented (resolved Q5):
+- **Underline `<u>` mark** with Cmd+U. New `underline-plugin.ts` adds a markdown-it inline rule that tokenizes bare `<u>`/`</u>` into `u_open`/`u_close` (html stays disabled, only these two tags handled); schema gains an `underline` mark; parser maps token `u` -> underline; serializer emits raw `<u>…</u>` (WYSIWYG HTML passthrough). Wired into editorCommandMap, keymap (Mod-u), Format menu, and the command registry.
+
+Tests: +5 (underline round-trip + parse, command toggle, registry/menu/entries coverage). 1187 unit + 7 e2e green. Round-trip `<u>underlined</u>` is idempotent.

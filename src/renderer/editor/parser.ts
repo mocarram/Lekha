@@ -13,6 +13,7 @@ import { mathPlugin } from './math-plugin'
 import { frontMatterPlugin } from './frontmatter-plugin'
 import { tocPlugin } from './toc-plugin'
 import { footnotePlugin } from './footnote-plugin'
+import { underlinePlugin } from './underline-plugin'
 import { schema } from './schema'
 
 /**
@@ -290,6 +291,8 @@ const tokenizer = MarkdownIt('commonmark', { html: false })
   .use(frontMatterPlugin)
   .use(tocPlugin)
   .use(footnotePlugin)
+  // Underline via raw <u>…</u> tags (WYSIWYG-style; html stays disabled).
+  .use(underlinePlugin)
 
 // Run AFTER markdown-it-task-lists' `github-task-lists` rule so the
 // `contains-task-list`/`task-list-item` classes it sets are present.
@@ -425,6 +428,8 @@ const tokens: Record<string, ParseSpec> = {
   mark: { mark: 'highlight' },
   sub: { mark: 'subscript' },
   sup: { mark: 'superscript' },
+  // Underline: `u_open`/`u_close` tokens from underlinePlugin (raw <u> tags).
+  u: { mark: 'underline' },
   link: {
     mark: 'link',
     getAttrs: (tok) => ({

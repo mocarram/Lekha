@@ -13,6 +13,7 @@ export type AppCommand =
   | 'italic'
   | 'strikethrough'
   | 'inlineCode'
+  | 'underline'
   | 'highlight'
   | 'superscript'
   | 'subscript'

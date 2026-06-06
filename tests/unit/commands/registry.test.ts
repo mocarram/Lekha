@@ -28,6 +28,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'italic',
   'strikethrough',
   'inlineCode',
+  'underline',
   'highlight',
   'superscript',
   'subscript',

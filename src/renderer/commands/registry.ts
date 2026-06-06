@@ -49,6 +49,7 @@ export const COMMANDS: CommandDef[] = [
   // Format - inline
   { id: 'bold', label: 'Bold', group: 'Format', shortcut: '⌘B' },
   { id: 'italic', label: 'Italic', group: 'Format', shortcut: '⌘I' },
+  { id: 'underline', label: 'Underline', group: 'Format', shortcut: '⌘U' },
   { id: 'strikethrough', label: 'Strikethrough', group: 'Format' },
   { id: 'inlineCode', label: 'Inline Code', group: 'Format' },
   { id: 'highlight', label: 'Highlight', group: 'Format', shortcut: '⌘⇧H' },

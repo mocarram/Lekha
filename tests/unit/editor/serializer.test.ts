@@ -66,3 +66,20 @@ describe('serializeMarkdown - mixed lists (KNOWN FIX #1)', () => {
     expect(rt('- a\n- [x] b')).toBe('- a\n- [x] b')
   })
 })
+
+describe('serializeMarkdown - underline (WYSIWYG <u> mark)', () => {
+  it('round-trips <u>underlined</u>', () => {
+    expect(rt('<u>underlined</u>')).toBe('<u>underlined</u>')
+  })
+
+  it('parses <u> into the underline mark', () => {
+    const doc = parseMarkdown('<u>x</u>')
+    let found = false
+    doc.descendants((node) => {
+      if (node.isText && node.marks.some((m) => m.type.name === 'underline')) {
+        found = true
+      }
+    })
+    expect(found).toBe(true)
+  })
+})

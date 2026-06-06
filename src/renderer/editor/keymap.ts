@@ -74,6 +74,7 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     'Mod-i': cmds.italic!,
     'Mod-Shift-x': cmds.strikethrough!,
     'Mod-`': cmds.inlineCode!,
+    'Mod-u': cmds.underline!,
 
     // History - pulled from editorCommandMap (shared with menu)
     'Mod-z': cmds.undo!,

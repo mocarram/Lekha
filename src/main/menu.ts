@@ -243,6 +243,7 @@ export function buildMenuTemplate(
     submenu: [
       item('Bold',          'CmdOrCtrl+B',       'bold',          send),
       item('Italic',        'CmdOrCtrl+I',       'italic',        send),
+      item('Underline',     'CmdOrCtrl+U',        'underline',     send),
       item('Strikethrough', undefined,            'strikethrough', send),
       item('Code',          undefined,            'inlineCode',    send),
       item('Highlight',     'CmdOrCtrl+Shift+H',  'highlight',     send),

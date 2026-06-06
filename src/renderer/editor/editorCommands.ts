@@ -120,6 +120,7 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   const italic = toggleMark(schema.marks['em']!)
   const strikethrough = toggleMark(schema.marks['strikethrough']!)
   const inlineCode = toggleMark(schema.marks['code']!)
+  const underline = toggleMark(schema.marks['underline']!)
   const highlight = toggleMark(schema.marks['highlight']!)
   const superscript = toggleMark(schema.marks['superscript']!)
   const subscript = toggleMark(schema.marks['subscript']!)
@@ -165,6 +166,7 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     italic,
     strikethrough,
     inlineCode,
+    underline,
     highlight,
     superscript,
     subscript,

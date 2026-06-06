@@ -208,6 +208,8 @@ const serializer = new MarkdownSerializer(
     highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true },
     subscript: { open: '~', close: '~', mixable: true },
     superscript: { open: '^', close: '^', mixable: true },
+    // Underline has no Markdown syntax - emit raw <u> HTML (WYSIWYG-style).
+    underline: { open: '<u>', close: '</u>', mixable: true, expelEnclosingWhitespace: true },
   },
 )
 

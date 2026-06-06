@@ -111,6 +111,14 @@ const highlight: MarkSpec = {
   },
 }
 
+/** Underline mark: `<u>text</u>` (raw HTML, WYSIWYG-style; no Markdown syntax). */
+const underline: MarkSpec = {
+  parseDOM: [{ tag: 'u' }],
+  toDOM(): DOMOutputSpec {
+    return ['u', 0]
+  },
+}
+
 /** Extended-inline subscript mark: `~text~` <-> `<sub>`. */
 const subscript: MarkSpec = {
   parseDOM: [{ tag: 'sub' }],
@@ -336,6 +344,7 @@ const marks = baseSchema.spec.marks
     highlight,
     subscript,
     superscript,
+    underline,
   })
 
 export const schema = new Schema({ nodes, marks })

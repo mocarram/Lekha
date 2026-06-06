@@ -67,7 +67,7 @@ const cmdMap = editorCommandMap(schema)
 
 describe('editorCommandMap - entries present', () => {
   const expectedCommands: AppCommand[] = [
-    'bold', 'italic', 'strikethrough', 'inlineCode',
+    'bold', 'italic', 'strikethrough', 'inlineCode', 'underline',
     'highlight', 'superscript', 'subscript', 'clearFormatting',
     'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6',
     'paragraph',
@@ -121,6 +121,12 @@ describe('editorCommandMap - mark toggles', () => {
     const next = applyCmd(stateWithSelection('text'), cmdMap['highlight']!)
     expect(next).not.toBeNull()
     expect(hasMark(next!, 'highlight')).toBe(true)
+  })
+
+  it('underline toggles underline mark on selection', () => {
+    const next = applyCmd(stateWithSelection('text'), cmdMap['underline']!)
+    expect(next).not.toBeNull()
+    expect(hasMark(next!, 'underline')).toBe(true)
   })
 
   it('superscript toggles superscript mark on selection', () => {
