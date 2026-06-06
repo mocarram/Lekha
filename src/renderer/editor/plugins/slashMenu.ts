@@ -16,8 +16,7 @@
  * while the menu is up, the plugin's `handleKeyDown` swallows them whenever the
  * menu is open. EditorView bridges the two by reading this plugin's state on
  * every transaction and lifting `{ open, from, query }` into React state, and
- * by calling `insertBlock` / `closeSlashMenu` in response to the component's
- * callbacks.
+ * by calling `insertBlock` in response to the component's callbacks.
  *
  * ---------------------------------------------------------------------------
  * Activation detection (why it never hijacks a literal slash)
@@ -31,7 +30,6 @@
  * whitespace) or moving the cursor away also closes it.
  */
 import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from 'prosemirror-state'
-import { type EditorView } from 'prosemirror-view'
 import { setBlockType, wrapIn } from 'prosemirror-commands'
 import { wrapInList } from 'prosemirror-schema-list'
 import { schema } from '../schema'
@@ -157,19 +155,6 @@ export function slashMenuPlugin(): Plugin<SlashMenuState> {
 // ---------------------------------------------------------------------------
 
 type Dispatch = (tr: Transaction) => void
-
-/**
- * Close the menu by nudging the editor: detection keys off doc/selection, so to
- * "leave the slash text" we simply re-focus without changing anything - the
- * menu is dismissed by the component (Escape) leaving the `/` text in place.
- * Provided for symmetry / explicit callers; a no-op transaction is enough to
- * let the host re-read state, but in practice the component just stops
- * rendering. Kept as a thin helper so callers don't poke the view directly.
- */
-export function closeSlashMenu(view: EditorView): void {
-  // Re-focus the editor; the menu's open state is derived, so nothing to clear.
-  view.focus()
-}
 
 /**
  * Build the table-insert transaction fragment: a starter 2x2 GFM table with a

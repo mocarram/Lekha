@@ -97,7 +97,7 @@ function initMermaid(instance: Mermaid, theme: MermaidTheme): void {
 }
 
 // Custom DOM events used to sync mermaid with the app theme.
-export const THEME_CHANGE_EVENT = 'lekha-theme-change'
+const THEME_CHANGE_EVENT = 'lekha-theme-change'
 export const MERMAID_RERENDER_EVENT = 'lekha-mermaid-rerender'
 
 /**
@@ -108,7 +108,7 @@ export const MERMAID_RERENDER_EVENT = 'lekha-mermaid-rerender'
  * nothing to re-initialize and no diagram on screen, so we skip the work; the
  * next render will pick up the current theme via loadMermaid().
  */
-export function setMermaidTheme(dataTheme: string | undefined): void {
+function setMermaidTheme(dataTheme: string | undefined): void {
   if (mermaidPromise !== null) {
     void mermaidPromise.then((instance) =>
       initMermaid(instance, mermaidThemeFor(dataTheme)),

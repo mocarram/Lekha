@@ -50,7 +50,7 @@ import { availableLanguages } from './languages'
  * Set of fenced-code languages that should show a live diagram preview.
  * Extend this set to add future diagram types (e.g. 'plantuml', 'graphviz').
  */
-export const DIAGRAM_LANGS = new Set(['mermaid'])
+const DIAGRAM_LANGS = new Set(['mermaid'])
 
 // ---------------------------------------------------------------------------
 // Placeholder text shown while the preview is empty or before first render

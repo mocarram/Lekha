@@ -9,7 +9,7 @@ export type UnsavedChoice = 'save' | 'dontSave' | 'cancel'
  * Buttons array: ['Save', "Don't Save", 'Cancel'] -> indices 0, 1, 2.
  * This is a pure helper so it can be unit-tested independently.
  */
-export function mapUnsavedResponse(index: number): UnsavedChoice {
+function mapUnsavedResponse(index: number): UnsavedChoice {
   if (index === 0) return 'save'
   if (index === 1) return 'dontSave'
   return 'cancel'

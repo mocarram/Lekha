@@ -191,7 +191,7 @@ function nextFolded(prev: Set<number>, tr: Transaction): Set<number> {
  * Toggle the fold state of the heading at `headingPos` by dispatching a meta.
  * Used by the chevron widget's click handler.
  */
-export function toggleFold(view: EditorView, headingPos: number): void {
+function toggleFold(view: EditorView, headingPos: number): void {
   view.dispatch(view.state.tr.setMeta(headingFoldKey, toggleFoldMeta(headingPos)))
 }
 

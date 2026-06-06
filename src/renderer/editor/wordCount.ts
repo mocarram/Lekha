@@ -42,16 +42,6 @@ function textSegments(doc: Node): string[] {
   return segments
 }
 
-/**
- * Extract the document's text as a single string: each leaf text-block's
- * content joined with a newline so block boundaries become line breaks. Shared
- * source of truth used by `countWords` and consumed by `documentStats` (via the
- * markdown the caller passes). Exported for reuse by panels/exports.
- */
-export function docText(doc: Node): string {
-  return textSegments(doc).join('\n')
-}
-
 export function countWords(doc: Node): DocCounts {
   const segments = textSegments(doc)
 
