@@ -658,9 +658,11 @@
 
 .editor-pane .ProseMirror li.task-item > span[contenteditable="false"] {
   flex-shrink: 0;
-  /* Nudge the 16px checkbox down so it sits on the first text line's optical
-     center (line-height 1.7). */
-  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  /* Match the first text line's box height (font-size x line-height 1.7) so the
+     checkbox is vertically centered on that line rather than pinned to its top. */
+  height: 1.7em;
 }
 
 /* The checkbox itself inherits the app-wide Apple-style treatment defined in
