@@ -260,3 +260,58 @@ describe('keymapBindings - table cell navigation', () => {
     expect(nestedList.child(0).child(0).textContent).toBe('b')
   })
 })
+
+// ---------------------------------------------------------------------------
+// WYSIWYG-parity additions: Cmd+1..6 / Cmd+0 headings, Shift-Enter, Backspace
+// ---------------------------------------------------------------------------
+
+describe('keymapBindings - WYSIWYG heading shortcuts (Mod-1..6 / Mod-0)', () => {
+  it('exports Mod-1 through Mod-6 and Mod-0', () => {
+    for (let i = 1; i <= 6; i++) {
+      expect(bindings[`Mod-${i}`], `Mod-${i} missing`).toBeDefined()
+    }
+    expect(bindings['Mod-0']).toBeDefined()
+  })
+
+  it('Mod-2 converts a paragraph to heading level 2', () => {
+    const next = applyCmd(stateWithText('hello'), bindings['Mod-2']!)
+    expect(next).not.toBeNull()
+    expect(next!.doc.firstChild!.type.name).toBe('heading')
+    expect(next!.doc.firstChild!.attrs['level']).toBe(2)
+  })
+
+  it('Mod-0 converts a heading back to a paragraph', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('heading', { level: 2 }, [schema.text('title')]),
+    ])
+    const next = applyCmd(EditorState.create({ schema, doc }), bindings['Mod-0']!)
+    expect(next).not.toBeNull()
+    expect(next!.doc.firstChild!.type.name).toBe('paragraph')
+  })
+})
+
+describe('keymapBindings - Shift-Enter hard break', () => {
+  it('inserts a hard_break node', () => {
+    const next = applyCmd(stateWithText('line'), bindings['Shift-Enter']!)
+    expect(next).not.toBeNull()
+    let hasBreak = false
+    next!.doc.descendants((node) => {
+      if (node.type.name === 'hard_break') hasBreak = true
+    })
+    expect(hasBreak).toBe(true)
+  })
+})
+
+describe('keymapBindings - Backspace undoes input rules', () => {
+  it('exports a Backspace binding', () => {
+    expect(bindings['Backspace']).toBeDefined()
+    expect(typeof bindings['Backspace']).toBe('function')
+  })
+
+  it('declines (returns false) when there is no input rule to undo', () => {
+    // No undoable input rule in plain state -> command should decline so the
+    // base keymap can handle a normal delete.
+    const fired = bindings['Backspace']!(stateWithText('hello'), undefined)
+    expect(fired).toBe(false)
+  })
+})

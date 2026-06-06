@@ -249,3 +249,21 @@ describe('task-list input rule', () => {
     expect(firstBlock(view).type.name).toBe('bullet_list')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Block-equation input rule: `$$` at start of empty paragraph -> math_block
+// ---------------------------------------------------------------------------
+
+describe('block-equation input rule', () => {
+  it('$$ at the start of an empty paragraph inserts a math_block', () => {
+    typeText(view, '$$')
+    expect(firstBlock(view).type.name).toBe('math_block')
+  })
+
+  it('does not fire when there is already text in the paragraph', () => {
+    typeText(view, 'x')
+    typeText(view, '$$')
+    // Still a paragraph - the marker stays literal text.
+    expect(firstBlock(view).type.name).toBe('paragraph')
+  })
+})

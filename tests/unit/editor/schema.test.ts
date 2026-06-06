@@ -105,3 +105,9 @@ describe('schema marks', () => {
     expect(EXPECTED_MARKS).toHaveLength(5)
   })
 })
+
+describe('inline code mark (WYSIWYG parity)', () => {
+  it('is non-inclusive so typing past it exits the code styling', () => {
+    expect(schema.marks['code']!.spec.inclusive).toBe(false)
+  })
+})

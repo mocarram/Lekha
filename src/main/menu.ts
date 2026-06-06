@@ -249,16 +249,16 @@ export function buildMenuTemplate(
       item('Insert Link…',  'CmdOrCtrl+K',        'link',        send),
       item('Insert Image…', 'CmdOrCtrl+Shift+I',  'insertImage', send),
       sep,
-      // Headings 1-6
+      // Headings 1-6 (WYSIWYG shortcuts: Cmd+1..6, Cmd+0 for paragraph).
       ...(([1, 2, 3, 4, 5, 6] as const).map((level) =>
         item(
           `Heading ${level}`,
-          `CmdOrCtrl+Alt+${level}`,
+          `CmdOrCtrl+${level}`,
           `heading${level}`,
           send,
         ),
       )),
-      item('Paragraph',    'CmdOrCtrl+Alt+0', 'paragraph', send),
+      item('Paragraph',    'CmdOrCtrl+0', 'paragraph', send),
       sep,
       item('Bullet List',      undefined, 'bulletList',     send),
       item('Ordered List',     undefined, 'orderedList',    send),

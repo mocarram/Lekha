@@ -8,7 +8,7 @@ import {
   ellipsis,
   emDash,
 } from 'prosemirror-inputrules'
-import { type Plugin, TextSelection } from 'prosemirror-state'
+import { type Plugin, TextSelection, NodeSelection } from 'prosemirror-state'
 import emojiDefs from 'markdown-it-emoji/lib/data/full.mjs'
 
 // ---------------------------------------------------------------------------
@@ -173,6 +173,42 @@ function taskListInputRule(schema: Schema): InputRule {
 }
 
 // ---------------------------------------------------------------------------
+// Block-equation input rule
+// ---------------------------------------------------------------------------
+
+/**
+ * Typing `$$` at the start of an empty paragraph inserts a block equation
+ * (WYSIWYG's gesture). Replaces the paragraph with an empty math_block and
+ * selects it so the math NodeView is ready to edit.
+ */
+function mathBlockInputRule(schema: Schema): InputRule {
+  const mathBlockType = schema.nodes['math_block']
+  const paragraphType = schema.nodes['paragraph']
+
+  // The `^\$\$$` anchors guarantee the whole line is exactly `$$`, so the rule
+  // only fires on an otherwise-empty paragraph. Skip list/task items where a
+  // nested block equation would be awkward.
+  return new InputRule(/^\$\$$/, (state, _match, start) => {
+    if (!mathBlockType || !paragraphType) return null
+    const $start = state.doc.resolve(start)
+    if ($start.parent.type !== paragraphType) return null
+    const grandparent = $start.node($start.depth - 1)
+    if (
+      grandparent &&
+      (grandparent.type.name === 'list_item' ||
+        grandparent.type.name === 'task_item')
+    ) {
+      return null
+    }
+
+    const from = $start.before()
+    const to = $start.after()
+    const tr = state.tr.replaceWith(from, to, mathBlockType.create({ latex: '' }))
+    return tr.setSelection(NodeSelection.create(tr.doc, from)).scrollIntoView()
+  })
+}
+
+// ---------------------------------------------------------------------------
 // buildInputRules
 // ---------------------------------------------------------------------------
 
@@ -201,6 +237,9 @@ export function buildInputRules(schema: Schema): Plugin {
     // Task list: `[ ] `, `[] `, `[x] ` (must precede the bullet rule so a bare
     // bracket marker is handled here rather than slipping through).
     taskListInputRule(schema),
+
+    // Block equation: `$$` at the start of an empty paragraph.
+    mathBlockInputRule(schema),
 
     // Bullet list: `- `, `* `, `+ `
     wrappingInputRule(/^\s*([-*+])\s$/, schema.nodes['bullet_list']!),

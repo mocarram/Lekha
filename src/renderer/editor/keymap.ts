@@ -8,6 +8,7 @@ import {
   liftListItem,
 } from 'prosemirror-schema-list'
 import { goToNextCell } from 'prosemirror-tables'
+import { undoInputRule } from 'prosemirror-inputrules'
 import { editorCommandMap } from './editorCommands'
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,18 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     liftListItem(taskItemType),
   )
 
+  // Shift-Enter inserts a hard line break (WYSIWYG: soft newline within a block).
+  const hardBreakType = schema.nodes['hard_break']
+  const hardBreakCmd: Command = (state, dispatch) => {
+    if (!hardBreakType) return false
+    if (dispatch) {
+      dispatch(
+        state.tr.replaceSelectionWith(hardBreakType.create()).scrollIntoView(),
+      )
+    }
+    return true
+  }
+
   const bindings: Record<string, Command> = {
     // Inline mark toggles - pulled from editorCommandMap (shared with menu)
     'Mod-b': cmds.bold!,
@@ -69,14 +82,27 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     Tab: tabCmd,
     'Shift-Tab': shiftTabCmd,
 
-    // Block type shortcuts: Mod-Alt-0 = paragraph, Mod-Alt-1..6 = headings
-    // Also pulled from editorCommandMap (shared with menu)
+    // Hard line break (WYSIWYG parity)
+    'Shift-Enter': hardBreakCmd,
+
+    // Backspace first tries to undo a just-applied input rule (so e.g. typing
+    // "# " then immediately Backspace restores the literal "# " instead of
+    // leaving an empty heading). undoInputRule returns false when there is
+    // nothing to revert, letting the base keymap handle a normal delete.
+    Backspace: undoInputRule,
+
+    // Block type shortcuts. WYSIWYG uses Cmd+1..6 for headings and Cmd+0 for
+    // paragraph; we bind those as the primary shortcuts and keep Mod-Alt-0..6
+    // as alternates (shared impl from editorCommandMap).
+    'Mod-0': cmds.paragraph!,
     'Mod-Alt-0': cmds.paragraph!,
   }
 
-  // Add Mod-Alt-1 through Mod-Alt-6 for heading levels
+  // Add heading level shortcuts: Mod-1..6 (WYSIWYG) + Mod-Alt-1..6 (alternate).
   for (let level = 1; level <= 6; level++) {
-    bindings[`Mod-Alt-${level}`] = cmds[`heading${level}` as keyof typeof cmds]!
+    const cmd = cmds[`heading${level}` as keyof typeof cmds]!
+    bindings[`Mod-${level}`] = cmd
+    bindings[`Mod-Alt-${level}`] = cmd
   }
 
   return bindings

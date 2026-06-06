@@ -323,11 +323,19 @@ const nodes = baseSchema.spec.nodes
     footnote_definition: footnoteDefinition,
   })
 
-const marks = baseSchema.spec.marks.append({
-  strikethrough,
-  highlight,
-  subscript,
-  superscript,
-})
+// Make the inline `code` mark non-inclusive (WYSIWYG behavior): when the caret
+// sits at the end of an inline-code span, typing continues OUTSIDE the code,
+// rather than extending the code styling indefinitely. Other marks keep the
+// prosemirror-markdown defaults.
+const codeMarkSpec = baseSchema.spec.marks.get('code')!
+
+const marks = baseSchema.spec.marks
+  .update('code', { ...codeMarkSpec, inclusive: false })
+  .append({
+    strikethrough,
+    highlight,
+    subscript,
+    superscript,
+  })
 
 export const schema = new Schema({ nodes, marks })
