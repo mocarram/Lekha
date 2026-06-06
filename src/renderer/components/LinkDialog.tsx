@@ -12,6 +12,7 @@
  * Keyboard: Esc cancels, Enter confirms. The URL input is autofocused.
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,6 +63,10 @@ export function LinkDialog({
   const [title, setTitle] = useState(initial.title ?? '')
 
   const urlInputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Confine Tab/Shift+Tab to the dialog while it is open.
+  useFocusTrap(dialogRef, open)
 
   // Autofocus the URL field when opened.
   useEffect(() => {
@@ -91,6 +96,7 @@ export function LinkDialog({
   return (
     <div className="dialog-backdrop" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className="dialog"
         role="dialog"
         aria-modal="true"

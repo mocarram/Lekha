@@ -17,6 +17,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -40,6 +41,10 @@ export function FindReplace({ open, mode, editorRef, onClose }: FindReplaceProps
   const [matchInfo, setMatchInfo] = useState({ current: 0, count: 0 })
 
   const findInputRef = useRef<HTMLInputElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+
+  // Confine Tab/Shift+Tab to the overlay while it is open.
+  useFocusTrap(overlayRef, open)
 
   // Autofocus the find input when the overlay opens.
   useEffect(() => {
@@ -121,6 +126,7 @@ export function FindReplace({ open, mode, editorRef, onClose }: FindReplaceProps
 
   return (
     <div
+      ref={overlayRef}
       className="find-replace-overlay"
       role="search"
       aria-label="Find and Replace"

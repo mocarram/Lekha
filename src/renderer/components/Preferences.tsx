@@ -28,6 +28,7 @@ import {
 import { applyTheme, applyFontSize } from '@renderer/themes/index'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -83,6 +84,9 @@ const SPELL_CHECK_LANGUAGES: { value: string; label: string }[] = [
 export function Preferences({ open, onClose }: PreferencesProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Confine Tab/Shift+Tab to the dialog while it is open.
+  useFocusTrap(dialogRef, open)
 
   // Seed the form from the persisted settings each time the modal opens, and
   // move focus into the dialog for accessibility.

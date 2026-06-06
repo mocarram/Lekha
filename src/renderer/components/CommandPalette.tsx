@@ -29,6 +29,7 @@ import {
 import type { AppCommand } from '@shared/commands'
 import type { CommandDef } from '@renderer/commands/registry'
 import { fuzzyFilter } from '@renderer/commands/fuzzy'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 /** A workspace file flattened from the file tree for quick-open. */
 export interface PaletteFileEntry {
@@ -111,11 +112,15 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   // The palette starts fresh each time it opens: the parent passes a `key` that
   // changes per open (and per mode), so this component remounts and these
   // initializers run again - no reset effect needed.
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
+
+  // Confine Tab/Shift+Tab to the palette while it is open.
+  useFocusTrap(dialogRef, open)
 
   // Autofocus the filter input when the palette opens.
   useEffect(() => {
@@ -190,6 +195,7 @@ export function CommandPalette({
   return (
     <div className="cmdk__backdrop" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className="cmdk"
         role="dialog"
         aria-modal="true"

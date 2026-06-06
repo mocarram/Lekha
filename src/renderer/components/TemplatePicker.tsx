@@ -22,6 +22,7 @@ import {
 } from 'react'
 import type { Template } from '@renderer/templates/registry'
 import { fuzzyFilter } from '@renderer/commands/fuzzy'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -82,10 +83,14 @@ function highlight(text: string, indices: number[]): ReactNode {
 export function TemplatePicker({ open, templates, onSelect, onClose }: TemplatePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // Remounts fresh via parent `key` prop on each open - no reset effect needed.
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
+
+  // Confine Tab/Shift+Tab to the picker while it is open.
+  useFocusTrap(dialogRef, open)
 
   // Autofocus the input when the picker opens.
   useEffect(() => {
@@ -141,6 +146,7 @@ export function TemplatePicker({ open, templates, onSelect, onClose }: TemplateP
   return (
     <div className="cmdk__backdrop" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className="cmdk"
         role="dialog"
         aria-modal="true"

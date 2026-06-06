@@ -11,6 +11,7 @@
  */
 import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react'
 import { documentStats } from '@renderer/editor/wordCount'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 export interface WordCountPanelProps {
   open: boolean
@@ -27,6 +28,9 @@ interface StatRow {
 
 export function WordCountPanel({ open, text, onClose }: WordCountPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+
+  // Confine Tab/Shift+Tab to the panel while it is open.
+  useFocusTrap(panelRef, open)
 
   // Recompute the stats whenever the panel opens or the text changes.
   const rows = useMemo<StatRow[]>(() => {

@@ -14,9 +14,10 @@
  * Token-themed (light + dark) and accessible: role="listbox" with
  * aria-selected options.
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fuzzyFilter } from '@renderer/commands/fuzzy'
 import { SLASH_ITEMS, type SlashItem } from '@renderer/editor/plugins/slashMenu'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 /** Screen (client) coordinates of the caret, used to anchor the popup. */
 export interface SlashCoords {
@@ -78,6 +79,13 @@ function highlightLabel(label: string, indices: number[]): ReactNode {
 }
 
 export function SlashMenu({ open, query, coords, onSelect, onClose }: SlashMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // The slash menu is editor-focus-preserving by design (mousedown prevents
+  // focus theft). The trap is applied for Tab containment only - if focus
+  // somehow enters the menu, it cannot escape via Tab.
+  useFocusTrap(menuRef, open)
+
   const [selected, setSelected] = useState(0)
   // Track the last-seen query so we can reset the highlight to the top during
   // render (React's "adjust state when a prop changes" pattern) - no effect,
@@ -127,6 +135,7 @@ export function SlashMenu({ open, query, coords, onSelect, onClose }: SlashMenuP
 
   return (
     <div
+      ref={menuRef}
       className="slashmenu"
       role="listbox"
       aria-label="Insert block"

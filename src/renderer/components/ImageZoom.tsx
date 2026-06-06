@@ -12,7 +12,8 @@
  * Token-themed: uses --color-* CSS variables from global.css.
  */
 
-import { useEffect, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,6 +35,11 @@ export interface ImageZoomProps {
 // ---------------------------------------------------------------------------
 
 export function ImageZoom({ open, src, alt = '', onClose }: ImageZoomProps) {
+  const backdropRef = useRef<HTMLDivElement>(null)
+
+  // Confine Tab/Shift+Tab to the lightbox while it is open.
+  useFocusTrap(backdropRef, open)
+
   // Listen for Escape on the document so the user can dismiss without focus.
   useEffect(() => {
     if (!open) return undefined
@@ -54,6 +60,7 @@ export function ImageZoom({ open, src, alt = '', onClose }: ImageZoomProps) {
   return (
     // Backdrop: dark semi-transparent overlay. Clicking it closes the lightbox.
     <div
+      ref={backdropRef}
       className="image-zoom-backdrop"
       role="dialog"
       aria-modal="true"

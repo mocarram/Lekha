@@ -7,6 +7,7 @@
  * Keyboard: Esc cancels, Enter confirms. The Image URL input is autofocused.
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,6 +43,10 @@ export function ImageDialog({ open, initial, onSubmit, onClose }: ImageDialogPro
   const [alt, setAlt] = useState(initial.alt)
 
   const srcInputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Confine Tab/Shift+Tab to the dialog while it is open.
+  useFocusTrap(dialogRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -68,6 +73,7 @@ export function ImageDialog({ open, initial, onSubmit, onClose }: ImageDialogPro
   return (
     <div className="dialog-backdrop" onMouseDown={onClose}>
       <div
+        ref={dialogRef}
         className="dialog"
         role="dialog"
         aria-modal="true"

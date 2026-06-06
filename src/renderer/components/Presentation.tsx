@@ -33,6 +33,7 @@ import {
   useRef,
 } from 'react'
 import { renderMarkdownBody } from '@renderer/export/buildHtml'
+import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,6 +70,7 @@ export function Presentation({
   // Ref to the slide container for injecting innerHTML (avoids dangerouslySetInnerHTML
   // re-renders fighting with focus/scroll state).
   const slideRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
   // Track the latest open value for the keydown listener (closure safety).
   // Updated in useLayoutEffect (before paint) so it is always current before
   // any async events fire, without mutating the ref during render.
@@ -76,6 +78,9 @@ export function Presentation({
   useLayoutEffect(() => {
     openRef.current = open
   })
+
+  // Confine Tab/Shift+Tab to the presentation overlay while it is open.
+  useFocusTrap(overlayRef, open)
 
   const total = slides.length
 
@@ -176,6 +181,7 @@ export function Presentation({
 
   return (
     <div
+      ref={overlayRef}
       className="pres-overlay"
       role="dialog"
       aria-modal="true"
