@@ -32,8 +32,29 @@ import {
   useCallback,
   useRef,
 } from 'react'
-import { renderMarkdownBody } from '@renderer/export/buildHtml'
 import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
+// Type-only import: erased at build time, so it does NOT pull the export
+// pipeline into the initial chunk. The actual module is dynamic-imported below.
+import type { renderMarkdownBody as RenderMarkdownBody } from '@renderer/export/buildHtml'
+
+// ---------------------------------------------------------------------------
+// Lazy slide renderer
+//
+// The slide renderer (renderMarkdownBody) lives in the export pipeline, which
+// pulls in katex/highlight.js/mermaid. Presentation mode is rarely the first
+// thing a user reaches for, so we dynamic-import the pipeline only when a slide
+// is first rendered - keeping it out of the initial chunk. The promise is
+// cached at module scope so the chunk is fetched once and reused.
+// ---------------------------------------------------------------------------
+
+let renderMarkdownBodyPromise: Promise<typeof RenderMarkdownBody> | null = null
+
+function lazyRenderMarkdownBody(md: string): Promise<string> {
+  renderMarkdownBodyPromise ??= import('@renderer/export/buildHtml').then(
+    (m) => m.renderMarkdownBody,
+  )
+  return renderMarkdownBodyPromise.then((render) => render(md))
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,7 +82,7 @@ export interface PresentationProps {
 export function Presentation({
   open,
   slides,
-  renderSlide = renderMarkdownBody,
+  renderSlide = lazyRenderMarkdownBody,
   onExit,
 }: PresentationProps) {
   const [index, setIndex] = useState(0)

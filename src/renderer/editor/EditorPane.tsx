@@ -4,6 +4,8 @@ import {
   useCallback,
   forwardRef,
   useImperativeHandle,
+  lazy,
+  Suspense,
 } from 'react'
 import type { Node } from 'prosemirror-model'
 import { type EditorMode } from '@shared/types'
@@ -16,12 +18,23 @@ import {
   type TableCommand,
   type TableState,
 } from './EditorView'
-import { SourceView, type SourceHandle } from './SourceView'
+import { type SourceHandle } from './SourceView'
 import { parseMarkdown } from './parser'
 import { serializeMarkdown } from './serializer'
 import { useEditorStore } from '@renderer/store/editorStore'
 import type { AppCommand } from '@shared/commands'
 import type { FindOptions } from './find'
+
+// ---------------------------------------------------------------------------
+// Lazy source-mode editor
+//
+// SourceView pulls in the entire CodeMirror 6 stack (@codemirror/*, @lezer/*),
+// which is only needed when the user toggles to raw-markdown source mode. We
+// React.lazy it so that whole stack becomes a deferred chunk; toggling to
+// source shows a brief fallback while the chunk loads, then mounts CodeMirror.
+// ---------------------------------------------------------------------------
+
+const SourceView = lazy(() => import('./SourceView'))
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -346,11 +359,14 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
             {...(onInsertImage ? { onInsertImage } : {})}
           />
         ) : (
-          <SourceView
-            ref={sourceRef}
-            value={markdown}
-            onChange={handleSourceChange}
-          />
+          // Brief fallback while the CodeMirror chunk loads on first toggle.
+          <Suspense fallback={<div className="source-loading">Loading source view...</div>}>
+            <SourceView
+              ref={sourceRef}
+              value={markdown}
+              onChange={handleSourceChange}
+            />
+          </Suspense>
         )}
       </div>
     )

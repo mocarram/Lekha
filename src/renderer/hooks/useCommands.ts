@@ -21,7 +21,28 @@ import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
-import { buildExportHtml } from '@renderer/export/buildHtml'
+// Type-only import: erased at build time, so it does NOT pull the export
+// pipeline into the initial chunk. The actual module is dynamic-imported below.
+import type { buildExportHtml as BuildExportHtml } from '@renderer/export/buildHtml'
+
+// ---------------------------------------------------------------------------
+// Lazy export pipeline
+//
+// The export pipeline (buildHtml.ts) pulls in katex, highlight.js and the
+// markdown-it stack - none of which are needed until the user actually exports
+// or copies as HTML. We dynamic-import it on first use so it stays out of the
+// initial renderer chunk. The promise is cached at module scope so the chunk is
+// only fetched once and reused for every subsequent export.
+// ---------------------------------------------------------------------------
+
+let buildExportHtmlPromise: Promise<typeof BuildExportHtml> | null = null
+
+function loadBuildExportHtml(): Promise<typeof BuildExportHtml> {
+  buildExportHtmlPromise ??= import('@renderer/export/buildHtml').then(
+    (m) => m.buildExportHtml,
+  )
+  return buildExportHtmlPromise
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -281,11 +302,12 @@ export function useCommands(
         const markdown = editorRef.current?.getMarkdown() ?? ''
         const { title } = useEditorStore.getState()
         const suggestedName = title.endsWith('.html') ? title : title + '.html'
-        void buildExportHtml(markdown, { title }).then((html) =>
-          window.lekha.exportHtml({ html, suggestedName }),
-        ).catch((err: unknown) => {
-          console.error('[export] HTML export failed:', err)
-        })
+        void loadBuildExportHtml()
+          .then((build) => build(markdown, { title }))
+          .then((html) => window.lekha.exportHtml({ html, suggestedName }))
+          .catch((err: unknown) => {
+            console.error('[export] HTML export failed:', err)
+          })
         return
       }
 
@@ -293,11 +315,12 @@ export function useCommands(
         const markdown = editorRef.current?.getMarkdown() ?? ''
         const { title } = useEditorStore.getState()
         const suggestedName = title.endsWith('.pdf') ? title : title + '.pdf'
-        void buildExportHtml(markdown, { title }).then((html) =>
-          window.lekha.exportPdf({ html, suggestedName }),
-        ).catch((err: unknown) => {
-          console.error('[export] PDF export failed:', err)
-        })
+        void loadBuildExportHtml()
+          .then((build) => build(markdown, { title }))
+          .then((html) => window.lekha.exportPdf({ html, suggestedName }))
+          .catch((err: unknown) => {
+            console.error('[export] PDF export failed:', err)
+          })
         return
       }
 
@@ -344,7 +367,8 @@ export function useCommands(
       if (cmd === 'copyAsHtml') {
         const markdown = editorRef.current?.getMarkdown() ?? ''
         const { title } = useEditorStore.getState()
-        void buildExportHtml(markdown, { title })
+        void loadBuildExportHtml()
+          .then((build) => build(markdown, { title }))
           .then((html) => window.lekha.writeClipboard({ html, text: markdown }))
           .catch((err: unknown) => {
             console.error('[clipboard] Copy as HTML failed:', err)

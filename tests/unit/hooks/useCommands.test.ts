@@ -142,6 +142,27 @@ function makeMockFileOps(): MockFileOpsResult {
 let capturedDispatch: ((cmd: AppCommand) => void) | null = null
 const unsubscribeMock = vi.fn()
 
+/**
+ * Poll until `mock` has been called at least once, or time out.
+ *
+ * The export/copy-as-HTML commands now dynamic-import the export pipeline
+ * (buildHtml.ts) on first use - a cold dynamic import that can take longer than
+ * a fixed flush delay. Polling makes these tests robust to that one-time load
+ * latency without weakening the assertion (they still verify the mock fires).
+ */
+async function waitForCall(
+  mock: ReturnType<typeof vi.fn>,
+  timeoutMs = 5000,
+): Promise<void> {
+  const start = Date.now()
+  while (mock.mock.calls.length === 0) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error('timed out waiting for mock to be called')
+    }
+    await new Promise((r) => setTimeout(r, 10))
+  }
+}
+
 function stubLekha(): void {
   capturedDispatch = null
   const mockLekha: Partial<LekhaAPI> = {
@@ -419,11 +440,11 @@ describe('useCommands - export command routing', () => {
     renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
     act(() => { capturedDispatch!('exportHtml') })
 
-    // exportHtml is async (calls buildExportHtml then the mock). Flush promises.
-    await new Promise<void>((resolve) => setTimeout(resolve, 50))
-
+    // exportHtml is async: it dynamic-imports the export pipeline then calls the
+    // mock. Poll until the mock fires (cold import can exceed a fixed delay).
     // Destructure from the stubbed global so ESLint does not flag unbound-method.
     const { exportHtml } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    await waitForCall(exportHtml!)
     expect(exportHtml).toHaveBeenCalledOnce()
     const firstCall = exportHtml?.mock.calls[0] as [{ html: string; suggestedName: string }] | undefined
     const callArgs = firstCall?.[0]
@@ -440,9 +461,8 @@ describe('useCommands - export command routing', () => {
     renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
     act(() => { capturedDispatch!('exportPdf') })
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 50))
-
     const { exportPdf } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    await waitForCall(exportPdf!)
     expect(exportPdf).toHaveBeenCalledOnce()
   })
 
@@ -552,10 +572,10 @@ describe('useCommands - copy as html/markdown routing', () => {
     )
     act(() => { capturedDispatch!('copyAsHtml') })
 
-    // copyAsHtml is async (buildExportHtml then writeClipboard). Flush promises.
-    await new Promise<void>((resolve) => setTimeout(resolve, 50))
-
+    // copyAsHtml is async: it dynamic-imports the export pipeline then calls
+    // writeClipboard. Poll until the mock fires (cold import latency).
     const { writeClipboard } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    await waitForCall(writeClipboard!)
     expect(writeClipboard).toHaveBeenCalledOnce()
     const firstCall = writeClipboard?.mock.calls[0] as [{ text?: string; html?: string }] | undefined
     expect(firstCall?.[0]?.html).toContain('<!DOCTYPE html>')

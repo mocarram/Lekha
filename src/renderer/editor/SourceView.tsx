@@ -148,3 +148,9 @@ export const SourceView = forwardRef<SourceHandle, SourceViewProps>(
     return <div ref={mountRef} className={className} />
   },
 )
+
+// Default export so EditorPane can `React.lazy(() => import('./SourceView'))`.
+// This is what makes the whole CodeMirror stack (@codemirror/*, @lezer/*) a
+// deferred chunk that is only fetched when the user first toggles to source
+// mode. React.lazy requires a module with a default export.
+export default SourceView
