@@ -515,3 +515,11 @@ Implemented:
 - **Find scrolls the current match into view as you type** (`setFindQuery` jumps to the current match) - findHighlight.ts.
 
 Tests: +5 (Tab adds row; find seed-from-selection incl. multi-line skip). 1174 unit + 7 e2e green.
+
+### Wave 4 - Format menu completeness (`feat/wysiwyg-format-menu`)
+Implemented (menu/settings parity):
+- **Highlight** (==, Cmd+Shift+H), **Superscript** (^), **Subscript** (~), **Clear Formatting** (Cmd+Alt+\) commands - marks already in the schema, now exposed via editorCommandMap, native Format menu, and the command palette/registry.
+- Updated registry heading shortcuts to the WYSIWYG Cmd+1..6 / Cmd+0 (matching Wave 1).
+- Fixed pre-existing lint debt in findReplace.test.tsx (Wave 3 test slipped past eslint): use `getByLabelText<HTMLInputElement>`.
+
+Tests: +12 (highlight/sup/sub/clear command toggles + registry/menu coverage). 1183 unit + 7 e2e green.

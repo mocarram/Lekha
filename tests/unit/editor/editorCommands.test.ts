@@ -68,6 +68,7 @@ const cmdMap = editorCommandMap(schema)
 describe('editorCommandMap - entries present', () => {
   const expectedCommands: AppCommand[] = [
     'bold', 'italic', 'strikethrough', 'inlineCode',
+    'highlight', 'superscript', 'subscript', 'clearFormatting',
     'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6',
     'paragraph',
     'bulletList', 'orderedList', 'blockquote', 'codeBlock',
@@ -114,6 +115,43 @@ describe('editorCommandMap - mark toggles', () => {
     const next = applyCmd(state, cmdMap['inlineCode']!)
     expect(next).not.toBeNull()
     expect(hasMark(next!, 'code')).toBe(true)
+  })
+
+  it('highlight toggles highlight mark on selection', () => {
+    const next = applyCmd(stateWithSelection('text'), cmdMap['highlight']!)
+    expect(next).not.toBeNull()
+    expect(hasMark(next!, 'highlight')).toBe(true)
+  })
+
+  it('superscript toggles superscript mark on selection', () => {
+    const next = applyCmd(stateWithSelection('text'), cmdMap['superscript']!)
+    expect(next).not.toBeNull()
+    expect(hasMark(next!, 'superscript')).toBe(true)
+  })
+
+  it('subscript toggles subscript mark on selection', () => {
+    const next = applyCmd(stateWithSelection('text'), cmdMap['subscript']!)
+    expect(next).not.toBeNull()
+    expect(hasMark(next!, 'subscript')).toBe(true)
+  })
+
+  it('clearFormatting strips all marks from the selection', () => {
+    let state = stateWithSelection('text')
+    state = applyCmd(state, cmdMap['bold']!)!
+    state = applyCmd(state, cmdMap['highlight']!)!
+    expect(hasMark(state, 'strong')).toBe(true)
+    expect(hasMark(state, 'highlight')).toBe(true)
+    // Re-select the text, then clear all formatting.
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 1, 5)))
+    const cleared = applyCmd(state, cmdMap['clearFormatting']!)
+    expect(cleared).not.toBeNull()
+    expect(hasMark(cleared!, 'strong')).toBe(false)
+    expect(hasMark(cleared!, 'highlight')).toBe(false)
+  })
+
+  it('clearFormatting declines on an empty selection', () => {
+    const fired = cmdMap['clearFormatting']!(stateWithText('text'), undefined)
+    expect(fired).toBe(false)
   })
 })
 

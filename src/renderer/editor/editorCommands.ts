@@ -120,6 +120,17 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   const italic = toggleMark(schema.marks['em']!)
   const strikethrough = toggleMark(schema.marks['strikethrough']!)
   const inlineCode = toggleMark(schema.marks['code']!)
+  const highlight = toggleMark(schema.marks['highlight']!)
+  const superscript = toggleMark(schema.marks['superscript']!)
+  const subscript = toggleMark(schema.marks['subscript']!)
+
+  // Clear inline formatting: strip ALL marks from the (non-empty) selection.
+  const clearFormatting: Command = (state, dispatch) => {
+    const { from, to, empty } = state.selection
+    if (empty) return false
+    if (dispatch) dispatch(state.tr.removeMark(from, to, null))
+    return true
+  }
 
   // -------------------------------------------------------------------------
   // Block type setters
@@ -154,6 +165,10 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     italic,
     strikethrough,
     inlineCode,
+    highlight,
+    superscript,
+    subscript,
+    clearFormatting,
 
     // Block types
     paragraph,

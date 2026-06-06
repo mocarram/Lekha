@@ -260,7 +260,7 @@ describe('FindReplace - seed from selection (WYSIWYG parity)', () => {
     render(
       <FindReplace open={true} mode="find" editorRef={editorRef} onClose={vi.fn()} />,
     )
-    const input = screen.getByLabelText('Find') as HTMLInputElement
+    const input = screen.getByLabelText<HTMLInputElement>('Find')
     expect(input.value).toBe('needle')
   })
 
@@ -270,7 +270,7 @@ describe('FindReplace - seed from selection (WYSIWYG parity)', () => {
     render(
       <FindReplace open={true} mode="find" editorRef={editorRef} onClose={vi.fn()} />,
     )
-    const input = screen.getByLabelText('Find') as HTMLInputElement
+    const input = screen.getByLabelText<HTMLInputElement>('Find')
     expect(input.value).toBe('')
   })
 })
