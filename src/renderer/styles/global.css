@@ -273,7 +273,7 @@ body,
 
 .file-tree__row.active {
   background-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .file-tree__arrow {
@@ -315,7 +315,7 @@ body,
   background-color: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow);
   font-family: var(--font-ui);
 }
 
@@ -337,18 +337,18 @@ body,
 .filetree-menu__item:hover,
 .filetree-menu__item:focus-visible {
   background-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--on-accent);
   outline: none;
 }
 
 .filetree-menu__item--danger {
-  color: #d33;
+  color: var(--danger);
 }
 
 .filetree-menu__item--danger:hover,
 .filetree-menu__item--danger:focus-visible {
-  background-color: #d33;
-  color: #ffffff;
+  background-color: var(--danger);
+  color: var(--on-accent);
 }
 
 .filetree-menu__sep {
@@ -442,7 +442,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.35);
+  background-color: var(--overlay-scrim);
 }
 
 .dialog {
@@ -453,7 +453,7 @@ body,
   background-color: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow);
   font-family: var(--font-ui);
 }
 
@@ -513,7 +513,7 @@ body,
 .dialog-btn-primary {
   background-color: var(--color-accent);
   border-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .dialog-btn-primary:hover {
@@ -521,7 +521,7 @@ body,
 }
 
 .dialog-btn-danger {
-  color: #c0392b;
+  color: var(--danger);
 }
 
 /* ---------------------------------------------------------------------------
@@ -549,7 +549,7 @@ body,
   background-color: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow);
   font-family: var(--font-ui);
 }
 
@@ -688,7 +688,7 @@ body,
 .folder-search__case-btn.active {
   background-color: var(--color-accent);
   border-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .folder-search__status {
@@ -787,7 +787,7 @@ body,
   border-radius: 6px;
   border: 1px solid var(--color-border);
   background-color: var(--color-surface);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-sm);
   font-family: var(--font-ui);
 }
 
@@ -841,7 +841,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.82);
+  background-color: var(--overlay-scrim-strong);
   cursor: zoom-out;
 }
 
@@ -850,7 +850,7 @@ body,
   max-height: 90vh;
   object-fit: contain;
   border-radius: 4px;
-  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-lg);
   cursor: default;
   user-select: none;
 }
@@ -869,7 +869,7 @@ body,
   justify-content: center;
   align-items: flex-start;
   padding-top: 12vh;
-  background-color: rgba(0, 0, 0, 0.32);
+  background-color: var(--overlay-scrim);
 }
 
 .cmdk {
@@ -883,7 +883,7 @@ body,
   background-color: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-lg);
   font-family: var(--font-ui);
 }
 
@@ -934,7 +934,7 @@ body,
 
 .cmdk__row--active {
   background-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .cmdk__label {
@@ -951,7 +951,7 @@ body,
 }
 
 .cmdk__row--active .cmdk__match {
-  color: #ffffff;
+  color: var(--on-accent);
   text-decoration: underline;
 }
 
@@ -963,7 +963,7 @@ body,
 }
 
 .cmdk__row--active .cmdk__hint {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--on-accent-muted);
 }
 
 /* -------------------------------------------------------------------------
@@ -984,7 +984,7 @@ body,
   background-color: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow);
   font-family: var(--font-ui);
 }
 
@@ -1013,7 +1013,7 @@ body,
 
 .slashmenu__row--active {
   background-color: var(--color-accent);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .slashmenu__icon {
@@ -1028,7 +1028,7 @@ body,
 }
 
 .slashmenu__row--active .slashmenu__icon {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--on-accent-muted);
 }
 
 .slashmenu__label {
@@ -1045,7 +1045,7 @@ body,
 }
 
 .slashmenu__row--active .slashmenu__match {
-  color: #ffffff;
+  color: var(--on-accent);
   text-decoration: underline;
 }
 

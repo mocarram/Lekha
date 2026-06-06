@@ -59,6 +59,9 @@
   --find-match:         #e8c96e;
   --find-match-current: #cc8833;
 
+  /* --- Semantic tokens (warm-light overrides) --- */
+  --danger:              #8b2500;   /* dark red that reads on warm parchment */
+
   /* --- Markdown ==highlight== --- */
   /* Warm straw wash tuned to the sepia paper. */
   --highlight-bg:   #ecd9a0;

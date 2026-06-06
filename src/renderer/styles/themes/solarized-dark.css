@@ -51,6 +51,14 @@
   --find-match:         #2a3810;
   --find-match-current: #6b5b00;
 
+  /* --- Semantic tokens (dark overrides) --- */
+  --danger:              #dc322f;   /* Solarized red - legible on base03 */
+  --overlay-scrim:       rgba(0, 0, 0, 0.55);
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.88);
+  --shadow:              0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.55);
+
   /* --- Markdown ==highlight== --- */
   --highlight-bg:   #1a3b14;
   --highlight-text: #93a1a1;

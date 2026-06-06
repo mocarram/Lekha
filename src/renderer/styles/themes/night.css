@@ -69,6 +69,14 @@
   --find-match:         #3d3817;
   --find-match-current: #7c4f0a;
 
+  /* --- Semantic tokens (dark overrides) --- */
+  --danger:              #f47067;   /* softer red that reads on dark background */
+  --overlay-scrim:       rgba(0, 0, 0, 0.55);
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.88);
+  --shadow:              0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.55);
+
   /* --- Markdown ==highlight== --- */
   /* Muted amber wash that stays legible on the dark surface. */
   --highlight-bg:   #5a4a16;

@@ -59,6 +59,14 @@
   --find-match:         #3d4a3a;
   --find-match-current: #6d5f2a;
 
+  /* --- Semantic tokens (dark overrides) --- */
+  --danger:              #bf616a;   /* Nord Aurora red - legible on Polar Night */
+  --overlay-scrim:       rgba(0, 0, 0, 0.55);
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.88);
+  --shadow:              0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.55);
+
   /* --- Markdown ==highlight== --- */
   --highlight-bg:   #4a4a2c;
   --highlight-text: #eceff4;

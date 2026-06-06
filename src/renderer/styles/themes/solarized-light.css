@@ -69,6 +69,9 @@
   --find-match:         #f0e68c;
   --find-match-current: #b58900;
 
+  /* --- Semantic tokens (solarized-light overrides) --- */
+  --danger:              #dc322f;   /* Solarized red - legible on base3 */
+
   /* --- Markdown ==highlight== --- */
   --highlight-bg:   #f5e96e;
   --highlight-text: #586e75;

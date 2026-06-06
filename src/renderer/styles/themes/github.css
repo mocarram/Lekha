@@ -191,6 +191,17 @@
   --font-mono:   "SF Mono", "Consolas", "Liberation Mono", Menlo, monospace;
   --font-ui:     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 
+  /* Semantic tokens for danger, overlays, shadows, and on-accent text.
+   * Dark themes override these where the light defaults would look wrong. */
+  --danger:              #cb2431;   /* error/delete red (legible on light bg) */
+  --on-accent:           #ffffff;   /* text on accent-colored backgrounds */
+  --on-accent-muted:     rgba(255, 255, 255, 0.82);  /* dimmed text on accent */
+  --overlay-scrim:       rgba(0, 0, 0, 0.35);        /* standard modal backdrop */
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.82);       /* heavy backdrop (lightbox) */
+  --shadow:              0 8px 32px rgba(0, 0, 0, 0.18);  /* standard elevation */
+  --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.14);   /* small elevation (toolbars) */
+  --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.28); /* large elevation (palette) */
+
   /* Override the structural fallbacks defined in global.css */
   --color-bg:         var(--bg);
   --color-surface:    var(--surface);
