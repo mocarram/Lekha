@@ -104,6 +104,11 @@ interface FileTreeNodeProps {
   activePath: string | null
   onSelect: (path: string) => void
   depth: number
+  /** Set of expanded directory paths (lifted to the root so it survives tree
+   *  refreshes and can be driven programmatically for auto-reveal). */
+  expandedPaths: Set<string>
+  /** Toggle a directory's expanded state. */
+  onToggleExpand: (path: string) => void
   /** Path currently being renamed inline (null when none). */
   renamingPath: string | null
   /** Open the context menu for a node at the given client coordinates. */
@@ -116,28 +121,37 @@ interface FileTreeNodeProps {
 /**
  * Renders a single FileNode row.
  *
- * Directories track their own expanded/collapsed state locally. Children are
- * rendered recursively when expanded. Files call onSelect when clicked.
- * Right-click opens the shared context menu via onContextMenu.
+ * Expanded/collapsed state lives in a shared Set keyed by absolute path (held
+ * at the FileTree root), so it persists across tree refreshes and lets the tree
+ * auto-expand ancestors to reveal the active file. Files call onSelect when
+ * clicked. Right-click opens the shared context menu via onContextMenu.
  */
 function FileTreeNode({
   node,
   activePath,
   onSelect,
   depth,
+  expandedPaths,
+  onToggleExpand,
   renamingPath,
   onContextMenu,
   onRenameCommit,
   onRenameCancel,
 }: FileTreeNodeProps) {
-  const [expanded, setExpanded] = useState(false)
-
+  const rowRef = useRef<HTMLDivElement>(null)
+  const expanded = expandedPaths.has(node.path)
   const isActive = node.path === activePath
   const isRenaming = node.path === renamingPath
 
+  // Scroll the active file's row into view when it becomes active (e.g. opened
+  // from Open Recent, search, or a link in a collapsed-then-revealed folder).
+  useEffect(() => {
+    if (isActive) rowRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [isActive])
+
   const handleClick = () => {
     if (node.isDirectory) {
-      setExpanded((prev) => !prev)
+      onToggleExpand(node.path)
     } else {
       onSelect(node.path)
     }
@@ -146,6 +160,7 @@ function FileTreeNode({
   return (
     <div className="file-tree__node" style={{ paddingLeft: `${depth * 12}px` }}>
       <div
+        ref={rowRef}
         className={`file-tree__row${isActive ? ' active' : ''}${node.isDirectory ? ' file-tree__row--dir' : ' file-tree__row--file'}`}
         role="button"
         tabIndex={0}
@@ -183,6 +198,8 @@ function FileTreeNode({
               activePath={activePath}
               onSelect={onSelect}
               depth={depth + 1}
+              expandedPaths={expandedPaths}
+              onToggleExpand={onToggleExpand}
               renamingPath={renamingPath}
               onContextMenu={onContextMenu}
               onRenameCommit={onRenameCommit}
@@ -250,6 +267,35 @@ export function FileTree({
 }: FileTreeProps) {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [renamingPath, setRenamingPath] = useState<string | null>(null)
+  // Expanded directory paths, keyed by absolute path. Lifted here (not per-node)
+  // so the state survives a tree refresh after create/rename/delete and so we
+  // can auto-expand ancestors to reveal the active file.
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
+
+  const toggleExpand = (path: string) => {
+    setExpandedPaths((prev) => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  // Auto-reveal: the active file's ancestor folders are always shown so the
+  // highlighted row is reachable. Derived purely during render by unioning the
+  // user-toggled set with the active path's ancestor directories (its
+  // successive parent paths) - no effect/ref/setState, so it stays lint-clean
+  // and the highlighted file is always revealed wherever it lives.
+  const effectiveExpanded = (() => {
+    if (!activePath) return expandedPaths
+    const merged = new Set(expandedPaths)
+    const parts = activePath.split('/')
+    for (let i = parts.length - 1; i > 0; i--) {
+      const ancestor = parts.slice(0, i).join('/')
+      if (ancestor) merged.add(ancestor)
+    }
+    return merged
+  })()
 
   const openMenu = (e: React.MouseEvent, target: FileTreeMenuTarget) => {
     e.preventDefault()
@@ -278,6 +324,8 @@ export function FileTree({
           activePath={activePath}
           onSelect={onSelect}
           depth={0}
+          expandedPaths={effectiveExpanded}
+          onToggleExpand={toggleExpand}
           renamingPath={renamingPath}
           onContextMenu={handleNodeContextMenu}
           onRenameCommit={(oldPath, newName) => {

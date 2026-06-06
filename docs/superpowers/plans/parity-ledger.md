@@ -498,3 +498,12 @@ Implemented:
 
 Tests: +9 (keymap heading/break/backspace, `$$` rule, code-mark inclusive). 1169 unit + 7 e2e green.
 Deferred (separate findings): inline-code caret-exit affordance, math/diagram auto-enter-edit on insert.
+
+### Wave 2 - Sidebar file-tree reveal & expansion (`feat/wysiwyg-sidebar-reveal`)
+Implemented:
+- **Lifted folder expand/collapse state to a Set** keyed by absolute path at the FileTree root (survives tree refresh after create/rename/delete; previously per-node useState).
+- **Auto-reveal the active file**: ancestor folders of the active path are always expanded (pure render-time union), so the highlighted file is reachable wherever it lives.
+- **Scroll the active row into view** via a ref + `scrollIntoView({block:'nearest'})` when a row becomes active.
+
+Tests: +2 (auto-expand reveals nested active file; active class applied). 1171 unit + 7 e2e green.
+Note: the active file's own ancestor folders can't be manually collapsed while active (pure-derivation tradeoff to satisfy the react-hooks/refs lint - no effect/ref/setState). Acceptable + WYSIWYG-like.

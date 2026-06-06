@@ -138,4 +138,30 @@ describe('FileTree', () => {
     )
     expect(container.querySelector('.file-tree')).not.toBeNull()
   })
+
+  it('auto-expands ancestor folders to reveal the active file', () => {
+    // Active file lives inside the (default-collapsed) docs folder. Without any
+    // click, the file row should be visible because its ancestor is auto-expanded.
+    const { getByText } = render(
+      <FileTree
+        nodes={NESTED_NODES}
+        activePath="/p/docs/guide.md"
+        onSelect={() => {}}
+      />,
+    )
+    expect(getByText('guide.md')).toBeTruthy()
+  })
+
+  it('marks the auto-revealed active file row as active', () => {
+    const { getByText } = render(
+      <FileTree
+        nodes={NESTED_NODES}
+        activePath="/p/docs/guide.md"
+        onSelect={() => {}}
+      />,
+    )
+    const row = getByText('guide.md').closest('.file-tree__row')
+    expect(row?.className).toContain('active')
+  })
+
 })
