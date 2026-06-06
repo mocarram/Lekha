@@ -168,7 +168,8 @@ export function buildMenuTemplate(
   template.push({
     label: 'File',
     submenu: [
-      item('New',           'CmdOrCtrl+N',       'new',        send),
+      item('New',                 'CmdOrCtrl+N',       'new',             send),
+      item('New from Template…',  'CmdOrCtrl+Alt+N',   'newFromTemplate', send),
       // New Window opens a fresh, independent editor window. It calls
       // onNewWindow() directly in the main process rather than routing an
       // AppCommand through a renderer, so it works even when no window is

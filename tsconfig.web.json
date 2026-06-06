@@ -31,6 +31,9 @@
     "tests/unit/themes/themes.test.ts",
     // Presentation tests: slides.ts + Presentation.tsx run in happy-dom.
     "tests/unit/presentation/**/*.ts",
-    "tests/unit/presentation/**/*.tsx"
+    "tests/unit/presentation/**/*.tsx",
+    // Template tests: registry and applyTemplate are renderer-side.
+    "tests/unit/templates/registry.test.ts",
+    "tests/unit/templates/applyTemplate.test.ts"
   ]
 }

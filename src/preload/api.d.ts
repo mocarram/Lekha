@@ -4,6 +4,7 @@ import type {
   DocumentState,
   FolderSearchResult,
   PandocFormat,
+  Template,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -137,6 +138,13 @@ export interface LekhaAPI {
     query: string
     caseSensitive: boolean
   }): Promise<FolderSearchResult[]>
+
+  // --- Templates ---
+  /**
+   * List user-defined templates from the userData/templates directory.
+   * Returns an empty array when the directory does not exist.
+   */
+  listTemplates(): Promise<Template[]>
 }
 
 declare global {

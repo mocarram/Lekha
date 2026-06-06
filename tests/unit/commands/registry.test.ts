@@ -60,6 +60,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'commandPalette',
   'quickOpen',
   'presentation',
+  'newFromTemplate',
 ])
 
 describe('COMMANDS registry', () => {

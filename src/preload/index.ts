@@ -7,6 +7,7 @@ import type {
   DocumentState,
   FolderSearchResult,
   PandocFormat,
+  Template,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -155,6 +156,11 @@ const api: LekhaAPI = {
   // --- Folder search ---
   searchFolder(args: { root: string; query: string; caseSensitive: boolean }): Promise<FolderSearchResult[]> {
     return ipcRenderer.invoke(IPC.searchFolder, args) as Promise<FolderSearchResult[]>
+  },
+
+  // --- Templates ---
+  listTemplates(): Promise<Template[]> {
+    return ipcRenderer.invoke(IPC.listTemplates) as Promise<Template[]>
   },
 }
 

@@ -45,3 +45,4 @@ export type AppCommand =
   | 'commandPalette'
   | 'quickOpen'
   | 'presentation'
+  | 'newFromTemplate'

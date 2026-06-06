@@ -129,6 +129,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
     searchFolder: vi.fn(() => Promise.resolve([])),
+    listTemplates: vi.fn(() => Promise.resolve([])),
     ...overrides,
   }
 }

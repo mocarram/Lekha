@@ -62,6 +62,8 @@ export interface CommandOpts {
   onQuickOpen: () => void
   /** Open the presentation (slideshow) overlay. */
   onPresentation: () => void
+  /** Open the template picker modal. */
+  onNewFromTemplate: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +228,14 @@ export function useCommands(
       // ------------------------------------------------------------------
       if (cmd === 'presentation') {
         o.onPresentation()
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Template picker
+      // ------------------------------------------------------------------
+      if (cmd === 'newFromTemplate') {
+        o.onNewFromTemplate()
         return
       }
 

@@ -24,6 +24,7 @@ export interface CommandDef {
 export const COMMANDS: CommandDef[] = [
   // File
   { id: 'new', label: 'New', group: 'File', shortcut: '⌘N' },
+  { id: 'newFromTemplate', label: 'New from Template…', group: 'File', shortcut: '⌘⌥N' },
   { id: 'newWindow', label: 'New Window', group: 'File', shortcut: '⌘⇧N' },
   { id: 'open', label: 'Open…', group: 'File', shortcut: '⌘O' },
   { id: 'openFolder', label: 'Open Folder…', group: 'File', shortcut: '⌘⇧O' },

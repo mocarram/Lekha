@@ -111,3 +111,18 @@ export interface DocumentState {
   dirty: boolean
   path: string | null
 }
+
+/**
+ * A document template: an id, human name, optional description, and starter
+ * markdown content. Defined here (shared) so the main process, preload, and
+ * renderer all reference the same type without cross-boundary imports.
+ *
+ * The registry content is pure/static. The {{date}} placeholder in the
+ * daily-note template is substituted at insertion time by applyTemplate().
+ */
+export interface Template {
+  id: string
+  name: string
+  description?: string
+  content: string
+}

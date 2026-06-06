@@ -24,8 +24,12 @@ import { TableToolbar } from '@renderer/components/TableToolbar'
 import { ImageZoom } from '@renderer/components/ImageZoom'
 import { CommandPalette, type PaletteMode } from '@renderer/components/CommandPalette'
 import { Presentation } from '@renderer/components/Presentation'
+import { TemplatePicker } from '@renderer/components/TemplatePicker'
 import { splitSlides } from '@renderer/presentation/slides'
 import { COMMANDS } from '@renderer/commands/registry'
+import { BUILTIN_TEMPLATES } from '@renderer/templates/registry'
+import type { Template } from '@shared/types'
+import { applyTemplate } from '@renderer/templates/applyTemplate'
 import { flattenFiles } from '@renderer/commands/files'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import type { LinkInfo } from '@renderer/editor/EditorView'
@@ -165,6 +169,14 @@ export default function App() {
     slides: string[]
   }>({ open: false, seq: 0, slides: [] })
 
+  // Template picker state: open/closed, seq (for remount), and merged template list.
+  // User templates are loaded via IPC when the picker opens.
+  const [templateState, setTemplateState] = useState<{
+    open: boolean
+    seq: number
+    templates: Template[]
+  }>({ open: false, seq: 0, templates: [] })
+
   // Workspace file tree (for quick-open) + root, kept live from the store.
   const fileTree = useWorkspaceStore((s) => s.fileTree)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
@@ -225,6 +237,24 @@ export default function App() {
       const markdown = editorRef.current?.getMarkdown() ?? ''
       const slides = splitSlides(markdown)
       setPresState((prev) => ({ open: true, seq: prev.seq + 1, slides }))
+    },
+    onNewFromTemplate: () => {
+      // Load user templates from IPC and merge with built-ins when the picker opens.
+      // Falls back to built-ins only if the IPC is unavailable (e.g. in tests).
+      const loadAndOpen = async (): Promise<void> => {
+        let userTemplates: Template[] = []
+        if (typeof window.lekha !== 'undefined') {
+          try {
+            userTemplates = await window.lekha.listTemplates()
+          } catch {
+            // If the directory is missing or the IPC fails, proceed with built-ins.
+            userTemplates = []
+          }
+        }
+        const allTemplates = [...BUILTIN_TEMPLATES, ...userTemplates]
+        setTemplateState((prev) => ({ open: true, seq: prev.seq + 1, templates: allTemplates }))
+      }
+      void loadAndOpen()
     },
   })
 
@@ -379,6 +409,44 @@ export default function App() {
     void window.lekha.revealPath(path)
   }, [])
 
+  // Handle template selection from the TemplatePicker.
+  // guardUnsaved runs here (not in the picker) so the document is never
+  // discarded without confirmation. On confirmation: clear to a new file,
+  // set the template content (with {{date}} substituted), then close the picker.
+  const handleTemplateSelect = useCallback(async (template: Template) => {
+    // guardUnsaved is embedded in newFile(); however, we need the content
+    // injected AFTER newFile clears the editor. We call guardUnsaved directly
+    // so we can inject markdown before newFile clears it, and avoid a double prompt.
+    //
+    // Flow:
+    //   1. guardUnsaved() - abort if user cancels
+    //   2. Clear + new-file state (mirroring newFile() internals)
+    //   3. Set the template content with date substitution
+    if (!(await fileOps.guardUnsaved())) return
+
+    // Clear editor and reset store (same as newFile() but without its own guard).
+    editorRef.current?.setMarkdown('')
+    useEditorStore.getState().newFile()
+    if (typeof window.lekha !== 'undefined') {
+      window.lekha.setDocumentState({ title: 'Untitled', dirty: false, path: null })
+    }
+
+    // Inject template content (date substituted at insertion time).
+    const content = applyTemplate(template.content, new Date())
+    editorRef.current?.setMarkdown(content)
+
+    // Mark dirty so an immediate Cmd+S triggers Save As rather than silently
+    // dropping the content. The editor's onChange will fire and handle the rest.
+    useEditorStore.getState().setMarkdown(content)
+    useEditorStore.getState().markDirty()
+    if (typeof window.lekha !== 'undefined') {
+      const { title, path } = useEditorStore.getState()
+      window.lekha.setDocumentState({ title, dirty: true, path })
+    }
+
+    setTemplateState((prev) => ({ ...prev, open: false }))
+  }, [fileOps, editorRef])
+
   const handleToggleSource = useCallback(() => {
     // toggleMode() returns the NEW mode synchronously so we can update the
     // store without a stale read (React state hasn't re-rendered yet at this
@@ -508,6 +576,14 @@ export default function App() {
           // Restore focus to the editor after exiting the presentation.
           editorRef.current?.focus()
         }}
+      />
+
+      <TemplatePicker
+        key={`template-${templateState.seq}`}
+        open={templateState.open}
+        templates={templateState.templates}
+        onSelect={(template) => { void handleTemplateSelect(template) }}
+        onClose={() => setTemplateState((prev) => ({ ...prev, open: false }))}
       />
 
       {tableState.inTable && tableState.rect ? (

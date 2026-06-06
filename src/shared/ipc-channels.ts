@@ -61,4 +61,9 @@ export const IPC = {
    * Returns FolderSearchResult[] - one entry per file with at least one match.
    */
   searchFolder: 'fs:searchFolder',
+  /**
+   * Renderer -> main: list user-defined templates from the userData/templates dir.
+   * Returns Template[] (id, name, content). Empty array when dir is missing.
+   */
+  listTemplates: 'templates:list',
 } as const

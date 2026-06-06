@@ -29,6 +29,12 @@ export interface FileOps {
    * reflects the on-disk state. No-op when no folder is open.
    */
   refreshTree(): Promise<void>
+  /**
+   * Guard against discarding unsaved changes.
+   * Returns true when it is safe to proceed (clean, saved, or "Don't Save").
+   * Returns false when the user cancelled or Save As was cancelled.
+   */
+  guardUnsaved(): Promise<boolean>
 }
 
 // ---------------------------------------------------------------------------
@@ -211,5 +217,5 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     workspaceStore.getState().setFileTree(tree)
   }, [workspaceStore])
 
-  return { open, openPath, save, saveAs, newFile, openFolder, refreshTree }
+  return { open, openPath, save, saveAs, newFile, openFolder, refreshTree, guardUnsaved }
 }

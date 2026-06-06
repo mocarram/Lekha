@@ -14,6 +14,8 @@
     "src/shared/**/*.ts",
     // Main-process unit tests run under the Node environment.
     "tests/unit/main/**/*.ts",
+    // Template listing test uses Node fs (main-process helper).
+    "tests/unit/templates/listTemplates.test.ts",
     // Theme unit tests that run under the Node environment.
     "tests/unit/themes/settingsTheme.test.ts",
     "tests/unit/themes/menuTheme.test.ts",
