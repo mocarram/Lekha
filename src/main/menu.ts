@@ -189,11 +189,15 @@ export function buildMenuTemplate(
         submenu: [
           item('Export to HTML…', undefined, 'exportHtml', send),
           item('Export to PDF…',  undefined, 'exportPdf',  send),
-          // Word export requires pandoc. The menu item is always shown;
+          // Pandoc exports require pandoc. The menu items are always shown;
           // if pandoc is absent the IPC handler throws a friendly error
           // that useCommands surfaces to the user. This keeps buildMenuTemplate
           // synchronous (no async pandoc detection needed at menu-build time).
-          item('Export to Word (docx)…', undefined, 'exportDocx', send),
+          item('Export to Word (docx)…', undefined, 'exportDocx',  send),
+          item('Export to ePub…',        undefined, 'exportEpub',  send),
+          item('Export to RTF…',         undefined, 'exportRtf',   send),
+          item('Export to LaTeX…',        undefined, 'exportLatex', send),
+          item('Export to OPML…',        undefined, 'exportOpml',  send),
         ],
       },
     ],

@@ -23,11 +23,13 @@
  *                     if printToPDF or the save dialog fail.
  *                   - The temp file is removed after the PDF is written.
  *
- *   exportDocx  - Detects pandoc availability (cached after first check).
- *                 Receives the raw markdown string. Shows a .docx save dialog.
- *                 Spawns `pandoc -f markdown -t docx -o <outPath>` and pipes
- *                 the markdown to stdin. Rejects with a user-friendly message
- *                 if pandoc is absent.
+ *   exportPandoc - Detects pandoc availability (cached after first check).
+ *                 Receives the raw markdown string plus a target `format`
+ *                 (docx/epub/rtf/latex/opml). Shows a save dialog with the
+ *                 format's extension/filter, then spawns
+ *                 `pandoc -f markdown -t <writer> [--standalone] -o <outPath>`
+ *                 and pipes the markdown to stdin. Rejects with a user-friendly
+ *                 message if pandoc is absent.
  *
  *   pandocAvailable - Returns a boolean. Cached on first call so repeated menu
  *                     queries do not spawn a new process each time.
@@ -43,6 +45,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { IPC } from '@shared/ipc-channels'
+import type { PandocFormat } from '@shared/types'
 
 // ---------------------------------------------------------------------------
 // Pandoc detection (cached)
@@ -78,17 +81,66 @@ async function checkPandocAvailable(): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the pandoc argument array for a markdown -> docx conversion.
+ * Supported pandoc export formats. The key is the logical format used across
+ * the renderer/menu/commands; each maps to a pandoc writer (`-t`) value and an
+ * output file extension below.
+ */
+export const PANDOC_FORMATS: readonly PandocFormat[] = [
+  'docx',
+  'epub',
+  'rtf',
+  'latex',
+  'opml',
+]
+
+export type { PandocFormat }
+
+/**
+ * Per-format metadata: the pandoc writer name (`-t <writer>`), the output file
+ * extension, the save-dialog filter label, and whether the writer needs the
+ * `--standalone` flag to produce a complete (rather than fragment) document.
+ *
+ * Most binary/container writers (docx, epub, opml) are inherently standalone;
+ * the text writers (rtf, latex) need `--standalone` so the file is a complete
+ * document with the proper preamble rather than a body fragment.
+ */
+interface PandocFormatMeta {
+  writer: string
+  extension: string
+  filterName: string
+  standalone: boolean
+}
+
+const PANDOC_META: Record<PandocFormat, PandocFormatMeta> = {
+  docx: { writer: 'docx', extension: 'docx', filterName: 'Word Documents', standalone: false },
+  epub: { writer: 'epub', extension: 'epub', filterName: 'EPUB Books', standalone: false },
+  rtf: { writer: 'rtf', extension: 'rtf', filterName: 'Rich Text Format', standalone: true },
+  latex: { writer: 'latex', extension: 'tex', filterName: 'LaTeX Source', standalone: true },
+  opml: { writer: 'opml', extension: 'opml', filterName: 'OPML Outlines', standalone: false },
+}
+
+/** Output file extension (no leading dot) for a pandoc format. */
+export function pandocExtension(format: PandocFormat): string {
+  return PANDOC_META[format].extension
+}
+
+/**
+ * Build the pandoc argument array for a markdown -> <format> conversion.
  *
  * Pure function; does not touch the filesystem or spawn anything.
  * Extracted so it can be tested independently (the handler itself is
  * Electron-bound and not unit-tested).
  *
- * @param outPath - Absolute path to write the .docx output to.
+ * @param outPath - Absolute path to write the output to.
+ * @param format  - Target pandoc format.
  * @returns Array of CLI arguments to pass to `pandoc`.
  */
-export function buildPandocArgs(outPath: string): string[] {
-  return ['-f', 'markdown', '-t', 'docx', '-o', outPath]
+export function buildPandocArgs(outPath: string, format: PandocFormat): string[] {
+  const meta = PANDOC_META[format]
+  const args = ['-f', 'markdown', '-t', meta.writer]
+  if (meta.standalone) args.push('--standalone')
+  args.push('-o', outPath)
+  return args
 }
 
 // ---------------------------------------------------------------------------
@@ -195,36 +247,43 @@ export function registerExportHandlers(): void {
   )
 
   // -------------------------------------------------------------------------
-  // export:docx
+  // export:pandoc (generalized markdown -> docx/epub/rtf/latex/opml)
   //
-  // Pandoc flow:
+  // Pandoc flow (format-parameterized):
   //   1. Check pandoc availability (cached).
-  //   2. Show the .docx save dialog.
-  //   3. Spawn `pandoc -f markdown -t docx -o <outPath>` and pipe the
+  //   2. Show the save dialog with the format's filter/extension.
+  //   3. Spawn `pandoc -f markdown -t <writer> [...] -o <outPath>` and pipe the
   //      markdown to stdin, then close stdin to signal EOF.
   //   4. Collect stderr; on non-zero exit, reject with the stderr text.
+  //
+  // The previous `export:docx` channel is routed through this handler with
+  // format 'docx' (see preload) so existing callers keep working unchanged.
   // -------------------------------------------------------------------------
 
   ipcMain.handle(
-    IPC.exportDocx,
-    async (event, args: { markdown: string; suggestedName: string }): Promise<void> => {
+    IPC.exportPandoc,
+    async (
+      event,
+      args: { markdown: string; suggestedName: string; format: PandocFormat },
+    ): Promise<void> => {
       const available = await checkPandocAvailable()
       if (!available) {
         throw new Error(
-          'Pandoc is not installed. Install pandoc (https://pandoc.org) to enable Word export.',
+          'Pandoc is not installed. Install pandoc (https://pandoc.org) to enable this export.',
         )
       }
 
+      const meta = PANDOC_META[args.format]
       const win = senderWindow(event)
       const result = await dialog.showSaveDialog(win!, {
         defaultPath: args.suggestedName,
-        filters: [{ name: 'Word Documents', extensions: ['docx'] }],
+        filters: [{ name: meta.filterName, extensions: [meta.extension] }],
       })
 
       if (result.canceled || !result.filePath) return
 
       const outPath = result.filePath
-      const pandocArgs = buildPandocArgs(outPath)
+      const pandocArgs = buildPandocArgs(outPath, args.format)
 
       await new Promise<void>((resolve, reject) => {
         const proc = spawn('pandoc', pandocArgs, { stdio: ['pipe', 'ignore', 'pipe'] })

@@ -1,4 +1,10 @@
-import type { FileNode, Settings, DocumentState, FolderSearchResult } from '@shared/types'
+import type {
+  FileNode,
+  Settings,
+  DocumentState,
+  FolderSearchResult,
+  PandocFormat,
+} from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
 /** All methods exposed on window.lekha from the preload bridge. */
@@ -53,8 +59,15 @@ export interface LekhaAPI {
   exportHtml(args: { html: string; suggestedName: string }): Promise<void>
   /** Render HTML to PDF via Electron printToPDF and save to a .pdf file. */
   exportPdf(args: { html: string; suggestedName: string }): Promise<void>
-  /** Export markdown to .docx via pandoc. Rejects if pandoc is not installed. */
-  exportDocx(args: { markdown: string; suggestedName: string }): Promise<void>
+  /**
+   * Export markdown to docx/epub/rtf/latex/opml via pandoc. Rejects if pandoc
+   * is not installed. The `format` selects the pandoc writer + file extension.
+   */
+  exportPandoc(args: {
+    markdown: string
+    suggestedName: string
+    format: PandocFormat
+  }): Promise<void>
   /** Returns true if pandoc is available on the system PATH. */
   pandocAvailable(): Promise<boolean>
 

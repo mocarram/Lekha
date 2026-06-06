@@ -114,7 +114,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     onSetTheme: vi.fn(() => () => undefined),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
-    exportDocx: vi.fn(() => Promise.resolve()),
+    exportPandoc: vi.fn(() => Promise.resolve()),
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
     saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/image-000001.png' })),
     openExternal: vi.fn(() => Promise.resolve()),

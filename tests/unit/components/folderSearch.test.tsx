@@ -51,7 +51,7 @@ function makeMockLekha(
     onSetTheme: vi.fn(() => unsubscribe),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
-    exportDocx: vi.fn(() => Promise.resolve()),
+    exportPandoc: vi.fn(() => Promise.resolve()),
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
     saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/img.png' })),
     openExternal: vi.fn(() => Promise.resolve()),

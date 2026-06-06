@@ -153,7 +153,7 @@ function stubLekha(): void {
     writeClipboard: vi.fn(() => Promise.resolve()),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
-    exportDocx: vi.fn(() => Promise.resolve()),
+    exportPandoc: vi.fn(() => Promise.resolve()),
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
     saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/image-000001.png' })),
   }
@@ -444,25 +444,49 @@ describe('useCommands - export command routing', () => {
     expect(exportPdf).toHaveBeenCalledOnce()
   })
 
-  it('dispatching "exportDocx" calls window.lekha.exportDocx with markdown', () => {
-    const { ref } = makeMockEditor()
-    const { fileOps } = makeMockFileOps()
-    const onFind = vi.fn()
-    const onReplace = vi.fn()
+  const pandocCases: { cmd: AppCommand; format: string; ext: RegExp }[] = [
+    { cmd: 'exportDocx', format: 'docx', ext: /\.docx$/ },
+    { cmd: 'exportEpub', format: 'epub', ext: /\.epub$/ },
+    { cmd: 'exportRtf', format: 'rtf', ext: /\.rtf$/ },
+    { cmd: 'exportLatex', format: 'latex', ext: /\.tex$/ },
+    { cmd: 'exportOpml', format: 'opml', ext: /\.opml$/ },
+  ]
 
-    const handle = ref.current!
-    vi.spyOn(handle, 'getMarkdown').mockReturnValue('# My Doc')
+  for (const { cmd, format, ext } of pandocCases) {
+    it(`dispatching "${cmd}" calls exportPandoc with format "${format}" and markdown`, () => {
+      const { ref } = makeMockEditor()
+      const { fileOps } = makeMockFileOps()
 
-    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn() }))
-    act(() => { capturedDispatch!('exportDocx') })
+      const handle = ref.current!
+      vi.spyOn(handle, 'getMarkdown').mockReturnValue('# My Doc')
 
-    const { exportDocx } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
-    expect(exportDocx).toHaveBeenCalledOnce()
-    const firstCall = exportDocx?.mock.calls[0] as [{ markdown: string; suggestedName: string }] | undefined
-    const callArgs = firstCall?.[0]
-    expect(callArgs?.markdown).toBe('# My Doc')
-    expect(callArgs?.suggestedName).toMatch(/\.docx$/)
-  })
+      renderHook(() =>
+        useCommands(ref, fileOps, {
+          onFind: vi.fn(),
+          onReplace: vi.fn(),
+          onLink: vi.fn(),
+          onInsertImage: vi.fn(),
+          onPreferences: vi.fn(),
+        }),
+      )
+      act(() => {
+        capturedDispatch!(cmd)
+      })
+
+      const { exportPandoc } = window.lekha as unknown as Record<
+        string,
+        ReturnType<typeof vi.fn>
+      >
+      expect(exportPandoc).toHaveBeenCalledOnce()
+      const firstCall = exportPandoc?.mock.calls[0] as
+        | [{ markdown: string; suggestedName: string; format: string }]
+        | undefined
+      const callArgs = firstCall?.[0]
+      expect(callArgs?.markdown).toBe('# My Doc')
+      expect(callArgs?.format).toBe(format)
+      expect(callArgs?.suggestedName).toMatch(ext)
+    })
+  }
 })
 
 // ---------------------------------------------------------------------------

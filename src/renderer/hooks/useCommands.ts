@@ -16,6 +16,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import type { AppCommand } from '@shared/commands'
+import type { PandocFormat } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
@@ -30,6 +31,18 @@ import { buildExportHtml } from '@renderer/export/buildHtml'
 export interface LinkDialogRequest {
   mode: 'insert' | 'edit'
   initial: { text: string; href: string; title?: string }
+}
+
+/**
+ * Maps each pandoc export AppCommand to its target format and output file
+ * extension. Single source of truth so adding a format is a one-line change.
+ */
+const PANDOC_COMMAND_MAP: Record<string, { format: PandocFormat; ext: string }> = {
+  exportDocx: { format: 'docx', ext: 'docx' },
+  exportEpub: { format: 'epub', ext: 'epub' },
+  exportRtf: { format: 'rtf', ext: 'rtf' },
+  exportLatex: { format: 'latex', ext: 'tex' },
+  exportOpml: { format: 'opml', ext: 'opml' },
 }
 
 export interface CommandOpts {
@@ -248,15 +261,21 @@ export function useCommands(
         return
       }
 
-      if (cmd === 'exportDocx') {
+      // Pandoc exports (docx/epub/rtf/latex/opml). Each command maps to a
+      // PandocFormat + the output file extension used for the suggested name.
+      // The actual writer/extension mapping lives in the main process; here we
+      // only need the extension to seed the save-dialog default name.
+      const pandocCmd = PANDOC_COMMAND_MAP[cmd as keyof typeof PANDOC_COMMAND_MAP]
+      if (pandocCmd !== undefined) {
         const markdown = editorRef.current?.getMarkdown() ?? ''
         const { title } = useEditorStore.getState()
-        const suggestedName = title.endsWith('.docx') ? title : title + '.docx'
-        void window.lekha.exportDocx({ markdown, suggestedName }).catch(
-          (err: unknown) => {
-            console.error('[export] Word export failed:', err)
-          },
-        )
+        const dotExt = `.${pandocCmd.ext}`
+        const suggestedName = title.endsWith(dotExt) ? title : title + dotExt
+        void window.lekha
+          .exportPandoc({ markdown, suggestedName, format: pandocCmd.format })
+          .catch((err: unknown) => {
+            console.error(`[export] ${pandocCmd.format} export failed:`, err)
+          })
         return
       }
 

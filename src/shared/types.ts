@@ -75,6 +75,13 @@ export const MAX_FONT_SIZE = 24
 
 export type EditorMode = 'wysiwyg' | 'source'
 
+/**
+ * Pandoc export formats supported by the generalized export handler. Shared so
+ * the renderer, preload, and main process all reference the same union without
+ * cross-boundary imports. The main process owns the writer/extension mapping.
+ */
+export type PandocFormat = 'docx' | 'epub' | 'rtf' | 'latex' | 'opml'
+
 export interface OutlineItem {
   level: number
   text: string

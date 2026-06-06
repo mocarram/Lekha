@@ -451,6 +451,37 @@ describe('buildMenuTemplate - Export submenu', () => {
     docxItem!.click()
     expect(send).toHaveBeenCalledWith('exportDocx')
   })
+
+  it('Export submenu has the pandoc formats (ePub/RTF/LaTeX/OPML)', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const items = findExportSubmenu(template)
+    const labels = items!.map((i) => i.label)
+    expect(labels).toContain('Export to ePub…')
+    expect(labels).toContain('Export to RTF…')
+    expect(labels).toContain('Export to LaTeX…')
+    expect(labels).toContain('Export to OPML…')
+  })
+
+  const pandocMenuCases: { label: string; cmd: AppCommand }[] = [
+    { label: 'Export to ePub…', cmd: 'exportEpub' },
+    { label: 'Export to RTF…', cmd: 'exportRtf' },
+    { label: 'Export to LaTeX…', cmd: 'exportLatex' },
+    { label: 'Export to OPML…', cmd: 'exportOpml' },
+  ]
+
+  for (const { label, cmd } of pandocMenuCases) {
+    it(`${label} fires send("${cmd}")`, () => {
+      const send = vi.fn<(c: AppCommand) => void>()
+      const template = buildMenuTemplate(send)
+      const items = findExportSubmenu(template)
+      const found = items!.find((i) => i.label === label)
+      expect(found).toBeDefined()
+      // @ts-expect-error calling with no args is safe for our generated handlers
+      found!.click()
+      expect(send).toHaveBeenCalledWith(cmd)
+    })
+  }
 })
 
 // ---------------------------------------------------------------------------

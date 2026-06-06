@@ -1,7 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 import type { LekhaAPI } from './api'
-import type { FileNode, Settings, DocumentState, FolderSearchResult } from '@shared/types'
+import type {
+  FileNode,
+  Settings,
+  DocumentState,
+  FolderSearchResult,
+  PandocFormat,
+} from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
 const api: LekhaAPI = {
@@ -99,8 +105,12 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.exportPdf, args) as Promise<void>
   },
 
-  exportDocx(args: { markdown: string; suggestedName: string }): Promise<void> {
-    return ipcRenderer.invoke(IPC.exportDocx, args) as Promise<void>
+  exportPandoc(args: {
+    markdown: string
+    suggestedName: string
+    format: PandocFormat
+  }): Promise<void> {
+    return ipcRenderer.invoke(IPC.exportPandoc, args) as Promise<void>
   },
 
   pandocAvailable(): Promise<boolean> {

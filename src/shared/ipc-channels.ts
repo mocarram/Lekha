@@ -28,7 +28,12 @@ export const IPC = {
   // Export channels
   exportHtml: 'export:html',
   exportPdf: 'export:pdf',
-  exportDocx: 'export:docx',
+  /**
+   * Generalized pandoc export (markdown -> docx/epub/rtf/latex/opml). The
+   * payload carries the target `format`; the handler maps it to the correct
+   * pandoc writer + extension. Replaces the old `export:docx` channel.
+   */
+  exportPandoc: 'export:pandoc',
   pandocAvailable: 'export:pandocAvailable',
   // Image channels
   saveImage: 'fs:saveImage',
