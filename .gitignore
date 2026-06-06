@@ -7,3 +7,6 @@ release/
 .DS_Store
 tests/e2e/screenshots/
 test-results/
+
+# Claude Code runtime artifacts
+.claude/scheduled_tasks.lock
