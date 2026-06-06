@@ -143,6 +143,7 @@ function makeMockLekha(
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
     saveImage,
     openExternal: vi.fn(() => Promise.resolve()),
+    writeClipboard: vi.fn(() => Promise.resolve()),
   }
 }
 

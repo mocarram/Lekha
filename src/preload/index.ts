@@ -115,6 +115,11 @@ const api: LekhaAPI = {
   openExternal(url: string): Promise<void> {
     return ipcRenderer.invoke(IPC.openExternal, url) as Promise<void>
   },
+
+  // --- Clipboard ---
+  writeClipboard(args: { text?: string; html?: string }): Promise<void> {
+    return ipcRenderer.invoke(IPC.writeClipboard, args) as Promise<void>
+  },
 }
 
 contextBridge.exposeInMainWorld('lekha', Object.freeze(api))

@@ -36,3 +36,5 @@ export type AppCommand =
   | 'toggleFocusMode'
   | 'toggleTypewriterMode'
   | 'preferences'
+  | 'copyAsHtml'
+  | 'copyAsMarkdown'

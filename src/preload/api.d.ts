@@ -78,6 +78,15 @@ export interface LekhaAPI {
    * (http/https/mailto only) before opening; unsafe URLs are ignored.
    */
   openExternal(url: string): Promise<void>
+
+  // --- Clipboard ---
+  /**
+   * Write to the system clipboard via the main process. When `html` is given,
+   * the clipboard receives rich HTML (with `text` as a plain-text fallback) so
+   * pasting into rich-text editors preserves formatting. Text-only writes set
+   * just the plain-text clipboard.
+   */
+  writeClipboard(args: { text?: string; html?: string }): Promise<void>
 }
 
 declare global {

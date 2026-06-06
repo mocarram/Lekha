@@ -148,6 +148,7 @@ function stubLekha(): void {
     onOpenPath: vi.fn(() => () => undefined),
     newWindow: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
+    writeClipboard: vi.fn(() => Promise.resolve()),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
     exportDocx: vi.fn(() => Promise.resolve()),
@@ -459,6 +460,67 @@ describe('useCommands - export command routing', () => {
     const callArgs = firstCall?.[0]
     expect(callArgs?.markdown).toBe('# My Doc')
     expect(callArgs?.suggestedName).toMatch(/\.docx$/)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Test: copy as html / markdown routing
+// ---------------------------------------------------------------------------
+
+describe('useCommands - copy as html/markdown routing', () => {
+  it('dispatching "copyAsMarkdown" writes the markdown to the clipboard', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+
+    const handle = ref.current!
+    vi.spyOn(handle, 'getMarkdown').mockReturnValue('# Hello\n\nworld')
+
+    renderHook(() =>
+      useCommands(ref, fileOps, {
+        onFind: vi.fn(),
+        onReplace: vi.fn(),
+        onLink: vi.fn(),
+        onInsertImage: vi.fn(),
+        onPreferences: vi.fn(),
+      }),
+    )
+    act(() => { capturedDispatch!('copyAsMarkdown') })
+
+    const { writeClipboard } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(writeClipboard).toHaveBeenCalledOnce()
+    const firstCall = writeClipboard?.mock.calls[0] as [{ text?: string; html?: string }] | undefined
+    expect(firstCall?.[0]?.text).toBe('# Hello\n\nworld')
+    // Markdown copy must not set the html field.
+    expect(firstCall?.[0]?.html).toBeUndefined()
+  })
+
+  it('dispatching "copyAsHtml" builds HTML and writes html + text to the clipboard', async () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+
+    const handle = ref.current!
+    vi.spyOn(handle, 'getMarkdown').mockReturnValue('# Title')
+
+    renderHook(() =>
+      useCommands(ref, fileOps, {
+        onFind: vi.fn(),
+        onReplace: vi.fn(),
+        onLink: vi.fn(),
+        onInsertImage: vi.fn(),
+        onPreferences: vi.fn(),
+      }),
+    )
+    act(() => { capturedDispatch!('copyAsHtml') })
+
+    // copyAsHtml is async (buildExportHtml then writeClipboard). Flush promises.
+    await new Promise<void>((resolve) => setTimeout(resolve, 50))
+
+    const { writeClipboard } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(writeClipboard).toHaveBeenCalledOnce()
+    const firstCall = writeClipboard?.mock.calls[0] as [{ text?: string; html?: string }] | undefined
+    expect(firstCall?.[0]?.html).toContain('<!DOCTYPE html>')
+    // Plain-text fallback is the markdown source.
+    expect(firstCall?.[0]?.text).toBe('# Title')
   })
 })
 

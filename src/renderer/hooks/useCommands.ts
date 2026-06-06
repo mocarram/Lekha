@@ -261,6 +261,39 @@ export function useCommands(
       }
 
       // ------------------------------------------------------------------
+      // Copy as Markdown
+      //
+      // Grab the current markdown from the active editor and write it to the
+      // system clipboard as plain text via the main-process clipboard bridge.
+      // ------------------------------------------------------------------
+      if (cmd === 'copyAsMarkdown') {
+        const markdown = editorRef.current?.getMarkdown() ?? ''
+        void window.lekha.writeClipboard({ text: markdown }).catch((err: unknown) => {
+          console.error('[clipboard] Copy as Markdown failed:', err)
+        })
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Copy as HTML
+      //
+      // Render the markdown to a standalone HTML document (same pipeline as
+      // export) and write it to the clipboard as rich HTML, with the markdown
+      // source as the plain-text fallback. The rich-HTML clipboard (via main
+      // clipboard.write) lets pasting into rich editors keep formatting.
+      // ------------------------------------------------------------------
+      if (cmd === 'copyAsHtml') {
+        const markdown = editorRef.current?.getMarkdown() ?? ''
+        const { title } = useEditorStore.getState()
+        void buildExportHtml(markdown, { title })
+          .then((html) => window.lekha.writeClipboard({ html, text: markdown }))
+          .catch((err: unknown) => {
+            console.error('[clipboard] Copy as HTML failed:', err)
+          })
+        return
+      }
+
+      // ------------------------------------------------------------------
       // Editor formatting, headings, lists, undo/redo, link, horizontalRule
       // All remaining AppCommands route to editorRef.runCommand which uses
       // editorCommandMap (single source of truth shared with keymap).

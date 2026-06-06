@@ -34,4 +34,11 @@ export const IPC = {
   saveImage: 'fs:saveImage',
   /** Renderer -> main: open a URL in the system browser (scheme-validated). */
   openExternal: 'shell:openExternal',
+  /**
+   * Renderer -> main: write to the system clipboard. Accepts an optional html
+   * payload (for rich paste) and/or a plain-text fallback. Using the main
+   * process clipboard.write enables rich HTML clipboard content, which
+   * navigator.clipboard.writeText cannot provide.
+   */
+  writeClipboard: 'clipboard:write',
 } as const
