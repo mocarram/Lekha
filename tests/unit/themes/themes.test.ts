@@ -43,6 +43,28 @@ describe('THEMES registry', () => {
     expect(sepia!.label).toBe('Sepia')
   })
 
+  it('includes solarized-light theme with label "Solarized Light"', () => {
+    const t = THEMES.find((x) => x.id === 'solarized-light')
+    expect(t).toBeDefined()
+    expect(t!.label).toBe('Solarized Light')
+  })
+
+  it('includes solarized-dark theme with label "Solarized Dark"', () => {
+    const t = THEMES.find((x) => x.id === 'solarized-dark')
+    expect(t).toBeDefined()
+    expect(t!.label).toBe('Solarized Dark')
+  })
+
+  it('includes nord theme with label "Nord"', () => {
+    const t = THEMES.find((x) => x.id === 'nord')
+    expect(t).toBeDefined()
+    expect(t!.label).toBe('Nord')
+  })
+
+  it('has at least 6 themes after adding the 3 new ones', () => {
+    expect(THEMES.length).toBeGreaterThanOrEqual(6)
+  })
+
   it('every theme has a non-empty id and label', () => {
     for (const theme of THEMES) {
       expect(typeof theme.id).toBe('string')
@@ -91,5 +113,20 @@ describe('applyTheme', () => {
     applyTheme('sepia')
     applyTheme('night')
     expect(document.documentElement.dataset['theme']).toBe('night')
+  })
+
+  it('sets data-theme="solarized-light" when called with "solarized-light"', () => {
+    applyTheme('solarized-light')
+    expect(document.documentElement.dataset['theme']).toBe('solarized-light')
+  })
+
+  it('sets data-theme="solarized-dark" when called with "solarized-dark"', () => {
+    applyTheme('solarized-dark')
+    expect(document.documentElement.dataset['theme']).toBe('solarized-dark')
+  })
+
+  it('sets data-theme="nord" when called with "nord"', () => {
+    applyTheme('nord')
+    expect(document.documentElement.dataset['theme']).toBe('nord')
   })
 })

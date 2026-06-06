@@ -9,6 +9,9 @@ import './styles/global.css'
 import './styles/themes/github.css'
 import './styles/themes/night.css'
 import './styles/themes/sepia.css'
+import './styles/themes/solarized-light.css'
+import './styles/themes/solarized-dark.css'
+import './styles/themes/nord.css'
 import App from './App'
 
 const root = document.getElementById('root')

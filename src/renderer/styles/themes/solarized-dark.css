@@ -1,0 +1,78 @@
+/*
+ * themes/solarized-dark.css - Solarized Dark theme for Lekha
+ *
+ * Uses the authentic Solarized Dark palette by Ethan Schoonover.
+ * Background: base03 (#002b36), text: base0 (#839496), accent: blue (#268bd2).
+ *
+ * All universal design tokens are overridden so no light values bleed through.
+ * Scrollbar thumbs use white-tinted rgba (like night.css) for dark surfaces.
+ *
+ * Activation: set document.documentElement.dataset.theme = "solarized-dark"
+ */
+
+[data-theme="solarized-dark"] {
+  /* --- Surfaces --- */
+  --bg:           #002b36;
+  --surface:      #073642;
+  --border:       #124050;
+  --border-light: #1b4d5c;
+
+  /* --- Text --- */
+  --text:       #839496;
+  --text-muted: #586e75;
+  --text-sub:   #657b83;
+  --text-dark:  #93a1a1;
+  --text-file:  #839496;
+  --heading:    #93a1a1;
+
+  /* --- Accent / link --- */
+  --link:   #268bd2;
+  --accent: #268bd2;
+
+  /* --- Editor content --- */
+  --selection:         #003d4d;
+  --code-bg:           #073642;
+  --code-bg-inline:    #073642;
+  --code-text:         #839496;
+  --blockquote-text:   #657b83;
+  --blockquote-border: #1b4d5c;
+  --table-border:      #124050;
+  --table-header-bg:   #073642;
+  --hr-color:          #124050;
+
+  /* --- Sidebar / chrome --- */
+  --sidebar-bg:     #073642;
+  --sidebar-active: #094761;
+  --sidebar-hover:  #0d3d4e;
+  --titlebar-bg:    #073642;
+  --statusbar-text: #586e75;
+
+  /* --- Find highlights --- */
+  --find-match:         #2a3810;
+  --find-match-current: #6b5b00;
+
+  /* --- Markdown ==highlight== --- */
+  --highlight-bg:   #1a3b14;
+  --highlight-text: #93a1a1;
+
+  /* --- Syntax highlighting (Solarized Dark palette) --- */
+  --hljs-keyword:   #859900;   /* green - keywords */
+  --hljs-string:    #2aa198;   /* cyan - strings */
+  --hljs-comment:   #586e75;   /* base01 - comments */
+  --hljs-function:  #268bd2;   /* blue - functions */
+  --hljs-number:    #d33682;   /* magenta - numbers */
+  --hljs-tag:       #859900;   /* green - tags */
+  --hljs-attribute: #cb4b16;   /* orange - attributes */
+  --hljs-section:   #b58900;   /* yellow - sections */
+}
+
+/* Scrollbar overrides: white-tinted thumbs for dark surface */
+[data-theme="solarized-dark"] .editor-pane::-webkit-scrollbar-thumb,
+[data-theme="solarized-dark"] .sidebar__content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="solarized-dark"] .editor-pane::-webkit-scrollbar-thumb:hover,
+[data-theme="solarized-dark"] .sidebar__content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.22);
+}

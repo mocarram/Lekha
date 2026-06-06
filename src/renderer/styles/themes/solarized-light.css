@@ -1,0 +1,85 @@
+/*
+ * themes/solarized-light.css - Solarized Light theme for Lekha
+ *
+ * Uses the authentic Solarized palette by Ethan Schoonover.
+ * Background: base3 (#fdf6e3), text: base00 (#657b83), accent: blue (#268bd2).
+ *
+ * All universal design tokens are overridden to ensure no light GitHub values
+ * bleed through. Syntax highlighting uses the Solarized color roles.
+ *
+ * Activation: set document.documentElement.dataset.theme = "solarized-light"
+ *
+ * Solarized palette:
+ *   base03  #002b36  darkest dark bg
+ *   base02  #073642  dark bg highlights
+ *   base01  #586e75  optional emphasized content (comments, secondary)
+ *   base00  #657b83  body text on light bg
+ *   base0   #839496  body text on dark bg
+ *   base1   #93a1a1  comments / secondary on dark bg
+ *   base2   #eee8d5  background highlights on light bg
+ *   base3   #fdf6e3  background on light bg
+ *   yellow  #b58900
+ *   orange  #cb4b16
+ *   red     #dc322f
+ *   magenta #d33682
+ *   violet  #6c71c4
+ *   blue    #268bd2
+ *   cyan    #2aa198
+ *   green   #859900
+ */
+
+[data-theme="solarized-light"] {
+  /* --- Surfaces --- */
+  --bg:           #fdf6e3;
+  --surface:      #eee8d5;
+  --border:       #dfd7bc;
+  --border-light: #d5cdb0;
+
+  /* --- Text --- */
+  --text:       #657b83;
+  --text-muted: #93a1a1;
+  --text-sub:   #839496;
+  --text-dark:  #586e75;
+  --text-file:  #657b83;
+  --heading:    #586e75;
+
+  /* --- Accent / link --- */
+  --link:   #268bd2;
+  --accent: #268bd2;
+
+  /* --- Editor content --- */
+  --selection:         #d7e8f8;
+  --code-bg:           #eee8d5;
+  --code-bg-inline:    #eee8d5;
+  --code-text:         #657b83;
+  --blockquote-text:   #839496;
+  --blockquote-border: #93a1a1;
+  --table-border:      #dfd7bc;
+  --table-header-bg:   #eee8d5;
+  --hr-color:          #dfd7bc;
+
+  /* --- Sidebar / chrome --- */
+  --sidebar-bg:     #eee8d5;
+  --sidebar-active: #d5cdb0;
+  --sidebar-hover:  #e4dfc8;
+  --titlebar-bg:    #eee8d5;
+  --statusbar-text: #93a1a1;
+
+  /* --- Find highlights --- */
+  --find-match:         #f0e68c;
+  --find-match-current: #b58900;
+
+  /* --- Markdown ==highlight== --- */
+  --highlight-bg:   #f5e96e;
+  --highlight-text: #586e75;
+
+  /* --- Syntax highlighting (Solarized palette roles) --- */
+  --hljs-keyword:   #859900;   /* green - keywords */
+  --hljs-string:    #2aa198;   /* cyan - strings */
+  --hljs-comment:   #93a1a1;   /* base1 - comments */
+  --hljs-function:  #268bd2;   /* blue - functions / titles */
+  --hljs-number:    #d33682;   /* magenta - numbers / literals */
+  --hljs-tag:       #859900;   /* green - HTML tags */
+  --hljs-attribute: #cb4b16;   /* orange - attributes / variables */
+  --hljs-section:   #b58900;   /* yellow - section headers */
+}
