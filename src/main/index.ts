@@ -6,6 +6,7 @@ import { registerExportHandlers } from '@main/ipc/export'
 import { registerImageHandlers } from '@main/ipc/images'
 import { registerShellHandlers } from '@main/ipc/shell'
 import { buildMenuTemplate } from '@main/menu'
+import { setupAutoUpdater, checkForUpdates } from '@main/updater'
 import {
   WindowRegistry,
   createWindow,
@@ -92,6 +93,9 @@ function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void
         { themes: THEMES, current: currentTheme },
         setTheme,
         openNewWindow,
+        // "Check for Updates…" runs the manual check directly in main (no
+        // renderer round-trip). It is a safe no-op in dev.
+        () => { void checkForUpdates() },
       ),
     ),
   )
@@ -236,6 +240,10 @@ void app.whenReady().then(async () => {
 
   // Set up the native application menu with the persisted recent files and theme.
   applyMenu(initialSettings.recentFiles, initialSettings.theme)
+
+  // Configure auto-update and kick off a background check. NO-OP in dev
+  // (!app.isPackaged) and never throws, so this is safe to always call.
+  setupAutoUpdater()
 
   app.on('activate', () => {
     // macOS: re-open a window when the dock icon is clicked and none are open.

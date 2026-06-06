@@ -124,6 +124,9 @@ function buildOpenRecentSubmenu(
  * @param onNewWindow - Called when the user picks "New Window". In production
  *   this opens a fresh window DIRECTLY in main (no renderer round-trip), so it
  *   works regardless of which window - if any - is focused. Defaults to a no-op.
+ * @param onCheckForUpdates - Called when the user picks "Check for Updates…".
+ *   In production this runs the manual updater check directly in main (no
+ *   renderer round-trip; safe no-op in dev). Defaults to a no-op.
  */
 export function buildMenuTemplate(
   send: (cmd: AppCommand) => void,
@@ -132,6 +135,7 @@ export function buildMenuTemplate(
   themeMenu?: ThemeMenuConfig,
   setTheme: (id: string) => void = () => { /* no-op - no theme caller */ },
   onNewWindow: () => void = () => { /* no-op - no multi-window caller */ },
+  onCheckForUpdates: () => void = () => { /* no-op - no updater caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -143,6 +147,7 @@ export function buildMenuTemplate(
       label: 'Lekha',
       submenu: [
         { role: 'about' },
+        { label: 'Check for Updates…', click: () => { onCheckForUpdates() } },
         sep,
         item('Preferences…', 'CmdOrCtrl+,', 'preferences', send),
         sep,
@@ -207,6 +212,12 @@ export function buildMenuTemplate(
       { role: 'copy' },
       { role: 'paste' },
       { role: 'selectAll' },
+      sep,
+      // Copy the whole document as rich HTML / as Markdown source. These route
+      // through the renderer (useCommands) which serializes the doc and writes
+      // to the clipboard via window.lekha.writeClipboard.
+      item('Copy as HTML',     'CmdOrCtrl+Shift+C', 'copyAsHtml',     send),
+      item('Copy as Markdown', undefined,            'copyAsMarkdown', send),
       sep,
       item('Find',    'CmdOrCtrl+F',       'find',    send),
       item('Replace', 'CmdOrCtrl+Alt+F',   'replace', send),
@@ -290,6 +301,21 @@ export function buildMenuTemplate(
     template.push({
       label: 'Theme',
       submenu: buildThemeSubmenu(themeMenu, setTheme),
+    })
+  }
+
+  // -------------------------------------------------------------------------
+  // Help menu (non-macOS only).
+  //
+  // On macOS, "Check for Updates…" lives in the app (Lekha) menu above. On
+  // other platforms there is no app menu, so surface it under Help instead.
+  // -------------------------------------------------------------------------
+  if (process.platform !== 'darwin') {
+    template.push({
+      label: 'Help',
+      submenu: [
+        { label: 'Check for Updates…', click: () => { onCheckForUpdates() } },
+      ],
     })
   }
 

@@ -15,7 +15,16 @@ files:
 
 npmRebuild: false
 
-# Publishing: not configured yet - signing/notarization is a future step.
+# Auto-update channel. electron-builder writes app-update.yml into the packaged
+# app from this block; electron-updater reads it at runtime to locate releases.
+# No actual GitHub release is required to wire the channel - publishing a real
+# signed/notarized release is a later step.
+publish:
+  provider: github
+  owner: mocarram
+  repo: Lekha
+
+# Publishing: signing/notarization is a future step.
 # Set CSC_IDENTITY_AUTO_DISCOVERY=false for unsigned local builds.
 
 mac:
@@ -25,8 +34,9 @@ mac:
   identity: null
   hardenedRuntime: false
   gatekeeperAssess: false
-  # icon: omitted - electron-builder uses default Electron icon.
-  # Add build/icon.icns when a custom icon is ready (follow-up task).
+  # Custom app icon (build/icon.icns). Regenerate with:
+  #   python3 scripts/make-icon.py && bash scripts/make-icon.sh
+  icon: build/icon.icns
   target:
     - target: dmg
       arch:

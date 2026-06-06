@@ -508,3 +508,73 @@ describe('buildMenuTemplate - Insert Link / Insert Image', () => {
     expect(items.map((i) => i.label)).toContain('Preferences…')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Check for Updates menu item
+//
+// The full update flow (electron-updater) is verified manually on a packaged
+// build; here we only assert the menu item exists and wires to the
+// onCheckForUpdates callback (run directly in main, not the renderer channel).
+// ---------------------------------------------------------------------------
+
+describe('buildMenuTemplate - Copy as HTML / Markdown', () => {
+  it('Edit submenu contains Copy as HTML and Copy as Markdown', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const edit = template.find((t) => t.label === 'Edit')
+    const items = edit!.submenu as MenuItemConstructorOptions[]
+    const labels = items.map((i) => i.label)
+    expect(labels).toContain('Copy as HTML')
+    expect(labels).toContain('Copy as Markdown')
+  })
+
+  it('Copy as HTML fires send("copyAsHtml") and has CmdOrCtrl+Shift+C accelerator', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const found = findItem(template, (i) => i.label === 'Copy as HTML')
+    expect(found).toBeDefined()
+    expect(found?.accelerator).toBe('CmdOrCtrl+Shift+C')
+    clickItem(found!)
+    expect(send).toHaveBeenCalledWith('copyAsHtml')
+  })
+
+  it('Copy as Markdown fires send("copyAsMarkdown")', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const template = buildMenuTemplate(send)
+    const found = findItem(template, (i) => i.label === 'Copy as Markdown')
+    expect(found).toBeDefined()
+    clickItem(found!)
+    expect(send).toHaveBeenCalledWith('copyAsMarkdown')
+  })
+})
+
+describe('buildMenuTemplate - Check for Updates', () => {
+  it('exposes a "Check for Updates…" item somewhere in the menu', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+    const item = findItem(template, (i) => i.label === 'Check for Updates…')
+    expect(item).toBeDefined()
+  })
+
+  it('clicking "Check for Updates…" invokes onCheckForUpdates (not the renderer send channel)', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const onCheckForUpdates = vi.fn()
+    // onCheckForUpdates is the 7th positional arg; the earlier optional args
+    // (recents/openPath/themeMenu/setTheme/onNewWindow) keep their defaults.
+    const template = buildMenuTemplate(
+      send,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      onCheckForUpdates,
+    )
+    const item = findItem(template, (i) => i.label === 'Check for Updates…')
+    expect(item).toBeDefined()
+    // @ts-expect-error calling with no args is safe for our generated handlers
+    item!.click()
+    expect(onCheckForUpdates).toHaveBeenCalledTimes(1)
+    expect(send).not.toHaveBeenCalled()
+  })
+})
