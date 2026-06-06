@@ -337,9 +337,11 @@ export default function App() {
     if (!window.confirm('Move this item to the Trash?')) return
     try {
       await window.lekha.deletePath(path)
-      // If the open document was deleted, clear its path so a later save uses
-      // Save As rather than rewriting the trashed location. The buffer is kept.
-      if (useEditorStore.getState().path === path) {
+      // If the open document was deleted - directly, or because a folder
+      // containing it was trashed - clear its path so a later save uses Save As
+      // rather than rewriting the trashed location. The buffer is kept.
+      const openPath = useEditorStore.getState().path
+      if (openPath !== null && (openPath === path || openPath.startsWith(path + '/'))) {
         useEditorStore.getState().setPath(null)
       }
       await fileOps.refreshTree()
