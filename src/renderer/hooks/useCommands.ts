@@ -153,6 +153,23 @@ export function useCommands(
         void fo.saveAs()
         return
       }
+      if (cmd === 'revertToSaved') {
+        void fo.revertToSaved()
+        return
+      }
+      if (cmd === 'showInFinder') {
+        // Reveal the current document in the OS file manager.
+        const path = useEditorStore.getState().path
+        if (path) void window.lekha.revealPath(path)
+        return
+      }
+      if (cmd === 'revealInFileTree') {
+        // Ensure the sidebar's Files tab is visible; the active file
+        // auto-reveals (FileTree expands ancestors + scrolls to it).
+        useWorkspaceStore.getState().setSidebarVisible(true)
+        useWorkspaceStore.getState().setSidebarTab('files')
+        return
+      }
 
       // ------------------------------------------------------------------
       // Sidebar toggle (workspace store)

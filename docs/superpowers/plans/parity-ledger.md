@@ -529,3 +529,13 @@ Implemented (resolved Q5):
 - **Underline `<u>` mark** with Cmd+U. New `underline-plugin.ts` adds a markdown-it inline rule that tokenizes bare `<u>`/`</u>` into `u_open`/`u_close` (html stays disabled, only these two tags handled); schema gains an `underline` mark; parser maps token `u` -> underline; serializer emits raw `<u>…</u>` (WYSIWYG HTML passthrough). Wired into editorCommandMap, keymap (Mod-u), Format menu, and the command registry.
 
 Tests: +5 (underline round-trip + parse, command toggle, registry/menu/entries coverage). 1187 unit + 7 e2e green. Round-trip `<u>underlined</u>` is idempotent.
+
+### Wave 6 - Doc-level file ops, part 1 (`feat/wysiwyg-doc-fileops`)
+Implemented (menu/settings parity, build order b):
+- **Reveal in File Tree** - ensures sidebar Files tab is visible; the active file auto-reveals (Wave 2).
+- **Open File Location** (Show in Finder) - reveals the current document via revealPath.
+- **Revert to Saved** - reloads the current file from disk through the shared loadInto, with a confirm guard when the doc is dirty (new `useFileOps.revertToSaved`).
+Wired into AppCommand, useCommands dispatch, the File menu, and the command registry.
+
+Tests: +1 useCommands dispatch + registry/menu coverage of the 3 commands. 1188 unit + 7 e2e green.
+Remaining in build-order (b): Rename, Duplicate, Move To, Delete (need new fs IPC for duplicate/move), Save All (multi-window) - next sub-wave.

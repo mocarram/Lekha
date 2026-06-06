@@ -119,6 +119,7 @@ interface MockFileOpsResult {
   save: ReturnType<typeof vi.fn>
   saveAs: ReturnType<typeof vi.fn>
   openFolder: ReturnType<typeof vi.fn>
+  revertToSaved: ReturnType<typeof vi.fn>
 }
 
 function makeMockFileOps(): MockFileOpsResult {
@@ -130,8 +131,9 @@ function makeMockFileOps(): MockFileOpsResult {
   const openFolder = vi.fn(() => Promise.resolve())
   const refreshTree = vi.fn(() => Promise.resolve())
   const guardUnsaved = vi.fn(() => Promise.resolve(true))
-  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved }
-  return { fileOps, newFile, open, openPath, save, saveAs, openFolder }
+  const revertToSaved = vi.fn(() => Promise.resolve())
+  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved, revertToSaved }
+  return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved }
 }
 
 // ---------------------------------------------------------------------------
@@ -287,6 +289,18 @@ describe('useCommands - file operation routing', () => {
     act(() => { capturedDispatch!('saveAs') })
 
     expect(saveAs).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "revertToSaved" calls fileOps.revertToSaved()', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps, revertToSaved } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('revertToSaved') })
+
+    expect(revertToSaved).toHaveBeenCalledOnce()
   })
 
   it('dispatching "openFolder" calls fileOps.openFolder()', () => {

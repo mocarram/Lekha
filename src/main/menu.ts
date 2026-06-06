@@ -183,8 +183,12 @@ export function buildMenuTemplate(
         submenu: buildOpenRecentSubmenu(recentFiles, openPath),
       },
       sep,
+      item('Reveal in File Tree', undefined, 'revealInFileTree', send),
+      item('Open File Location',  undefined, 'showInFinder',     send),
+      sep,
       item('Save',          'CmdOrCtrl+S',       'save',       send),
       item('Save As…',      'CmdOrCtrl+Shift+S', 'saveAs',     send),
+      item('Revert to Saved', undefined,         'revertToSaved', send),
       sep,
       {
         label: 'Export',

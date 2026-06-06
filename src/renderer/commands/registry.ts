@@ -30,6 +30,9 @@ export const COMMANDS: CommandDef[] = [
   { id: 'openFolder', label: 'Open Folder…', group: 'File', shortcut: '⌘⇧O' },
   { id: 'save', label: 'Save', group: 'File', shortcut: '⌘S' },
   { id: 'saveAs', label: 'Save As…', group: 'File', shortcut: '⌘⇧S' },
+  { id: 'revertToSaved', label: 'Revert to Saved', group: 'File' },
+  { id: 'revealInFileTree', label: 'Reveal in File Tree', group: 'File' },
+  { id: 'showInFinder', label: 'Open File Location', group: 'File' },
 
   // View
   { id: 'presentation', label: 'Enter Presentation', group: 'View', shortcut: 'F5' },

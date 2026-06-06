@@ -35,6 +35,12 @@ export interface FileOps {
    * Returns false when the user cancelled or Save As was cancelled.
    */
   guardUnsaved(): Promise<boolean>
+  /**
+   * Reload the current file from disk, discarding in-memory changes
+   * (File ▸ Revert to Saved). No-op when there is no path; confirms first when
+   * the document is dirty.
+   */
+  revertToSaved(): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -217,5 +223,32 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     workspaceStore.getState().setFileTree(tree)
   }, [workspaceStore])
 
-  return { open, openPath, save, saveAs, newFile, openFolder, refreshTree, guardUnsaved }
+  // Reload the current file from disk, discarding in-memory edits. Confirms
+  // first when the document has unsaved changes.
+  const revertToSaved = useCallback(async (): Promise<void> => {
+    const { path, isDirty } = editorStore.getState()
+    if (path === null) return
+    if (
+      isDirty &&
+      !window.confirm(
+        'Revert to the last saved version? Your unsaved changes will be lost.',
+      )
+    ) {
+      return
+    }
+    const md = await window.lekha.readFile(path)
+    await loadInto(path, md)
+  }, [editorStore, loadInto])
+
+  return {
+    open,
+    openPath,
+    save,
+    saveAs,
+    newFile,
+    openFolder,
+    refreshTree,
+    guardUnsaved,
+    revertToSaved,
+  }
 }
