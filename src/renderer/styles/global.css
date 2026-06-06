@@ -177,18 +177,38 @@ body,
 
 .sidebar__tab-btn {
   flex: 1;
-  padding: 6px 0;
+  position: relative;
+  padding: 7px 0;
   background: none;
   border: none;
   cursor: pointer;
   font-size: 11px;
   color: var(--color-text-muted);
   font-family: var(--font-ui);
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.sidebar__tab-btn:hover {
+  color: var(--color-text);
+  background-color: var(--sidebar-hover);
 }
 
 .sidebar__tab-btn.active {
   color: var(--color-accent);
   font-weight: 600;
+}
+
+/* Active tab indicator: a short accent underline centered under the label. */
+.sidebar__tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--color-accent);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1301,4 +1321,17 @@ input[type="checkbox"]:focus-visible {
 
 .dialog-btn-primary {
   box-shadow: 0 1px 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* --- Select dropdowns: custom chevron, no OS widget --- */
+select.dialog-input {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 32px;
+  cursor: pointer;
+  /* Themeable-neutral chevron that reads on both light and dark surfaces. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%239a9a9a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 15px 15px;
 }
