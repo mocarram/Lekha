@@ -20,7 +20,27 @@ import { tableNodes } from 'prosemirror-tables'
 const tables = tableNodes({
   tableGroup: 'block',
   cellContent: 'block+',
-  cellAttributes: {},
+  // Per-cell column alignment (`null | 'left' | 'center' | 'right'`). Mirrors
+  // GFM's per-column alignment, which the parser reads from markdown-it's
+  // `text-align` style and the serializer renders back into the `:--`/`:-:`/
+  // `--:` separator markers. getFromDOM/setDOMAttr keep copy-paste and the
+  // rendered table visually aligned.
+  cellAttributes: {
+    align: {
+      default: null,
+      getFromDOM(dom: HTMLElement): string | null {
+        return dom.style.textAlign || null
+      },
+      setDOMAttr(value: unknown, attrs: Record<string, unknown>): void {
+        // `align` is always one of the allowed string keywords or null; only a
+        // truthy string contributes a `text-align` declaration.
+        if (typeof value === 'string' && value) {
+          const existing = typeof attrs['style'] === 'string' ? attrs['style'] : ''
+          attrs['style'] = `${existing}text-align:${value};`
+        }
+      },
+    },
+  },
 })
 
 const taskList: NodeSpec = {

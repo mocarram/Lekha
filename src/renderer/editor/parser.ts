@@ -189,13 +189,30 @@ function findItemInline(tokens: Token[], openIndex: number): Token | undefined {
 }
 
 /**
- * Wrap each table cell's inline content in a paragraph.
+ * Read a cell-open token's column alignment from markdown-it's `text-align`
+ * style attr (`text-align:left|center|right`). markdown-it sets this on every
+ * `th`/`td` in an aligned column; absent for unaligned columns. Returns the
+ * bare keyword (`left`/`center`/`right`) or `null`.
+ */
+function cellAlign(token: Token): 'left' | 'center' | 'right' | null {
+  const style = token.attrGet('style')
+  if (!style) return null
+  const match = /text-align:\s*(left|center|right)/.exec(style)
+  return match ? (match[1] as 'left' | 'center' | 'right') : null
+}
+
+/**
+ * Wrap each table cell's inline content in a paragraph and carry alignment.
  *
  * markdown-it emits `th`/`td` with their `inline` token directly inside, but
  * the schema's cells require `block+`. We splice a `paragraph_open`/
  * `paragraph_close` pair around each cell's inline run so cells contain a real
  * block. thead/tbody wrappers carry no document meaning and are dropped by the
  * parser's token spec (`ignore`).
+ *
+ * Alignment: markdown-it encodes per-column alignment as a `text-align` style
+ * on each cell. We hoist it onto a `data-align` attr the `th`/`td` ParseSpec
+ * reads, mapping it to the cell's `align` schema attr.
  */
 function lekhaTables(state: StateCore): boolean {
   const input = state.tokens
@@ -203,8 +220,12 @@ function lekhaTables(state: StateCore): boolean {
   for (let i = 0; i < input.length; i++) {
     const token = input[i]
     if (!token) continue
-    out.push(token)
     const isCellOpen = token.type === 'th_open' || token.type === 'td_open'
+    if (isCellOpen) {
+      const align = cellAlign(token)
+      if (align) token.attrSet('data-align', align)
+    }
+    out.push(token)
     const next = input[i + 1]
     if (isCellOpen && next && next.type === 'inline') {
       out.push(makeToken(state, 'paragraph_open', 'p', 1))
@@ -342,8 +363,14 @@ const tokens: Record<string, ParseSpec> = {
   // satisfying the `block+` cell content. thead/tbody are document-noise.
   table: { block: 'table' },
   tr: { block: 'table_row' },
-  th: { block: 'table_header' },
-  td: { block: 'table_cell' },
+  th: {
+    block: 'table_header',
+    getAttrs: (tok) => ({ align: tok.attrGet('data-align') }),
+  },
+  td: {
+    block: 'table_cell',
+    getAttrs: (tok) => ({ align: tok.attrGet('data-align') }),
+  },
   thead: { ignore: true },
   tbody: { ignore: true },
 

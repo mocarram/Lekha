@@ -555,3 +555,61 @@ body,
   border-radius: 2px;
   padding: 0 1px;
 }
+
+/* ---------------------------------------------------------------------------
+ * Table editing toolbar
+ * Floating, token-themed bar shown while the cursor is inside a table. Anchored
+ * above the table by App via inline `top`/`left`. Grouped buttons with thin
+ * separators; glyph buttons that theme via the text color (light + dark).
+ * ------------------------------------------------------------------------- */
+.table-toolbar {
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+  font-family: var(--font-ui);
+}
+
+.table-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Thin separator between logical button groups. */
+.table-toolbar-group:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background-color: var(--color-border);
+}
+
+.table-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background-color: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.table-toolbar-btn:hover {
+  background-color: var(--color-border);
+}
+
+.table-toolbar-btn:active {
+  background-color: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}

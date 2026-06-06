@@ -36,6 +36,8 @@ function makeMockHandle() {
     focus: vi.fn(),
     scrollToPos: vi.fn(),
     runCommand: vi.fn(() => false),
+    runTableCommand: vi.fn(() => false),
+    getTableState: vi.fn(() => ({ inTable: false })),
     setFind,
     findNext,
     findPrev,

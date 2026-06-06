@@ -68,7 +68,26 @@ function formatRow(cells: string[]): string {
   return `| ${cells.join(' | ')} |`
 }
 
-/** Render a GFM table: header row, `---` separator, then body rows. */
+/**
+ * GFM separator-cell marker for a column's alignment:
+ *   left -> `:---`, center -> `:--:`, right -> `---:`, none -> `---`.
+ * Read from the header cell's `align` attr; the parser applies the same value
+ * to every cell in the column, so the header is an authoritative source.
+ */
+function alignMarker(align: string | null): string {
+  switch (align) {
+    case 'left':
+      return ':--'
+    case 'center':
+      return ':-:'
+    case 'right':
+      return '--:'
+    default:
+      return '---'
+  }
+}
+
+/** Render a GFM table: header row, alignment separator, then body rows. */
 function renderTable(state: MarkdownSerializerState, node: Node): void {
   const rows: Node[] = []
   node.forEach((row) => rows.push(row))
@@ -76,9 +95,13 @@ function renderTable(state: MarkdownSerializerState, node: Node): void {
   if (!header) return
 
   const headerCells = rowCells(header)
+  const separators: string[] = []
+  header.forEach((cell) =>
+    separators.push(alignMarker((cell.attrs['align'] as string | null) ?? null)),
+  )
   const lines = [
     formatRow(headerCells),
-    formatRow(headerCells.map(() => '---')),
+    formatRow(separators),
     ...body.map((row) => formatRow(rowCells(row))),
   ]
   // Write the whole table as one block; closeBlock terminates it without

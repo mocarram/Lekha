@@ -38,9 +38,54 @@ import {
   type ApplyLinkArgs,
   type ApplyImageArgs,
 } from './linkCommands'
+import { isInTable, selectedRect } from 'prosemirror-tables'
+import { tableCommandMap, type TableCommand } from './tableCommands'
 import type { AppCommand } from '@shared/commands'
 
 export type { LinkInfo, ApplyLinkArgs, ApplyImageArgs }
+export type { TableCommand }
+
+// ---------------------------------------------------------------------------
+// Table-toolbar state
+// ---------------------------------------------------------------------------
+
+/**
+ * Position/size of the active table in viewport (client) coordinates. The
+ * TableToolbar reads this to anchor itself above the table.
+ */
+export interface TableRect {
+  top: number
+  left: number
+  width: number
+  height: number
+}
+
+/** Reported on selection change so the host can show/position the toolbar. */
+export interface TableState {
+  inTable: boolean
+  rect?: TableRect
+}
+
+/**
+ * Compute the current table state for `view`: whether the selection is inside
+ * a table and, if so, the table element's bounding rect in client coordinates.
+ * Returns `{ inTable: false }` when the cursor is outside any table.
+ */
+function computeTableState(view: ProseMirrorView): TableState {
+  if (!isInTable(view.state)) return { inTable: false }
+  // `selectedRect` resolves the enclosing table; `tableStart` is the position
+  // just inside it, so `tableStart - 1` is the table node's own position. We
+  // read the rendered <table>'s client rect from the DOM at that position.
+  const { tableStart } = selectedRect(view.state)
+  const dom = view.nodeDOM(tableStart - 1)
+  const el = dom instanceof HTMLElement ? dom.closest('table') : null
+  if (!el) return { inTable: true }
+  const r = el.getBoundingClientRect()
+  return {
+    inTable: true,
+    rect: { top: r.top, left: r.left, width: r.width, height: r.height },
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -68,6 +113,17 @@ export interface EditorHandle {
    * such as file ops or find/replace are not in the map and return false).
    */
   runCommand(cmd: AppCommand): boolean
+
+  // --- Table editing ---
+
+  /**
+   * Run a table-editing command (insert/delete row or column, delete table, or
+   * set column alignment). Returns whether the command applied (false when the
+   * cursor is not in a table, or the command was a no-op).
+   */
+  runTableCommand(cmd: TableCommand): boolean
+  /** Return the current table state (in-table flag + client rect), or null. */
+  getTableState(): TableState
 
   // --- Find/replace ---
 
@@ -120,6 +176,11 @@ interface EditorViewProps {
    * full link info (href/text/range) so the host can open an edit dialog.
    */
   onLinkClick?: (info: LinkInfo) => void
+  /**
+   * Called on every selection change with the current table state so the host
+   * can show/position the floating TableToolbar.
+   */
+  onTableStateChange?: (state: TableState) => void
   /** CSS class name applied to the wrapper div. */
   className?: string
 }
@@ -138,16 +199,18 @@ interface EditorViewProps {
  * - Destroys the view on unmount (no leak).
  */
 export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
-  function EditorView({ markdown, onChange, onLinkClick, className }, ref) {
+  function EditorView({ markdown, onChange, onLinkClick, onTableStateChange, className }, ref) {
     const mountRef = useRef<HTMLDivElement>(null)
     const viewRef = useRef<ProseMirrorView | null>(null)
 
     // Ref-to-latest-callback: keeps onChange current without recreating the view
     const onChangeRef = useRef(onChange)
     const onLinkClickRef = useRef(onLinkClick)
+    const onTableStateChangeRef = useRef(onTableStateChange)
     useEffect(() => {
       onChangeRef.current = onChange
       onLinkClickRef.current = onLinkClick
+      onTableStateChangeRef.current = onTableStateChange
     })
 
     // Create the view once on mount; destroy on unmount
@@ -206,6 +269,9 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
               const text = newState.doc.textBetween(from, to, '\n')
               useEditorStore.getState().setSelectionCounts(countSelection(text))
             }
+            // Notify the host of the current table state so the floating
+            // TableToolbar can show/hide and reposition on each cursor move.
+            onTableStateChangeRef.current?.(computeTableState(view))
           }
         },
       })
@@ -262,6 +328,20 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
             view.focus()
           }
           return handled
+        },
+
+        runTableCommand(cmd: TableCommand): boolean {
+          const view = viewRef.current
+          if (!view) return false
+          const command = tableCommandMap[cmd]
+          const handled = command(view.state, view.dispatch, view)
+          if (handled) view.focus()
+          return handled
+        },
+        getTableState(): TableState {
+          const view = viewRef.current
+          if (!view) return { inTable: false }
+          return computeTableState(view)
         },
 
         setFind(query: string, opts: FindOptions): number {

@@ -72,6 +72,8 @@ function makeMockEditor(): MockEditorResult {
 
   const handle: EditorPaneHandle = {
     runCommand,
+    runTableCommand: vi.fn(() => false),
+    getTableState: vi.fn(() => ({ inTable: false })),
     toggleMode,
     getMode,
     getMarkdown,

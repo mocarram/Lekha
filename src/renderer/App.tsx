@@ -1,5 +1,9 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
-import { EditorPane, type EditorPaneHandle } from '@renderer/editor/EditorPane'
+import {
+  EditorPane,
+  type EditorPaneHandle,
+  type TableState,
+} from '@renderer/editor/EditorPane'
 import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
 import { useStartup } from '@renderer/hooks/useStartup'
@@ -15,6 +19,7 @@ import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
 import { ImageDialog } from '@renderer/components/ImageDialog'
 import { Preferences } from '@renderer/components/Preferences'
+import { TableToolbar } from '@renderer/components/TableToolbar'
 import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
 
@@ -95,6 +100,11 @@ export default function App() {
 
   // Preferences modal open/closed state.
   const [prefsOpen, setPrefsOpen] = useState(false)
+
+  // Floating table toolbar state: shown while the cursor is inside a table,
+  // anchored to the table's reported client rect. Updated on every selection
+  // change via EditorPane's onTableStateChange.
+  const [tableState, setTableState] = useState<TableState>({ inTable: false })
 
   // Open the link dialog from a click on a link in the editor (edit mode).
   const openLinkFromClick = useCallback((info: LinkInfo) => {
@@ -235,6 +245,7 @@ export default function App() {
           initialMarkdown={WELCOME_MARKDOWN}
           onChange={handleChange}
           onLinkClick={openLinkFromClick}
+          onTableStateChange={setTableState}
           className="editor-pane"
         />
       </div>
@@ -277,6 +288,20 @@ export default function App() {
       />
 
       <Preferences open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+
+      {tableState.inTable && tableState.rect ? (
+        <TableToolbar
+          show
+          rect={tableState.rect}
+          onCommand={(cmd) => {
+            editorRef.current?.runTableCommand(cmd)
+            // The command re-focuses the editor; refresh the toolbar position
+            // since row/column edits change the table's geometry.
+            const next = editorRef.current?.getTableState()
+            if (next) setTableState(next)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

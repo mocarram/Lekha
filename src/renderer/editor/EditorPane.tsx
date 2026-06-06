@@ -13,6 +13,8 @@ import {
   type LinkInfo,
   type ApplyLinkArgs,
   type ApplyImageArgs,
+  type TableCommand,
+  type TableState,
 } from './EditorView'
 import { SourceView, type SourceHandle } from './SourceView'
 import { parseMarkdown } from './parser'
@@ -51,6 +53,16 @@ export interface EditorPaneHandle {
    * its own undo/redo via keymap; no duplication needed).
    */
   runCommand(cmd: AppCommand): boolean
+
+  // --- Table editing (WYSIWYG mode only) ---
+
+  /**
+   * Run a table-editing command. Returns whether it applied. No-op (false) in
+   * source mode or when the cursor is not in a table.
+   */
+  runTableCommand(cmd: TableCommand): boolean
+  /** Return the current table state (in-table flag + client rect). */
+  getTableState(): TableState
 
   // --- Find/replace (WYSIWYG mode only; no-op in source mode) ---
 
@@ -99,9 +111,13 @@ interface EditorPaneProps {
   onChange?: (markdown: string) => void
   /** Called when the user clicks a link in the WYSIWYG editor. */
   onLinkClick?: (info: LinkInfo) => void
+  /** Forwarded to EditorView: fired on selection change with table state. */
+  onTableStateChange?: (state: TableState) => void
   /** CSS class name applied to the wrapper div. */
   className?: string
 }
+
+export type { TableCommand, TableState }
 
 // ---------------------------------------------------------------------------
 // Component
@@ -121,7 +137,10 @@ interface EditorPaneProps {
  * only one is visible at a time (we conditionally render, not hide).
  */
 export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
-  function EditorPane({ initialMarkdown, onChange, onLinkClick, className }, ref) {
+  function EditorPane(
+    { initialMarkdown, onChange, onLinkClick, onTableStateChange, className },
+    ref,
+  ) {
     const [mode, setMode] = useState<EditorMode>('wysiwyg')
 
     // Read focus/typewriter mode from the store.
@@ -226,6 +245,15 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           return wysiwygRef.current?.runCommand(cmd) ?? false
         },
 
+        runTableCommand(cmd: TableCommand): boolean {
+          if (mode !== 'wysiwyg') return false
+          return wysiwygRef.current?.runTableCommand(cmd) ?? false
+        },
+        getTableState(): TableState {
+          if (mode !== 'wysiwyg') return { inTable: false }
+          return wysiwygRef.current?.getTableState() ?? { inTable: false }
+        },
+
         setFind(query: string, opts: FindOptions): number {
           if (mode !== 'wysiwyg') return 0
           return wysiwygRef.current?.setFind(query, opts) ?? 0
@@ -300,6 +328,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
             markdown={markdown}
             onChange={handleWysiwygChange}
             {...(onLinkClick ? { onLinkClick } : {})}
+            {...(onTableStateChange ? { onTableStateChange } : {})}
           />
         ) : (
           <SourceView

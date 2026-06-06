@@ -47,6 +47,8 @@ function makeMockEditor(initialMarkdown = '# X') {
     focus,
     scrollToPos,
     runCommand,
+    runTableCommand: vi.fn(() => false),
+    getTableState: vi.fn(() => ({ inTable: false })),
     setFind,
     findNext,
     findPrev,
