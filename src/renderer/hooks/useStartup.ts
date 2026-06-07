@@ -17,6 +17,7 @@
 import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
+import { useDocumentsStore } from '@renderer/store/documentsStore'
 import { applyTheme, applyFontSize } from '@renderer/themes/index'
 import { setSmartPunctuation } from '@renderer/editor/createState'
 import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
@@ -29,12 +30,12 @@ const PERSIST_DEBOUNCE_MS = 300
  * Apply persisted settings to the workspace store and set up persistence
  * subscriptions for sidebar state and last folder.
  *
- * @param _fileOps - Reserved for future use (e.g. openPath on restored recents).
- *   Currently unused; folder restore uses window.lekha.readDir directly.
+ * @param fileOps - Used to restore previously open document tabs (openPath
+ *   de-dupes + adds tabs; selectTab activates the last-active one).
  * @param onSidebarWidth - Called with the restored sidebar width (px) so App
  *   can update its sidebarWidth state and apply the CSS variable.
  */
-export function useStartup(_fileOps: FileOps, onSidebarWidth?: (px: number) => void): void {
+export function useStartup(fileOps: FileOps, onSidebarWidth?: (px: number) => void): void {
   // Tracks whether we are currently in the initial restore phase.
   // Using a plain ref (not state) so changes to it never cause re-renders.
   const restoringRef = useRef(false)
@@ -42,6 +43,16 @@ export function useStartup(_fileOps: FileOps, onSidebarWidth?: (px: number) => v
   // Debounce timer for sidebar-state persistence.
   const sidebarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Debounce timer for open-tabs persistence.
+  const tabsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Hold the latest fileOps in a ref so the mount-only effect can call the
+  // current openPath/selectTab without re-subscribing on every render (fileOps
+  // is a fresh object each render). Synced in an effect (never during render).
+  const fileOpsRef = useRef(fileOps)
+  useEffect(() => {
+    fileOpsRef.current = fileOps
+  })
 
   useEffect(() => {
     if (typeof window.lekha === 'undefined') return
@@ -94,6 +105,26 @@ export function useStartup(_fileOps: FileOps, onSidebarWidth?: (px: number) => v
         }
       }
 
+      // Restore previously open document tabs (saved files only). Each path is
+      // opened as a tab via fileOps.openPath (de-dupes + reuses the welcome
+      // tab for the first file); missing/unreadable files are skipped. Then the
+      // last-active tab is re-selected.
+      if (s.openTabPaths.length > 0) {
+        for (const p of s.openTabPaths) {
+          try {
+            await fileOpsRef.current.openPath(p)
+          } catch {
+            // File no longer exists or is not readable - skip silently.
+          }
+        }
+        if (s.activeTabPath !== null) {
+          const tab = useDocumentsStore
+            .getState()
+            .documents.find((d) => d.path === s.activeTabPath)
+          if (tab) await fileOpsRef.current.selectTab(tab.id)
+        }
+      }
+
       // Restore phase is complete. Future store changes should be persisted.
       restoringRef.current = false
     })
@@ -127,11 +158,42 @@ export function useStartup(_fileOps: FileOps, onSidebarWidth?: (px: number) => v
       }
     })
 
+    // -----------------------------------------------------------------
+    // Phase 3: Subscribe to documentsStore to persist the open-tab set.
+    // -----------------------------------------------------------------
+    // Only the saved (path !== null) tabs and the active tab's path are
+    // persisted, and only when that signature actually changes - markdown
+    // edits (which fire updateActive on every keystroke) are ignored.
+    const tabsSignature = (s: ReturnType<typeof useDocumentsStore.getState>): string => {
+      const paths = s.documents.map((d) => d.path ?? '').join('|')
+      const active = s.documents.find((d) => d.id === s.activeId)?.path ?? ''
+      return `${paths}::${active}`
+    }
+    const unsubscribeTabs = useDocumentsStore.subscribe((state, prev) => {
+      if (restoringRef.current) return
+      if (tabsSignature(state) === tabsSignature(prev)) return
+      if (tabsTimerRef.current !== null) clearTimeout(tabsTimerRef.current)
+      tabsTimerRef.current = setTimeout(() => {
+        tabsTimerRef.current = null
+        const s = useDocumentsStore.getState()
+        const openTabPaths = s.documents
+          .map((d) => d.path)
+          .filter((p): p is string => p !== null)
+        const activeTabPath = s.documents.find((d) => d.id === s.activeId)?.path ?? null
+        void window.lekha.setSettings({ openTabPaths, activeTabPath })
+      }, PERSIST_DEBOUNCE_MS)
+    })
+
     return () => {
       unsubscribe()
+      unsubscribeTabs()
       if (sidebarTimerRef.current !== null) {
         clearTimeout(sidebarTimerRef.current)
         sidebarTimerRef.current = null
+      }
+      if (tabsTimerRef.current !== null) {
+        clearTimeout(tabsTimerRef.current)
+        tabsTimerRef.current = null
       }
     }
     // onSidebarWidth is the only non-stable dep - it is setSidebarWidth from

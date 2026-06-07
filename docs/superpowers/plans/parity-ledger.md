@@ -683,3 +683,11 @@ Implemented (i, step 3 of 4 - integration):
 Behaviour change: opening a file / New no longer prompts to save the current doc (it stays open in its own tab); the unsaved guard now runs per-tab on close and on app quit. Updated useFileOps tests accordingly (new closeTab guard suite; open/new no-prompt tests). documentsStore reset added to useFileOps test beforeEach.
 
 Tests: useFileOps 18 (rewrote 4 guard tests -> tab semantics + closeTab suite); +1 e2e (new -> 2 tabs, switch swaps content, close hides bar). 1282 unit + 8 e2e green. Next: 23d persistence + keyboard.
+
+### Wave 23d - Document tabs: persistence + keyboard/menu (`feat/wysiwyg-tabs-persistence`)
+Implemented (i, step 4 of 4 - COMPLETE):
+- **Keyboard/menu**: new top-level **Window** menu (Next Tab Ctrl+Tab, Previous Tab Ctrl+Shift+Tab, Close Tab Cmd+W, + minimize/zoom roles). AppCommands nextTab/previousTab/closeTab (commands.ts + registry group View + VALID_IDS). useCommands routes them: nextTab/previousTab via exported pure `nextTabId(documents, activeId, dir)` (wrap-around) -> fileOps.selectTab; closeTab -> fileOps.closeTab(activeId).
+- **reuseBlank** widened: opening a file now reuses ANY unmodified Untitled tab (path null + not dirty), so the welcome/blank tab is replaced rather than left behind (no stray tab on open or restore).
+- **Persistence**: Settings gains `openTabPaths: string[]` + `activeTabPath: string|null` (types.ts + main DEFAULTS + settings.test). useStartup restores saved tabs on launch (openPath per path, skip missing, then selectTab the active one) and subscribes to documentsStore to debounce-persist the tab set (saved paths only; signature-compared so per-keystroke markdown edits don't trigger writes). fileOps held in a ref synced via effect (no ref-write during render).
+
+Tests: +6 nextTabId pure, +1 Window menu, +2 settings round-trip; updated all Settings mock literals (folderSearch/useFileOps/imagePaste/preferences) with the two new fields; +1 e2e (command-driven cycle + close). 1291 unit + 9 e2e green. DOCUMENT TABS feature COMPLETE (23a store, 23b TabBar, 23c wiring, 23d persistence+keyboard).

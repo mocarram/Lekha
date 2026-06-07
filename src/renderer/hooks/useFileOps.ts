@@ -297,9 +297,10 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
         return
       }
 
+      // Reuse an unmodified Untitled tab in place (the welcome/blank tab) so
+      // opening a file replaces it rather than leaving a stray empty tab.
       const active = documentsStore.getState().activeDocument()
-      const reuseBlank =
-        active !== null && active.path === null && !active.isDirty && active.markdown.trim() === ''
+      const reuseBlank = active !== null && active.path === null && !active.isDirty
 
       const md = await window.lekha.readFile(path)
       if (reuseBlank) {

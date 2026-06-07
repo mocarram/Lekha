@@ -19,6 +19,7 @@ import type { AppCommand } from '@shared/commands'
 import type { PandocFormat } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
+import { useDocumentsStore, nextTabId } from '@renderer/store/documentsStore'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
 // Type-only import: erased at build time, so it does NOT pull the export
@@ -195,6 +196,17 @@ export function useCommands(
       }
       if (cmd === 'deleteFile') {
         void fo.deleteCurrent()
+        return
+      }
+      if (cmd === 'nextTab' || cmd === 'previousTab') {
+        const { documents, activeId } = useDocumentsStore.getState()
+        const target = nextTabId(documents, activeId, cmd === 'nextTab' ? 1 : -1)
+        if (target !== null && target !== activeId) void fo.selectTab(target)
+        return
+      }
+      if (cmd === 'closeTab') {
+        const { activeId } = useDocumentsStore.getState()
+        if (activeId !== null) void fo.closeTab(activeId)
         return
       }
       if (cmd === 'showInFinder') {

@@ -50,6 +50,9 @@ export const COMMANDS: CommandDef[] = [
   { id: 'toggleSource', label: 'Toggle Source Mode', group: 'View', shortcut: '⌘⌥S' },
   { id: 'toggleFocusMode', label: 'Focus Mode', group: 'View', shortcut: 'F8' },
   { id: 'toggleTypewriterMode', label: 'Typewriter Mode', group: 'View', shortcut: 'F9' },
+  { id: 'nextTab', label: 'Next Tab', group: 'View', shortcut: '⌃Tab' },
+  { id: 'previousTab', label: 'Previous Tab', group: 'View', shortcut: '⌃⇧Tab' },
+  { id: 'closeTab', label: 'Close Tab', group: 'View', shortcut: '⌘W' },
 
   // Edit
   { id: 'undo', label: 'Undo', group: 'Edit', shortcut: '⌘Z' },

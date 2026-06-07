@@ -101,6 +101,13 @@ export interface Settings {
    * Applied via session.setSpellCheckerLanguages.
    */
   spellCheckLanguage: string
+  /**
+   * Open document tabs to restore on launch: the file paths of saved tabs, in
+   * display order. Unsaved (Untitled) tabs are not persisted.
+   */
+  openTabPaths: string[]
+  /** Path of the tab that was active at last close (null when none/Untitled). */
+  activeTabPath: string | null
 }
 
 /** Default editor font size (px). Shared by the settings store and the renderer. */

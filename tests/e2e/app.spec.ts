@@ -504,3 +504,43 @@ test('document tabs: new creates tabs, switching swaps content, close removes a 
   await tabs.nth(1).locator('.tab__close').click()
   await expect(win.locator('.tab-bar')).toHaveCount(0)
 })
+
+// ---------------------------------------------------------------------------
+// Test 10: Document tabs - cycling and close via AppCommands (Window menu path)
+// ---------------------------------------------------------------------------
+// Exercises nextTab/previousTab/closeTab routing (the same IPC path the native
+// Window menu accelerators use). Uses blank Untitled tabs so close never hits
+// the native unsaved-changes dialog.
+test('document tabs: nextTab/previousTab/closeTab commands cycle and close', async () => {
+  const win = sharedWin
+
+  // Create two extra blank tabs so there are >= 3 tabs to cycle through.
+  await sendCommand(sharedApp, 'new')
+  await sendCommand(sharedApp, 'new')
+  await expect(win.locator('.tab')).toHaveCount(3)
+
+  const tabs = win.locator('.tab')
+  // The last-created (blank) tab is active.
+  await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true')
+
+  // previousTab steps left: middle, then first (welcome) tab.
+  await sendCommand(sharedApp, 'previousTab')
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  await sendCommand(sharedApp, 'previousTab')
+  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true')
+
+  // nextTab steps forward back to the last blank tab.
+  await sendCommand(sharedApp, 'nextTab')
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  await sendCommand(sharedApp, 'nextTab')
+  await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true')
+
+  // closeTab closes the active blank tab (clean -> no prompt) -> 2 remain,
+  // then close the other blank tab -> a single document remains, bar hides.
+  // The first tab is the welcome doc (possibly dirty from earlier tests); we
+  // never close it here so no native save dialog appears.
+  await sendCommand(sharedApp, 'closeTab')
+  await expect(win.locator('.tab')).toHaveCount(2)
+  await sendCommand(sharedApp, 'closeTab')
+  await expect(win.locator('.tab-bar')).toHaveCount(0)
+})

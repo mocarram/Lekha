@@ -381,6 +381,25 @@ export function buildMenuTemplate(
   })
 
   // -------------------------------------------------------------------------
+  // Window menu - document-tab navigation + standard window roles.
+  //
+  // Next/Previous Tab cycle through open document tabs (wrap-around); Close Tab
+  // closes the active tab (a fresh blank Untitled replaces the last one, so the
+  // window stays open). New/Close Window manage OS windows separately.
+  // -------------------------------------------------------------------------
+  template.push({
+    label: 'Window',
+    submenu: [
+      item('Next Tab',     'Control+Tab',       'nextTab',     send),
+      item('Previous Tab', 'Control+Shift+Tab', 'previousTab', send),
+      item('Close Tab',    'CmdOrCtrl+W',       'closeTab',    send),
+      sep,
+      { role: 'minimize' },
+      { role: 'zoom' },
+    ],
+  })
+
+  // -------------------------------------------------------------------------
   // Theme menu (optional - only added when themeMenu config is supplied).
   //
   // Added as a top-level menu so it is easy to find. The radio check updates

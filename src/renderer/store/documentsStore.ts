@@ -97,6 +97,27 @@ export function pickNeighbourId(
   return remaining[targetIdx]!.id
 }
 
+/**
+ * Id of the next/previous tab relative to `activeId`, cycling with wrap-around.
+ * `dir` is +1 for next (right) and -1 for previous (left).
+ *
+ * Returns null when there are no documents; returns `activeId` unchanged when
+ * there is a single tab (nothing to cycle to). When `activeId` is unknown it
+ * falls back to the first/last tab depending on direction.
+ */
+export function nextTabId(
+  documents: DocumentTab[],
+  activeId: string | null,
+  dir: 1 | -1,
+): string | null {
+  if (documents.length === 0) return null
+  const idx = documents.findIndex((d) => d.id === activeId)
+  if (idx === -1) return (dir === 1 ? documents[0]! : documents[documents.length - 1]!).id
+  const n = documents.length
+  const nextIdx = (idx + dir + n) % n
+  return documents[nextIdx]!.id
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------

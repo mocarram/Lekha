@@ -74,6 +74,22 @@ describe('createSettingsStore', () => {
     expect(persisted.sidebarWidth).toBe(360)
   })
 
+  it('openTabPaths defaults to [] and activeTabPath to null', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.openTabPaths).toEqual([])
+    expect(settings.activeTabPath).toBeNull()
+  })
+
+  it('round-trips openTabPaths + activeTabPath', async () => {
+    const store = createSettingsStore(tmpDir)
+    await store.set({ openTabPaths: ['/a.md', '/b.md'], activeTabPath: '/b.md' })
+    const store2 = createSettingsStore(tmpDir)
+    const persisted = await store2.get()
+    expect(persisted.openTabPaths).toEqual(['/a.md', '/b.md'])
+    expect(persisted.activeTabPath).toBe('/b.md')
+  })
+
   it('equationNumbering defaults to true', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()

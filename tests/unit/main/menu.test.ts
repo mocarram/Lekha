@@ -159,6 +159,19 @@ describe('buildMenuTemplate - top-level submenus', () => {
     expect(viewLabels).toContain('Toggle Sidebar')
     expect(viewLabels).toContain('Toggle Source Mode')
   })
+
+  it('Window submenu contains tab-navigation commands', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+
+    const win = template.find((t) => t.label === 'Window')
+    expect(win).toBeDefined()
+    const winItems = win!.submenu as MenuItemConstructorOptions[]
+    const winLabels = winItems.map((i) => i.label)
+    expect(winLabels).toContain('Next Tab')
+    expect(winLabels).toContain('Previous Tab')
+    expect(winLabels).toContain('Close Tab')
+  })
 })
 
 describe('buildMenuTemplate - click callbacks fire send with the right command', () => {

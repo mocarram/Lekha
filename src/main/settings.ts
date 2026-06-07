@@ -27,6 +27,8 @@ const DEFAULTS: Settings = {
   spellCheckLanguage: 'en-US',
   smartPunctuation: true,
   sidebarWidth: 240,
+  openTabPaths: [],
+  activeTabPath: null,
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

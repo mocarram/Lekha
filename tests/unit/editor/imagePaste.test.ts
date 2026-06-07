@@ -131,6 +131,8 @@ function makeMockLekha(
         spellCheckLanguage: 'en-US',
         smartPunctuation: true,
         sidebarWidth: 240,
+        openTabPaths: [],
+        activeTabPath: null,
       }),
     ),
     setSettings: vi.fn(() =>
@@ -149,6 +151,8 @@ function makeMockLekha(
         spellCheckLanguage: 'en-US',
         smartPunctuation: true,
         sidebarWidth: 240,
+        openTabPaths: [],
+        activeTabPath: null,
       }),
     ),
     getRecentFiles: vi.fn(() => Promise.resolve([] as string[])),

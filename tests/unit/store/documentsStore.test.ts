@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   useDocumentsStore,
   pickNeighbourId,
+  nextTabId,
   type DocumentTab,
 } from '../../../src/renderer/store/documentsStore'
 
@@ -182,5 +183,49 @@ describe('pickNeighbourId (pure)', () => {
 
   it('returns null when closing the only tab', () => {
     expect(pickNeighbourId([mk('a')], 'a')).toBeNull()
+  })
+})
+
+describe('nextTabId (pure)', () => {
+  const mk = (id: string): DocumentTab => ({
+    id,
+    path: `/${id}.md`,
+    title: `${id}.md`,
+    markdown: '',
+    isDirty: false,
+    eol: 'lf',
+    mode: 'wysiwyg',
+  })
+
+  it('cycles forward (+1) to the right neighbour', () => {
+    const docs = [mk('a'), mk('b'), mk('c')]
+    expect(nextTabId(docs, 'a', 1)).toBe('b')
+    expect(nextTabId(docs, 'b', 1)).toBe('c')
+  })
+
+  it('wraps forward from the last tab to the first', () => {
+    const docs = [mk('a'), mk('b'), mk('c')]
+    expect(nextTabId(docs, 'c', 1)).toBe('a')
+  })
+
+  it('cycles backward (-1) and wraps from the first to the last', () => {
+    const docs = [mk('a'), mk('b'), mk('c')]
+    expect(nextTabId(docs, 'b', -1)).toBe('a')
+    expect(nextTabId(docs, 'a', -1)).toBe('c')
+  })
+
+  it('returns the same id when there is a single tab', () => {
+    expect(nextTabId([mk('a')], 'a', 1)).toBe('a')
+    expect(nextTabId([mk('a')], 'a', -1)).toBe('a')
+  })
+
+  it('returns null when there are no tabs', () => {
+    expect(nextTabId([], null, 1)).toBeNull()
+  })
+
+  it('falls back to first/last when activeId is unknown', () => {
+    const docs = [mk('a'), mk('b')]
+    expect(nextTabId(docs, 'zzz', 1)).toBe('a')
+    expect(nextTabId(docs, 'zzz', -1)).toBe('b')
   })
 })
