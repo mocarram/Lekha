@@ -12,6 +12,17 @@ export interface FileStat {
   mtimeMs: number
 }
 
+/** A markdown file entry for the Articles/Library sidebar view. */
+export interface ArticleEntry {
+  path: string
+  /** First `# ` heading, else the basename. */
+  title: string
+  mtimeMs: number
+  sizeBytes: number
+  /** Short body excerpt (~140 chars) for the list preview. */
+  preview: string
+}
+
 /**
  * A theme descriptor: an id used in the data-theme attribute and a display
  * label shown in the native Themes menu and any future UI.
@@ -56,7 +67,7 @@ export interface Settings {
   recentFiles: string[]
   lastFolder: string | null
   sidebarVisible: boolean
-  sidebarTab: 'files' | 'outline' | 'search'
+  sidebarTab: 'files' | 'outline' | 'articles' | 'search'
   windowBounds?: { x: number; y: number; width: number; height: number }
   /** Active theme id (corresponds to a ThemeDef id in the renderer theme registry). */
   theme: string

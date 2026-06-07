@@ -447,6 +447,21 @@ describe('useCommands - sidebar and mode routing', () => {
     expect(useWorkspaceStore.getState().sidebarVisible).toBe(false)
   })
 
+  it('dispatching "revealInLibrary" shows the Articles tab', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    useWorkspaceStore.setState({ sidebarVisible: false, sidebarTab: 'files' })
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('revealInLibrary') })
+
+    expect(useWorkspaceStore.getState().sidebarVisible).toBe(true)
+    expect(useWorkspaceStore.getState().sidebarTab).toBe('articles')
+  })
+
   it('dispatching "toggleSource" calls editorRef.toggleMode()', () => {
     const { ref, toggleMode } = makeMockEditor()
     const { fileOps } = makeMockFileOps()

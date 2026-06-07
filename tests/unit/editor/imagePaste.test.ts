@@ -107,6 +107,7 @@ function makeMockLekha(
     statFile: vi.fn(() => Promise.resolve({ sizeBytes: 0, birthtimeMs: 0, mtimeMs: 0 })),
     writeFile: vi.fn(() => Promise.resolve()),
     readDir: vi.fn(() => Promise.resolve([] as FileNode[])),
+    listArticles: vi.fn(() => Promise.resolve([])),
     createFile: vi.fn(() => Promise.resolve('')),
     createFolder: vi.fn(() => Promise.resolve('')),
     renamePath: vi.fn(() => Promise.resolve('')),

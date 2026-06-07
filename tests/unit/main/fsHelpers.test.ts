@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { buildFileTree, writeFileAtomic, readTextFile, statFile } from '@main/fs-helpers'
+import { buildFileTree, writeFileAtomic, readTextFile, statFile, deriveArticleTitle, deriveArticlePreview, listArticles } from '@main/fs-helpers'
 
 let tmpDir: string
 
@@ -111,5 +111,37 @@ describe('statFile', () => {
     expect(st.sizeBytes).toBeGreaterThan(0)
     expect(typeof st.mtimeMs).toBe('number')
     expect(typeof st.birthtimeMs).toBe('number')
+  })
+})
+
+describe('deriveArticleTitle / deriveArticlePreview (pure)', () => {
+  it('uses the first # heading as the title', () => {
+    expect(deriveArticleTitle('# My Note\n\nbody', '/x/a.md')).toBe('My Note')
+  })
+  it('falls back to the basename when there is no heading', () => {
+    expect(deriveArticleTitle('just text', '/x/a.md')).toBe('a.md')
+  })
+  it('builds a single-line preview excluding the heading', () => {
+    const pv = deriveArticlePreview('# Title\n\nFirst paragraph body.')
+    expect(pv).toContain('First paragraph body')
+    expect(pv).not.toContain('#')
+  })
+})
+
+describe('listArticles (IO)', () => {
+  it('lists every md file recursively, newest first, with title + preview', async () => {
+    const list = await listArticles(tmpDir)
+    const paths = list.map((a) => a.path)
+    expect(paths).toContain(join(tmpDir, 'a.md'))
+    expect(paths).toContain(join(tmpDir, 'sub', 'c.md'))
+    // b.txt is excluded; dotfiles excluded.
+    expect(paths.some((p) => p.endsWith('b.txt'))).toBe(false)
+    const a = list.find((x) => x.path === join(tmpDir, 'a.md'))!
+    expect(a.title).toBe('A')
+    expect(typeof a.mtimeMs).toBe('number')
+    // Sorted by mtime descending.
+    for (let i = 1; i < list.length; i++) {
+      expect(list[i - 1]!.mtimeMs).toBeGreaterThanOrEqual(list[i]!.mtimeMs)
+    }
   })
 })

@@ -10,6 +10,8 @@ export const IPC = {
   statFile: 'fs:statFile',
   writeFile: 'fs:writeFile',
   readDir: 'fs:readDir',
+  /** Renderer -> main: list all markdown files under root as ArticleEntry[]. */
+  listArticles: 'fs:listArticles',
   /** Renderer -> main: create an empty file `name` in `dir`. Returns new path. */
   createFile: 'fs:createFile',
   /** Renderer -> main: create a folder `name` in `dir`. Returns new path. */

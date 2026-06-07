@@ -2,6 +2,7 @@ import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { FileTree } from './FileTree'
 import { Outline } from './Outline'
+import { Articles } from './Articles'
 import { FolderSearch } from './FolderSearch'
 import { SidebarResizer } from './SidebarResizer'
 
@@ -67,7 +68,13 @@ export function Sidebar({
 
   // Section header label reflects the active tab (WYSIWYG-style uppercase title).
   const headerLabel =
-    sidebarTab === 'files' ? 'Files' : sidebarTab === 'outline' ? 'Outline' : 'Search'
+    sidebarTab === 'files'
+      ? 'Files'
+      : sidebarTab === 'outline'
+        ? 'Outline'
+        : sidebarTab === 'articles'
+          ? 'Articles'
+          : 'Search'
 
   return (
     <aside className="sidebar" style={{ width: sidebarWidth }}>
@@ -86,6 +93,12 @@ export function Sidebar({
           />
         ) : sidebarTab === 'outline' ? (
           <Outline items={outline} onJump={onJumpToHeading} />
+        ) : sidebarTab === 'articles' ? (
+          <Articles
+            rootFolder={rootFolder}
+            activePath={activePath}
+            onSelect={onSelectFile}
+          />
         ) : (
           <FolderSearch
             rootFolder={rootFolder}
@@ -115,6 +128,13 @@ export function Sidebar({
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('outline') }}
         >
           Outline
+        </button>
+        <button
+          type="button"
+          className={`sidebar__tab-btn${sidebarTab === 'articles' ? ' active' : ''}`}
+          onClick={() => { useWorkspaceStore.getState().setSidebarTab('articles') }}
+        >
+          Articles
         </button>
         <button
           type="button"

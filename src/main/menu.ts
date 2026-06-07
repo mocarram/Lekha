@@ -185,6 +185,7 @@ export function buildMenuTemplate(
       },
       sep,
       item('Get Info',            undefined, 'getInfo',          send),
+      item('Reveal in Library',   undefined, 'revealInLibrary',  send),
       item('Reveal in File Tree', undefined, 'revealInFileTree', send),
       item('Open File Location',  undefined, 'showInFinder',     send),
       sep,

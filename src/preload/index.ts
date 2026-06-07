@@ -4,6 +4,7 @@ import type { LekhaAPI } from './api'
 import type {
   FileNode,
   FileStat,
+  ArticleEntry,
   Settings,
   DocumentState,
   FolderSearchResult,
@@ -45,6 +46,10 @@ const api: LekhaAPI = {
 
   readDir(dir: string): Promise<FileNode[]> {
     return ipcRenderer.invoke(IPC.readDir, dir) as Promise<FileNode[]>
+  },
+
+  listArticles(root: string): Promise<ArticleEntry[]> {
+    return ipcRenderer.invoke(IPC.listArticles, root) as Promise<ArticleEntry[]>
   },
 
   // --- File-tree entry operations ---

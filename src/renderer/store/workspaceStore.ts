@@ -10,7 +10,7 @@ interface WorkspaceState {
   fileTree: FileNode[]
   recentFiles: string[]
   sidebarVisible: boolean
-  sidebarTab: 'files' | 'outline' | 'search'
+  sidebarTab: 'files' | 'outline' | 'articles' | 'search'
 }
 
 interface WorkspaceActions {
@@ -19,7 +19,7 @@ interface WorkspaceActions {
   setRecentFiles(list: string[]): void
   toggleSidebar(): void
   setSidebarVisible(v: boolean): void
-  setSidebarTab(tab: 'files' | 'outline' | 'search'): void
+  setSidebarTab(tab: 'files' | 'outline' | 'articles' | 'search'): void
 }
 
 export type WorkspaceStore = WorkspaceState & WorkspaceActions

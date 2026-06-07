@@ -36,6 +36,7 @@ export const COMMANDS: CommandDef[] = [
   { id: 'revertToSaved', label: 'Revert to Saved', group: 'File' },
   { id: 'deleteFile', label: 'Move to Trash…', group: 'File' },
   { id: 'getInfo', label: 'Get Info', group: 'File' },
+  { id: 'revealInLibrary', label: 'Reveal in Library', group: 'File' },
   { id: 'revealInFileTree', label: 'Reveal in File Tree', group: 'File' },
   { id: 'showInFinder', label: 'Open File Location', group: 'File' },
   { id: 'print', label: 'Print…', group: 'File' },

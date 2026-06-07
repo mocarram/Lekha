@@ -8,6 +8,7 @@ export type AppCommand =
   | 'revertToSaved'
   | 'showInFinder'
   | 'revealInFileTree'
+  | 'revealInLibrary'
   | 'duplicateFile'
   | 'renameFile'
   | 'moveFileTo'

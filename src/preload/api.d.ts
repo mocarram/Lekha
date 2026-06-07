@@ -1,6 +1,7 @@
 import type {
   FileNode,
   FileStat,
+  ArticleEntry,
   Settings,
   DocumentState,
   FolderSearchResult,
@@ -24,6 +25,8 @@ export interface LekhaAPI {
   statFile(path: string): Promise<FileStat>
   writeFile(path: string, content: string): Promise<void>
   readDir(dir: string): Promise<FileNode[]>
+  /** List all markdown files under `root` (recursive), most-recent first. */
+  listArticles(root: string): Promise<ArticleEntry[]>
 
   // --- File-tree entry operations ---
   /**

@@ -573,3 +573,9 @@ Implemented (build order d):
 - **Get Info** - new `statFile` fs-helper + `FileStat` type + `fs:statFile` IPC/preload/api; App-hosted read-only `GetInfoDialog` (focus-trapped) showing name, path, human-readable size, created/modified dates, and word/char counts (from editorStore). App resolves the stat in the command handler (not an effect) and passes a snapshot to the presentational dialog. useCommands gains an optional `onGetInfo`; AppCommand `getInfo`, File ▸ Get Info, registry.
 
 Tests: +5 (statFile IO, getInfo dispatch, GetInfoDialog render/size/counts); statFile added to 3 LekhaAPI mocks. 1208 unit + 7 e2e green.
+
+### Wave 12 - Articles/Library sidebar view (`feat/wysiwyg-articles`)
+Implemented (build order e):
+- **Articles/Library tab** - new `ArticleEntry` type + `listArticles` fs-helper (recursive .md walk; title = first `# ` heading else basename; ~140-char preview; sorted mtime desc) + `deriveArticleTitle`/`deriveArticlePreview` pure helpers; `fs:listArticles` IPC/preload/api. `Articles.tsx` flat recent-first list (title + source folder + relative time + 2-line preview, click opens). Added a 4th sidebar tab (Files | Outline | Articles | Search): extended `sidebarTab` type in shared/types + workspaceStore + Sidebar (tab button + render + header label). `revealInLibrary` command + File ▸ Reveal in Library + registry.
+
+Tests: +8 (deriveArticleTitle/Preview pure, listArticles IO, revealInLibrary dispatch, Articles component load/click); listArticles added to all 4 LekhaAPI mocks. 1216 unit + 7 e2e green. Verified visually (Graphite theme).

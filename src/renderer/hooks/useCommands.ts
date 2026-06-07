@@ -204,6 +204,12 @@ export function useCommands(
         useWorkspaceStore.getState().setSidebarTab('files')
         return
       }
+      if (cmd === 'revealInLibrary') {
+        // Show the Articles/Library list (the active file row is highlighted).
+        useWorkspaceStore.getState().setSidebarVisible(true)
+        useWorkspaceStore.getState().setSidebarTab('articles')
+        return
+      }
 
       // ------------------------------------------------------------------
       // Sidebar toggle (workspace store)
