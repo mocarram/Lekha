@@ -81,6 +81,8 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'nextTab',
   'previousTab',
   'closeTab',
+  'openThemeFolder',
+  'reloadThemes',
   'preferences',
   'copyAsHtml',
   'copyAsMarkdown',

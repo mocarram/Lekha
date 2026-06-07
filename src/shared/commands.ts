@@ -68,6 +68,8 @@ export type AppCommand =
   | 'nextTab'
   | 'previousTab'
   | 'closeTab'
+  | 'openThemeFolder'
+  | 'reloadThemes'
   | 'preferences'
   | 'copyAsHtml'
   | 'copyAsMarkdown'

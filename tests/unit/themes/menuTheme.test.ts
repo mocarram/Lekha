@@ -171,14 +171,66 @@ describe('buildMenuTemplate - Theme submenu', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
-  it('Theme items use type "radio"', () => {
+  it('built-in theme items use type "radio"', () => {
     const send = vi.fn()
     const setTheme = vi.fn()
     const template = buildMenuTemplate(send, [], vi.fn(), makeThemeMenu('github'), setTheme)
     const items = findThemeSubmenu(template)
     expect(items).toBeDefined()
-    for (const item of items!) {
-      expect(item.type).toBe('radio')
+    const radios = items!.filter((i) => i.type === 'radio')
+    expect(radios.length).toBe(THEMES.length)
+    // Every built-in theme is represented by a radio item.
+    const radioLabels = radios.map((i) => i.label)
+    for (const t of THEMES) expect(radioLabels).toContain(t.label)
+  })
+})
+
+describe('buildMenuTemplate - Theme submenu actions + user themes', () => {
+  it('includes "Open Theme Folder" and "Reload Themes" action items', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send, [], vi.fn(), makeThemeMenu('github'), vi.fn())
+    const labels = findThemeSubmenu(template)!.map((i) => i.label)
+    expect(labels).toContain('Open Theme Folder')
+    expect(labels).toContain('Reload Themes')
+  })
+
+  it('"Open Theme Folder" sends the openThemeFolder command', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send, [], vi.fn(), makeThemeMenu('github'), vi.fn())
+    const item = findThemeSubmenu(template)!.find((i) => i.label === 'Open Theme Folder')
+    expect(item).toBeDefined()
+    // @ts-expect-error calling with no args is safe
+    item!.click()
+    expect(send).toHaveBeenCalledWith('openThemeFolder')
+  })
+
+  it('"Reload Themes" invokes the onReloadThemes callback', () => {
+    const send = vi.fn()
+    const onReload = vi.fn()
+    const template = buildMenuTemplate(
+      send, [], vi.fn(), makeThemeMenu('github'), vi.fn(),
+      undefined, undefined, undefined, onReload,
+    )
+    const item = findThemeSubmenu(template)!.find((i) => i.label === 'Reload Themes')
+    expect(item).toBeDefined()
+    // @ts-expect-error calling with no args is safe
+    item!.click()
+    expect(onReload).toHaveBeenCalledOnce()
+  })
+
+  it('lists user themes after the built-ins as radios', () => {
+    const send = vi.fn()
+    const themeMenu = {
+      themes: [...THEMES, { id: 'abyss', label: 'Abyss' }, { id: 'zen', label: 'Zen' }],
+      current: 'abyss',
+      userThemeCount: 2,
     }
+    const template = buildMenuTemplate(send, [], vi.fn(), themeMenu, vi.fn())
+    const items = findThemeSubmenu(template)!
+    const radios = items.filter((i) => i.type === 'radio')
+    expect(radios.map((i) => i.label)).toContain('Abyss')
+    expect(radios.map((i) => i.label)).toContain('Zen')
+    // The active user theme is checked.
+    expect(radios.find((i) => i.label === 'Abyss')!.checked).toBe(true)
   })
 })

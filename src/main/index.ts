@@ -9,6 +9,8 @@ import { registerSearchHandlers } from '@main/ipc/search'
 import { registerTemplateHandlers } from '@main/ipc/templates'
 import { registerThemeHandlers } from '@main/ipc/themes'
 import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
+import { listUserThemes } from '@main/userThemes'
+import { join } from 'node:path'
 import { buildMenuTemplate } from '@main/menu'
 import { setupAutoUpdater, checkForUpdates } from '@main/updater'
 import { applySpellCheck } from '@main/spellCheck'
@@ -78,7 +80,7 @@ const registry = new WindowRegistry()
  * @param recentFiles - Current recent-files list for the Open Recent submenu.
  * @param currentTheme - The currently active theme id for the radio check.
  */
-function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void {
+async function applyMenu(recentFiles: string[], currentTheme: string = 'github'): Promise<void> {
   const send = (cmd: AppCommand): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, cmd)
   }
@@ -92,13 +94,29 @@ function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void
   const setTheme = (id: string): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.setTheme, id)
   }
+
+  // Include user-authored themes (userData/themes) in the Theme submenu, after
+  // the built-ins. The renderer already accepts these ids in applyTheme.
+  const userThemes = await listUserThemes(join(app.getPath('userData'), 'themes'))
+  const themeDefs = [
+    ...THEMES,
+    ...userThemes.map((t) => ({ id: t.id, label: t.label })),
+  ]
+
+  // "Reload Themes": rebuild this native submenu (picks up added/removed files)
+  // AND tell the focused renderer to re-scan + re-inject the user CSS.
+  const onReloadThemes = (): void => {
+    BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, 'reloadThemes')
+    void applyMenu(recentFiles, currentTheme)
+  }
+
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
       buildMenuTemplate(
         send,
         recentFiles,
         openPath,
-        { themes: THEMES, current: currentTheme },
+        { themes: themeDefs, current: currentTheme, userThemeCount: userThemes.length },
         setTheme,
         openNewWindow,
         // "Check for Updates…" runs the manual check directly in main (no
@@ -111,6 +129,7 @@ function applyMenu(recentFiles: string[], currentTheme: string = 'github'): void
             win.webContents.send(IPC.command, 'save')
           }
         },
+        onReloadThemes,
       ),
     ),
   )
@@ -298,13 +317,13 @@ void app.whenReady().then(async () => {
         settings.getRecentFiles(),
         settings.get(),
       ])
-      applyMenu(recents, allSettings.theme)
+      void applyMenu(recents, allSettings.theme)
     },
     async (updated) => {
       // Rebuild menu after any settings change so the native Theme radio
       // reflects the newly chosen theme without an extra IPC round-trip.
       const recents = await settings.getRecentFiles()
-      applyMenu(recents, updated.theme)
+      void applyMenu(recents, updated.theme)
       // Re-apply spell-check settings whenever the user changes them in Preferences.
       applySpellCheck(session.defaultSession, {
         spellCheck: updated.spellCheck,
@@ -378,7 +397,7 @@ void app.whenReady().then(async () => {
   openWindowAt(savedWindowBounds ?? { ...DEFAULT_WINDOW_SIZE })
 
   // Set up the native application menu with the persisted recent files and theme.
-  applyMenu(initialSettings.recentFiles, initialSettings.theme)
+  void applyMenu(initialSettings.recentFiles, initialSettings.theme)
 
   // Configure auto-update and kick off a background check. NO-OP in dev
   // (!app.isPackaged) and never throws, so this is safe to always call.

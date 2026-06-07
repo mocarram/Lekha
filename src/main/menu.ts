@@ -38,10 +38,15 @@ const sep: MenuItemConstructorOptions = { type: 'separator' }
 
 /** Shape of the themeMenu argument passed to buildMenuTemplate. */
 export interface ThemeMenuConfig {
-  /** All available themes (from the renderer theme registry). */
+  /** All available themes: built-ins first, then user themes. */
   themes: ThemeDef[]
   /** Id of the currently active theme. */
   current: string
+  /**
+   * How many trailing entries in `themes` are user-authored. When > 0, a
+   * separator is drawn between the built-in and user theme groups.
+   */
+  userThemeCount?: number
 }
 
 /**
@@ -60,12 +65,22 @@ function buildThemeSubmenu(
   themeMenu: ThemeMenuConfig,
   setTheme: (id: string) => void,
 ): MenuItemConstructorOptions[] {
-  return themeMenu.themes.map((theme) => ({
+  const userCount = themeMenu.userThemeCount ?? 0
+  const builtinCount = Math.max(0, themeMenu.themes.length - userCount)
+  const radio = (theme: ThemeDef): MenuItemConstructorOptions => ({
     label: theme.label,
     type: 'radio' as const,
     checked: theme.id === themeMenu.current,
     click: () => { setTheme(theme.id) },
-  }))
+  })
+  const items: MenuItemConstructorOptions[] = themeMenu.themes
+    .slice(0, builtinCount)
+    .map(radio)
+  if (userCount > 0) {
+    items.push(sep)
+    for (const t of themeMenu.themes.slice(builtinCount)) items.push(radio(t))
+  }
+  return items
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +152,7 @@ export function buildMenuTemplate(
   onNewWindow: () => void = () => { /* no-op - no multi-window caller */ },
   onCheckForUpdates: () => void = () => { /* no-op - no updater caller */ },
   onSaveAll: () => void = () => { /* no-op - no save-all caller */ },
+  onReloadThemes: () => void = () => { /* no-op - no theme-reload caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -409,7 +425,15 @@ export function buildMenuTemplate(
   if (themeMenu !== undefined) {
     template.push({
       label: 'Theme',
-      submenu: buildThemeSubmenu(themeMenu, setTheme),
+      submenu: [
+        ...buildThemeSubmenu(themeMenu, setTheme),
+        sep,
+        // Open the user themes folder (userData/themes) in the OS file manager.
+        item('Open Theme Folder', undefined, 'openThemeFolder', send),
+        // Re-scan the folder: the click rebuilds the native submenu (main) and
+        // tells the renderer to re-inject the user CSS.
+        { label: 'Reload Themes', click: () => { onReloadThemes() } },
+      ],
     })
   }
 

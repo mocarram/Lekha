@@ -20,6 +20,7 @@ import type { PandocFormat } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useDocumentsStore, nextTabId } from '@renderer/store/documentsStore'
+import { injectUserThemes } from '@renderer/themes/index'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
 // Type-only import: erased at build time, so it does NOT pull the export
@@ -207,6 +208,16 @@ export function useCommands(
       if (cmd === 'closeTab') {
         const { activeId } = useDocumentsStore.getState()
         if (activeId !== null) void fo.closeTab(activeId)
+        return
+      }
+      if (cmd === 'openThemeFolder') {
+        void window.lekha.openThemeFolder()
+        return
+      }
+      if (cmd === 'reloadThemes') {
+        // Re-scan the user themes folder and re-inject the CSS so newly edited
+        // or added themes take effect without a restart.
+        void window.lekha.reloadThemes().then((themes) => { injectUserThemes(themes) })
         return
       }
       if (cmd === 'showInFinder') {

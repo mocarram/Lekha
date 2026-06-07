@@ -726,3 +726,13 @@ Implemented (3, step 2):
 - **useStartup**: on launch, await window.lekha.listThemes() and injectUserThemes BEFORE applyTheme(s.theme) so a persisted custom-theme id resolves instead of falling back. Missing folder handled silently.
 
 Tests: +9 (escapeStyleCss case-insensitive; inject creates/replaces single style; escapes </style>; applyTheme accepts user id + falls back when removed + still accepts built-ins; getAllThemes ordering). 1330 unit + 9 e2e green. Next: 25c Theme menu (Open Theme Folder / Reload Themes) + native submenu merge.
+
+### Wave 25c - Custom themes: Theme menu wiring (`feat/custom-themes-menu`)
+Implemented (3, step 3 - CUSTOM THEMES COMPLETE):
+- **menu.ts**: ThemeMenuConfig gains userThemeCount; buildThemeSubmenu renders built-in theme radios, then (when userThemeCount>0) a separator + user-theme radios. buildMenuTemplate's Theme menu appends a separator + "Open Theme Folder" (sends openThemeFolder AppCommand) + "Reload Themes" (calls new onReloadThemes callback param).
+- **index.ts**: applyMenu is now async - scans userData/themes via listUserThemes, merges into the Theme submenu (userThemeCount set), and wires onReloadThemes = send('reloadThemes') to the focused renderer + rebuild the native menu. All call sites use void applyMenu.
+- **AppCommands** openThemeFolder + reloadThemes: commands.ts + registry (group View) + VALID_IDS; useCommands routes openThemeFolder -> window.lekha.openThemeFolder(), reloadThemes -> window.lekha.reloadThemes().then(injectUserThemes). Available in the command palette too.
+
+Flow: user drops a *.css in Open Theme Folder -> Reload Themes -> native submenu rebuilds with the new theme + renderer re-injects the CSS -> pick it from the Theme menu (applyTheme accepts the user id).
+
+Tests: +5 menuTheme (Open/Reload action items, openThemeFolder send, onReloadThemes callback, user themes as radios with active check) + adjusted the radio-type test for the new action items; registry VALID_IDS +2. 1334 unit + 9 e2e green. CUSTOM THEMES (item 3) COMPLETE.

@@ -53,6 +53,8 @@ export const COMMANDS: CommandDef[] = [
   { id: 'nextTab', label: 'Next Tab', group: 'View', shortcut: '⌃Tab' },
   { id: 'previousTab', label: 'Previous Tab', group: 'View', shortcut: '⌃⇧Tab' },
   { id: 'closeTab', label: 'Close Tab', group: 'View', shortcut: '⌘W' },
+  { id: 'openThemeFolder', label: 'Open Theme Folder', group: 'View' },
+  { id: 'reloadThemes', label: 'Reload Themes', group: 'View' },
 
   // Edit
   { id: 'undo', label: 'Undo', group: 'Edit', shortcut: '⌘Z' },
