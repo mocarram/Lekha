@@ -25,6 +25,7 @@ const DEFAULTS: Settings = {
   autoSave: true,
   spellCheck: true,
   spellCheckLanguage: 'en-US',
+  smartPunctuation: true,
   sidebarWidth: 240,
 }
 

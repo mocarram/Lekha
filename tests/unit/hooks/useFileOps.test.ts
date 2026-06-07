@@ -100,6 +100,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
         autoSave: true,
         spellCheck: true,
         spellCheckLanguage: 'en-US',
+        smartPunctuation: true,
         sidebarWidth: 240,
       }),
     ),
@@ -117,6 +118,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
         autoSave: true,
         spellCheck: true,
         spellCheckLanguage: 'en-US',
+        smartPunctuation: true,
         sidebarWidth: 240,
       }),
     ),
@@ -445,7 +447,7 @@ describe('useFileOps - openFolder()', () => {
     const tree: FileNode[] = []
     const openFolderDialog = vi.fn(() => Promise.resolve('/proj' as string | null))
     const readDir = vi.fn((_d: string) => Promise.resolve(tree))
-    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const, theme: 'github', focusMode: false, typewriterMode: false, equationNumbering: true, fontSize: 16, autoSave: true, spellCheck: true, spellCheckLanguage: 'en-US', sidebarWidth: 240 }))
+    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const, theme: 'github', focusMode: false, typewriterMode: false, equationNumbering: true, fontSize: 16, autoSave: true, spellCheck: true, spellCheckLanguage: 'en-US', smartPunctuation: true, sidebarWidth: 240 }))
     const mockLekha = makeMockLekha({ openFolderDialog, readDir, setSettings })
     vi.stubGlobal('lekha', mockLekha)
 

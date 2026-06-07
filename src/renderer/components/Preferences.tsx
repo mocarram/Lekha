@@ -26,6 +26,7 @@ import {
   type Settings,
 } from '@shared/types'
 import { applyTheme, applyFontSize } from '@renderer/themes/index'
+import { setSmartPunctuation } from '@renderer/editor/createState'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
@@ -52,6 +53,7 @@ type FormState = Pick<
   | 'sidebarTab'
   | 'spellCheck'
   | 'spellCheckLanguage'
+  | 'smartPunctuation'
 >
 
 const INITIAL_FORM: FormState = {
@@ -65,6 +67,7 @@ const INITIAL_FORM: FormState = {
   sidebarTab: 'files',
   spellCheck: true,
   spellCheckLanguage: 'en-US',
+  smartPunctuation: true,
 }
 
 /** Available spell-check languages surfaced in Preferences. */
@@ -106,6 +109,7 @@ export function Preferences({ open, onClose }: PreferencesProps) {
         sidebarTab: s.sidebarTab,
         spellCheck: s.spellCheck,
         spellCheckLanguage: s.spellCheckLanguage,
+        smartPunctuation: s.smartPunctuation,
       })
     })
     dialogRef.current?.focus()
@@ -164,6 +168,13 @@ export function Preferences({ open, onClose }: PreferencesProps) {
   const handleSpellCheck = (spellCheck: boolean): void => {
     setForm((f) => ({ ...f, spellCheck }))
     persist({ spellCheck })
+  }
+
+  const handleSmartPunctuation = (smartPunctuation: boolean): void => {
+    setForm((f) => ({ ...f, smartPunctuation }))
+    // Apply to documents created/opened after this change.
+    setSmartPunctuation(smartPunctuation)
+    persist({ smartPunctuation })
   }
 
   const handleSpellCheckLanguage = (spellCheckLanguage: string): void => {
@@ -296,6 +307,16 @@ export function Preferences({ open, onClose }: PreferencesProps) {
               aria-label="Auto-save"
             />
             Auto-save
+          </label>
+
+          <label className="prefs-check">
+            <input
+              type="checkbox"
+              checked={form.smartPunctuation}
+              onChange={(e) => handleSmartPunctuation(e.target.checked)}
+              aria-label="Smart punctuation"
+            />
+            Smart punctuation
           </label>
 
           <label className="prefs-check">

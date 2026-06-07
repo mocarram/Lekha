@@ -87,6 +87,11 @@ export interface Settings {
   /** Spell check: enable the Electron/Chromium native spell-checker underlines. */
   spellCheck: boolean
   /**
+   * Smart punctuation: convert straight quotes to curly, `...` to `…`, and `--`
+   * to an em dash as you type. Applies to documents opened after a change.
+   */
+  smartPunctuation: boolean
+  /**
    * Sidebar width in pixels. Persisted so the resized width survives restarts.
    * Clamped to [SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH] on restore.
    */

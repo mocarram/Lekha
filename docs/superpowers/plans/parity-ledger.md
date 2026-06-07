@@ -619,3 +619,10 @@ Implemented (Edit/View additions, D1):
 Table ops stay in the contextual toolbar (not the Edit menu) - matches where WYSIWYG surfaces them.
 
 Tests: +3 (move row down ordering, move row up validity, move column right ordering). 1230 unit + 7 e2e green.
+
+### Wave 19 - Smart-Punctuation toggle (`feat/wysiwyg-smart-punct`)
+Implemented (Edit/View additions, D2):
+- **Smart punctuation** setting (Settings.smartPunctuation, default true; DEFAULTS + settings.test + Preferences checkbox). `buildInputRules(schema, { smartPunctuation })` includes/excludes smartQuotes+ellipsis+emDash; `createState` reads a module flag (`setSmartPunctuation`) applied from settings in useStartup and on the Preferences toggle.
+Note: applies to documents created/opened after a change (input-rule plugins are built per editor state) - not a live retro-toggle of the open doc, to avoid an editor re-create that could disturb the caret/scroll.
+
+Tests: +3 (buildInputRules off keeps `--`/quotes literal, on converts; settings default). Patched 6 test Settings literals + DEFAULTS. 1233 unit + 7 e2e green.

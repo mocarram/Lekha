@@ -18,6 +18,7 @@ import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { applyTheme, applyFontSize } from '@renderer/themes/index'
+import { setSmartPunctuation } from '@renderer/editor/createState'
 import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
 import type { FileOps } from './useFileOps'
 
@@ -71,6 +72,9 @@ export function useStartup(_fileOps: FileOps, onSidebarWidth?: (px: number) => v
       useEditorStore.getState().setTypewriterMode(s.typewriterMode)
       useEditorStore.getState().setEquationNumbering(s.equationNumbering)
       useEditorStore.getState().setAutoSave(s.autoSave)
+      // Smart punctuation affects the input-rule plugin built per editor state,
+      // so apply it before the first document is loaded.
+      setSmartPunctuation(s.smartPunctuation)
 
       // Restore sidebar width. Clamp to the valid range in case a corrupt or
       // out-of-range value was persisted. Apply the CSS var and notify App.

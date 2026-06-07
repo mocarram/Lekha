@@ -212,17 +212,30 @@ function mathBlockInputRule(schema: Schema): InputRule {
 // buildInputRules
 // ---------------------------------------------------------------------------
 
+/** Options for {@link buildInputRules}. */
+export interface InputRulesOptions {
+  /**
+   * Include the smart-typography rules (smart quotes, ellipsis, em dash).
+   * Default true; set false to disable smart punctuation (straight quotes,
+   * literal `...` and `--`).
+   */
+  smartPunctuation?: boolean
+}
+
 /** Assemble all input rules for the Lekha editor. */
-export function buildInputRules(schema: Schema): Plugin {
+export function buildInputRules(
+  schema: Schema,
+  opts: InputRulesOptions = {},
+): Plugin {
+  const smartPunctuation = opts.smartPunctuation !== false
+
   const rules: InputRule[] = [
     // Horizontal rule FIRST - must come before emDash which fires on `--`
     // so that `---` is intercepted before two dashes get converted.
     hrInputRule(schema),
 
-    // Smart typography (from prosemirror-inputrules)
-    ...smartQuotes,
-    ellipsis,
-    emDash,
+    // Smart typography (from prosemirror-inputrules) - only when enabled.
+    ...(smartPunctuation ? [...smartQuotes, ellipsis, emDash] : []),
 
     // Headings: `# ` through `###### `
     textblockTypeInputRule(

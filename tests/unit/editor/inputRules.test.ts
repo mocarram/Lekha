@@ -267,3 +267,33 @@ describe('block-equation input rule', () => {
     expect(firstBlock(view).type.name).toBe('paragraph')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Smart-punctuation toggle (buildInputRules option)
+// ---------------------------------------------------------------------------
+
+describe('buildInputRules - smartPunctuation option', () => {
+  function mountWith(smartPunctuation: boolean): EditorView {
+    const state = EditorState.create({
+      schema,
+      plugins: [buildInputRules(schema, { smartPunctuation })],
+    })
+    const dom = document.createElement('div')
+    document.body.appendChild(dom)
+    return new EditorView(dom, { state })
+  }
+
+  it('with smartPunctuation off, "--" stays literal (no em dash)', () => {
+    const v = mountWith(false)
+    typeText(v, '--')
+    expect(firstBlock(v).textContent).toBe('--')
+    v.destroy()
+  })
+
+  it('with smartPunctuation on (default), "--" becomes an em dash', () => {
+    const v = mountWith(true)
+    typeText(v, '--')
+    expect(firstBlock(v).textContent).toBe('—')
+    v.destroy()
+  })
+})

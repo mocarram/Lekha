@@ -37,11 +37,24 @@ import { slashMenuPlugin } from './plugins/slashMenu'
  *  13. typewriterPlugin  - view lifecycle that centers the caret line on scroll
  *  14. headingFoldPlugin  - clickable heading chevrons + view-only section fold
  */
+/**
+ * Smart-punctuation preference, read when an EditorState is created. Mutable
+ * module state (set from the persisted setting via setSmartPunctuation) so the
+ * input-rule plugin reflects the user's choice without threading the flag
+ * through every call site. Applied to documents created/opened after a change.
+ */
+let smartPunctuationEnabled = true
+
+/** Update the smart-punctuation preference for future editor states. */
+export function setSmartPunctuation(enabled: boolean): void {
+  smartPunctuationEnabled = enabled
+}
+
 export function createEditorState(markdown: string): EditorState {
   return EditorState.create({
     doc: parseMarkdown(markdown),
     plugins: [
-      buildInputRules(schema),
+      buildInputRules(schema, { smartPunctuation: smartPunctuationEnabled }),
       // Slash menu BEFORE the keymaps: while the menu is open it must swallow
       // Arrow/Enter/Escape (handleKeyDown) before the editor's own bindings act.
       slashMenuPlugin(),

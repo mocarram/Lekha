@@ -32,6 +32,12 @@ describe('createSettingsStore', () => {
     expect(settings.spellCheck).toBe(true)
   })
 
+  it('smartPunctuation defaults to true', async () => {
+    const store = createSettingsStore(tmpDir)
+    const settings = await store.get()
+    expect(settings.smartPunctuation).toBe(true)
+  })
+
   it('spellCheckLanguage defaults to "en-US"', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()
