@@ -703,3 +703,10 @@ Implemented (2, step 1 - pure relocation, zero visual change):
 Token namespaces reconciled: --color-* are now aliases of the Layer-2 semantic tokens (one effective namespace). Verified visually identical (GitHub-light screenshot) + e2e.
 
 Tests: +9 contract tests (tokens.css declares all token layers; github.css has no --gh-/:root; global.css has no color literals). 1300 unit + 9 e2e green. Next: 24b token-only themes.
+
+### Wave 24b - Design system: theme-author template + token-only verification (`feat/design-system-template`)
+Implemented (2, step 2 - design system COMPLETE):
+- **src/renderer/styles/themes/_template.css** (new): documented custom-theme starter. Scoped to [data-theme="my-theme"] (inert - never imported/applied), with @name/@type metadata header and EVERY overridable token listed with its default + a one-line doc comment. This is the author-facing proof that Lekha is fully themable via tokens only.
+- Verified all six built-in themes (night/graphite/sepia/nord/solarized-light/solarized-dark) are already TOKEN-ONLY (every rule block scoped to [data-theme]; zero component selectors) - so the 24b "convert themes" step was already satisfied by the architecture; locked it with a test. Theme registry (ThemeDef + THEMES in shared/types.ts) is already the single typed declaration point (24c satisfied).
+
+Tests: +13 (_template.css starter contract + per-theme token-only structural assertion). 1309 unit + 9 e2e green. DESIGN SYSTEM (item 2) COMPLETE: tokens.css single contract, github.css component-only, all themes token-only, typed registry, documented author template.

@@ -72,3 +72,41 @@ describe('global.css - structural skeleton only', () => {
     expect(global).not.toContain('--font-ui: system-ui')
   })
 })
+
+describe('themes/_template.css - custom-theme starter', () => {
+  const template = read('themes/_template.css')
+
+  it('scopes overrides to a [data-theme] selector (never :root, so it is inert)', () => {
+    expect(template).toContain('[data-theme="my-theme"]')
+    // No :root { rule - the template must never apply globally.
+    expect(template).not.toMatch(/:root\s*\{/)
+  })
+
+  it('documents the metadata header (@name / @type)', () => {
+    expect(template).toContain('@name')
+    expect(template).toContain('@type')
+  })
+
+  it('lists the core overridable tokens so authors see them in one place', () => {
+    for (const t of ['--bg:', '--text:', '--accent:', '--code-bg:', '--editor-max-width:']) {
+      expect(template).toContain(t)
+    }
+  })
+})
+
+describe('built-in themes are token-only (no component selectors)', () => {
+  const themeFiles = [
+    'night', 'graphite', 'sepia', 'nord', 'solarized-light', 'solarized-dark',
+  ]
+  for (const name of themeFiles) {
+    it(`${name}.css contains only [data-theme] token overrides`, () => {
+      const css = read(`themes/${name}.css`)
+      // Every rule block must be scoped to a [data-theme] selector: there must
+      // be no bare component/class/element selectors leaking structural CSS.
+      const ruleOpeners = css.match(/^[^@\s/}][^{]*\{/gm) ?? []
+      for (const opener of ruleOpeners) {
+        expect(opener).toContain('[data-theme')
+      }
+    })
+  }
+})
