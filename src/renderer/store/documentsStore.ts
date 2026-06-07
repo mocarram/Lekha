@@ -28,6 +28,8 @@ export interface DocumentTab {
   eol: Eol
   /** WYSIWYG vs source editing mode for this document. */
   mode: EditorMode
+  /** Inode of the file (rename-recovery); null for unsaved docs. */
+  inode: number | null
 }
 
 interface DocumentsState {
@@ -148,6 +150,7 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       isDirty: false,
       eol: detectEol(markdown),
       mode: 'wysiwyg',
+      inode: null,
     }
     set((s) => ({ documents: [...s.documents, tab], activeId: tab.id }))
     return tab.id
@@ -162,6 +165,7 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       isDirty: false,
       eol: 'lf',
       mode: 'wysiwyg',
+      inode: null,
     }
     set((s) => ({ documents: [...s.documents, tab], activeId: tab.id }))
     return tab.id

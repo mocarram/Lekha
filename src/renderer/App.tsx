@@ -333,6 +333,65 @@ export default function App() {
   // call on an already-unmounted component.
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // -------------------------------------------------------------------------
+  // External-change detection (lazy, watcher-free).
+  //
+  // When the window regains focus (i.e. the user returns from Finder), do ONE
+  // cheap stat of the active document's path. A same-folder rename is recovered
+  // silently (the tab follows the new name via its inode); a move-elsewhere or
+  // delete keeps the buffer but detaches the doc from disk and shows a quiet,
+  // non-blocking notice. No fs watchers, no polling, nothing on the typing path.
+  // -------------------------------------------------------------------------
+  const [externalNotice, setExternalNotice] = useState<string | null>(null)
+  const extCheckInFlight = useRef(false)
+  const extCheckLast = useRef(0)
+
+  const verifyActiveDoc = useCallback(async (): Promise<void> => {
+    if (typeof window.lekha === 'undefined') return
+    const { path, inode } = useEditorStore.getState()
+    if (path === null || inode === null) return // unsaved / no inode to match
+    if (extCheckInFlight.current) return
+    const now = Date.now()
+    if (now - extCheckLast.current < 1000) return // throttle rapid focus toggles
+    extCheckLast.current = now
+    extCheckInFlight.current = true
+    try {
+      const res = await window.lekha.verifyOpenFile({ path, inode })
+      // The active doc may have changed while the check was in flight - bail.
+      if (useEditorStore.getState().path !== path) return
+      if (res.status === 'renamed') {
+        useEditorStore.getState().setPath(res.newPath)
+        useDocumentsStore.getState().updatePath(path, res.newPath)
+        const { title, isDirty } = useEditorStore.getState()
+        window.lekha.setDocumentState({ title, dirty: isDirty, path: res.newPath })
+        setExternalNotice(null)
+      } else if (res.status === 'missing') {
+        // Keep the buffer (no data loss); detach so the next Save is Save As.
+        useEditorStore.getState().setPath(null)
+        useEditorStore.getState().markDirty()
+        useDocumentsStore.getState().updateActive({ path: null, isDirty: true })
+        window.lekha.setDocumentState({
+          title: useEditorStore.getState().title,
+          dirty: true,
+          path: null,
+        })
+        setExternalNotice(
+          'This file was moved or deleted outside Lekha. Your changes are kept - use Save to write it again.',
+        )
+      }
+    } catch {
+      // Verification failed (e.g. bridge unavailable) - leave state untouched.
+    } finally {
+      extCheckInFlight.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFocus = (): void => { void verifyActiveDoc() }
+    window.addEventListener('focus', onFocus)
+    return () => { window.removeEventListener('focus', onFocus) }
+  }, [verifyActiveDoc])
+
   // Seed store from the initial document on mount (runs once).
   // Without this the status bar shows "0 words · 0 chars" until the user edits,
   // because handleChange (onChange) never fires for the pre-loaded welcome doc.
@@ -357,6 +416,8 @@ export default function App() {
     const store = useEditorStore.getState()
     store.setMarkdown(markdown)
     store.markDirty()
+    // Editing dismisses any stale external-change notice.
+    setExternalNotice(null)
 
     // 1b. Flip the active tab's dirty flag ONLY on the clean->dirty transition.
     //     We intentionally do NOT mirror `markdown` into the tab on every
@@ -527,6 +588,20 @@ export default function App() {
   return (
     <div className="app">
       <TitleBar />
+
+      {externalNotice !== null && (
+        <div className="external-notice" role="status">
+          <span className="external-notice__text">{externalNotice}</span>
+          <button
+            type="button"
+            className="external-notice__dismiss no-drag"
+            aria-label="Dismiss"
+            onClick={() => setExternalNotice(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="workspace">
         <Sidebar

@@ -159,3 +159,11 @@ WYSIWYG typing no longer re-parses the whole markdown string to derive outline +
 - (15, MEDIUM) listUserThemes de-dupes by lower-cased id (first wins), so two files differing only in case can't yield two same-id themes. Shares the same lower-cased Set as bug 6 (covered by the collision test).
 
 Round-2 tally: 16 confirmed -> 9 fixed (1,2,4,5,6,10,11,14,15) + 2 verified-already-safe (12,13) + 5 reasoned-deferred (3 empty-links/marks, 7 ref-links/idempotent, 8 table-newline/unreachable, 16 HR-normalize/cosmetic). Suite: 1362 unit + 9 e2e green.
+
+### Wave 35 - External file-change detection (lazy, rename-follow)
+Resolves the long-deferred ledger item "Detect external on-disk changes to the open file" + the Finder-rename staleness risk flagged when discussing the macOS title-bar proxy menu.
+- **Trigger:** a SINGLE `fs.stat` of the active document on `window` focus (returning from Finder). No fs watchers, no polling, nothing on the typing path; throttled to once/second + in-flight guard.
+- **Rename-follow (smooth):** a rename keeps the inode, so on a missing path we scan ONLY the parent folder for a matching inode (rare, bounded) and silently re-point the tab + editor + OS title to the new name.
+- **Detach (safe):** a move-elsewhere/delete keeps the buffer (no data loss), clears the path so the next Save is Save As, marks dirty, and shows a quiet non-blocking notice bar (not a modal).
+- Plumbing: `FileStat.inode` + `OpenFileStatus` type; `findPathByInode`/`verifyOpenFile` (main, lstat-based, skips dotfiles); `fs:verifyOpenFile` IPC + preload; `editorStore.inode` + `DocumentTab.inode` captured on load/save and carried across tab switch/snapshot; App focus handler + `.external-notice` banner.
+Tests: +5 fs-helpers (statFile inode, verifyOpenFile present/renamed/missing, findPathByInode miss); store/mocks updated for inode. 1367 unit + 9 e2e green.

@@ -4,6 +4,7 @@ import type { LekhaAPI } from './api'
 import type {
   FileNode,
   FileStat,
+  OpenFileStatus,
   ArticleEntry,
   Settings,
   DocumentState,
@@ -39,6 +40,9 @@ const api: LekhaAPI = {
 
   statFile(path: string): Promise<FileStat> {
     return ipcRenderer.invoke(IPC.statFile, path) as Promise<FileStat>
+  },
+  verifyOpenFile(args: { path: string; inode: number }): Promise<OpenFileStatus> {
+    return ipcRenderer.invoke(IPC.verifyOpenFile, args) as Promise<OpenFileStatus>
   },
 
   writeFile(path: string, content: string): Promise<void> {

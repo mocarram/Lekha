@@ -277,6 +277,48 @@ body,
 }
 
 /* ---------------------------------------------------------------------------
+ * External-change notice - non-blocking bar shown when the open file was
+ * moved/deleted outside the app. Quiet (not a modal); dismissible.
+ * --------------------------------------------------------------------------- */
+.external-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  color: var(--on-accent);
+  background-color: var(--accent);
+}
+
+.external-notice__text {
+  flex: 1 1 auto;
+}
+
+.external-notice__dismiss {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--on-accent);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.external-notice__dismiss:hover {
+  background-color: color-mix(in srgb, var(--on-accent) 22%, transparent);
+}
+
+.external-notice__dismiss:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--on-accent) 60%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
  * TabBar - open-document tab strip above the editor
  * --------------------------------------------------------------------------- */
 .tab-bar {

@@ -134,6 +134,15 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
         title,
         eol: editorStore.getState().eol,
       })
+
+      // Capture the file's inode so a later outside rename can be recovered.
+      try {
+        const st = await window.lekha.statFile(path)
+        editorStore.getState().setInode(st.inode)
+        documentsStore.getState().updateActive({ inode: st.inode })
+      } catch {
+        // stat may fail (rare); leave inode null - detection still detects loss.
+      }
     },
     [editorRef, editorStore, workspaceStore, documentsStore],
   )
@@ -161,6 +170,15 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
 
       // Mirror the saved state into the active tab snapshot.
       documentsStore.getState().updateActive({ markdown: md, isDirty: false, path, title })
+
+      // Refresh the inode (Save As writes a new file with a new inode).
+      try {
+        const st = await window.lekha.statFile(path)
+        editorStore.getState().setInode(st.inode)
+        documentsStore.getState().updateActive({ inode: st.inode })
+      } catch {
+        // ignore - inode stays as-is
+      }
     },
     [editorRef, editorStore, workspaceStore, documentsStore],
   )
@@ -185,8 +203,8 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     const active = documentsStore.getState().activeDocument()
     if (active === null) return
     const md = editorRef.current?.getMarkdown() ?? active.markdown
-    const { isDirty, eol, path, title } = editorStore.getState()
-    documentsStore.getState().updateActive({ markdown: md, isDirty, eol, path, title })
+    const { isDirty, eol, path, title, inode } = editorStore.getState()
+    documentsStore.getState().updateActive({ markdown: md, isDirty, eol, path, title, inode })
   }, [editorRef, editorStore, documentsStore])
 
   /**
@@ -198,6 +216,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     // openFile resets dirty=false, mode=wysiwyg, eol=detect, derives title.
     editorStore.getState().openFile(tab.path, tab.markdown)
     editorStore.getState().setEol(tab.eol)
+    editorStore.getState().setInode(tab.inode)
     if (tab.isDirty) editorStore.getState().markDirty()
     recompute(tab.markdown)
     window.lekha.setDocumentState({

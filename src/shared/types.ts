@@ -10,7 +10,25 @@ export interface FileStat {
   sizeBytes: number
   birthtimeMs: number
   mtimeMs: number
+  /**
+   * File inode number. A rename/move keeps the inode, so it lets us recover the
+   * new path of an open file that was renamed outside the app (see
+   * verifyOpenFile). 0 when the platform does not report one.
+   */
+  inode: number
 }
+
+/**
+ * Result of verifying an open document's path is still valid on disk:
+ *   present  - the file is still at its path.
+ *   renamed  - the file was renamed/moved within the same folder; newPath is the
+ *              recovered location (matched by inode).
+ *   missing  - the file is gone from its folder (moved elsewhere or deleted).
+ */
+export type OpenFileStatus =
+  | { status: 'present' }
+  | { status: 'renamed'; newPath: string }
+  | { status: 'missing' }
 
 /** A markdown file entry for the Articles/Library sidebar view. */
 export interface ArticleEntry {

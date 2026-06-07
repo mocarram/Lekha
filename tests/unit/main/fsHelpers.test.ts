@@ -1,9 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { buildFileTree, writeFileAtomic, readTextFile, statFile, deriveArticleTitle, deriveArticlePreview, listArticles } from '@main/fs-helpers'
+import { buildFileTree, writeFileAtomic, readTextFile, statFile, verifyOpenFile, findPathByInode, deriveArticleTitle, deriveArticlePreview, listArticles } from '@main/fs-helpers'
 
 let tmpDir: string
 
@@ -143,5 +143,43 @@ describe('listArticles (IO)', () => {
     for (let i = 1; i < list.length; i++) {
       expect(list[i - 1]!.mtimeMs).toBeGreaterThanOrEqual(list[i]!.mtimeMs)
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// statFile inode + findPathByInode + verifyOpenFile (external-rename recovery)
+// ---------------------------------------------------------------------------
+describe('statFile inode + verifyOpenFile', () => {
+  it('statFile reports a non-zero inode', async () => {
+    const st = await statFile(join(tmpDir, 'a.md'))
+    expect(typeof st.inode).toBe('number')
+    expect(st.inode).toBeGreaterThan(0)
+  })
+
+  it('verifyOpenFile returns present when the file is unchanged', async () => {
+    const p = join(tmpDir, 'a.md')
+    const { inode } = await statFile(p)
+    expect(await verifyOpenFile(p, inode)).toEqual({ status: 'present' })
+  })
+
+  it('verifyOpenFile recovers a same-folder rename by inode', async () => {
+    const p = join(tmpDir, 'a.md')
+    const { inode } = await statFile(p)
+    renameSync(p, join(tmpDir, 'a-renamed.md')) // Finder-style rename (keeps inode)
+    expect(await verifyOpenFile(p, inode)).toEqual({
+      status: 'renamed',
+      newPath: join(tmpDir, 'a-renamed.md'),
+    })
+  })
+
+  it('verifyOpenFile reports missing when the file is deleted/moved away', async () => {
+    const p = join(tmpDir, 'a.md')
+    const { inode } = await statFile(p)
+    rmSync(p)
+    expect(await verifyOpenFile(p, inode)).toEqual({ status: 'missing' })
+  })
+
+  it('findPathByInode returns null for an inode not present in the dir', async () => {
+    expect(await findPathByInode(tmpDir, 99999999)).toBeNull()
   })
 })

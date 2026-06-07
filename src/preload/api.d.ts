@@ -1,6 +1,7 @@
 import type {
   FileNode,
   FileStat,
+  OpenFileStatus,
   ArticleEntry,
   Settings,
   DocumentState,
@@ -22,8 +23,13 @@ export interface LekhaAPI {
 
   // --- Filesystem ---
   readFile(path: string): Promise<string>
-  /** Stat a file: size + created/modified timestamps (for Get Info). */
+  /** Stat a file: size + created/modified timestamps + inode (for Get Info). */
   statFile(path: string): Promise<FileStat>
+  /**
+   * Verify an open document is still at its path, recovering a same-folder
+   * rename by inode. Returns present / renamed (with newPath) / missing.
+   */
+  verifyOpenFile(args: { path: string; inode: number }): Promise<OpenFileStatus>
   writeFile(path: string, content: string): Promise<void>
   readDir(dir: string): Promise<FileNode[]>
   /** List all markdown files under `root` (recursive), most-recent first. */

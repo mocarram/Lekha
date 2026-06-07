@@ -193,6 +193,7 @@ describe('pickNeighbourId (pure)', () => {
     isDirty: false,
     eol: 'lf',
     mode: 'wysiwyg',
+    inode: null,
   })
 
   it('returns the left neighbour for a middle tab', () => {
@@ -219,6 +220,7 @@ describe('nextTabId (pure)', () => {
     isDirty: false,
     eol: 'lf',
     mode: 'wysiwyg',
+    inode: null,
   })
 
   it('cycles forward (+1) to the right neighbour', () => {

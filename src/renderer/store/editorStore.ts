@@ -30,6 +30,12 @@ interface EditorState {
   autoSave: boolean
   /** Per-document line-ending style; detected on open, applied on save. */
   eol: Eol
+  /**
+   * Inode of the open file (captured on load/save), or null for an unsaved doc.
+   * Used to recover a same-folder rename made outside the app (see App's
+   * external-change check).
+   */
+  inode: number | null
 }
 
 interface EditorActions {
@@ -59,6 +65,8 @@ interface EditorActions {
   setTypewriterMode(value: boolean): void
   /** Set the document's line-ending style. */
   setEol(eol: Eol): void
+  /** Set the open file's inode (null for unsaved docs). */
+  setInode(inode: number | null): void
   /** Set equation numbering to an explicit value. */
   setEquationNumbering(value: boolean): void
   /** Set auto-save to an explicit value. */
@@ -93,6 +101,7 @@ const INITIAL_STATE: EditorState = {
   equationNumbering: true,
   autoSave: true,
   eol: 'lf',
+  inode: null,
 }
 
 // ---------------------------------------------------------------------------
@@ -110,6 +119,7 @@ export const useEditorStore = create<EditorStore>()((set) => ({
       isDirty: false,
       mode: 'wysiwyg',
       eol: detectEol(markdown),
+      inode: null,
     })
   },
 
@@ -179,5 +189,9 @@ export const useEditorStore = create<EditorStore>()((set) => ({
 
   setEol(eol) {
     set({ eol })
+  },
+
+  setInode(inode) {
+    set({ inode })
   },
 }))

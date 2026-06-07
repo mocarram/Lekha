@@ -8,6 +8,11 @@ export const IPC = {
   readFile: 'fs:readFile',
   /** Renderer -> main: stat a file (size + created/modified) for Get Info. */
   statFile: 'fs:statFile',
+  /**
+   * Renderer -> main: verify an open document is still at its path, recovering a
+   * same-folder rename by inode. Returns an OpenFileStatus.
+   */
+  verifyOpenFile: 'fs:verifyOpenFile',
   writeFile: 'fs:writeFile',
   readDir: 'fs:readDir',
   /** Renderer -> main: list all markdown files under root as ArticleEntry[]. */

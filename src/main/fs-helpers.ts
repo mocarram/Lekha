@@ -1,6 +1,6 @@
 import { readFile, writeFile, rename, unlink, readdir, stat } from 'node:fs/promises'
-import { basename, join, extname } from 'node:path'
-import type { FileNode, FileStat, ArticleEntry } from '@shared/types'
+import { basename, join, extname, dirname } from 'node:path'
+import type { FileNode, FileStat, ArticleEntry, OpenFileStatus } from '@shared/types'
 
 const MD_EXTENSIONS = new Set(['.md', '.markdown'])
 
@@ -71,10 +71,56 @@ export async function readTextFile(path: string): Promise<string> {
   return readFile(path, 'utf8')
 }
 
-/** Returns size + created/modified timestamps for a file (for File ▸ Get Info). */
+/** Returns size + created/modified timestamps + inode for a file. */
 export async function statFile(path: string): Promise<FileStat> {
   const s = await stat(path)
-  return { sizeBytes: s.size, birthtimeMs: s.birthtimeMs, mtimeMs: s.mtimeMs }
+  return {
+    sizeBytes: s.size,
+    birthtimeMs: s.birthtimeMs,
+    mtimeMs: s.mtimeMs,
+    inode: Number(s.ino),
+  }
+}
+
+/**
+ * Find the file in `dir` whose inode matches `inode`, returning its full path
+ * or null. Used to recover a same-folder rename of an open document (a rename
+ * keeps the inode). Non-recursive; skips dotfiles and non-regular files. Only
+ * called when an open file's path went missing, so the directory scan is rare.
+ */
+export async function findPathByInode(dir: string, inode: number): Promise<string | null> {
+  if (!inode) return null
+  let entries: string[]
+  try {
+    entries = await readdir(dir)
+  } catch {
+    return null
+  }
+  for (const name of entries) {
+    if (isDotEntry(name)) continue
+    const full = join(dir, name)
+    try {
+      const s = await stat(full)
+      if (s.isFile() && Number(s.ino) === inode) return full
+    } catch {
+      // Unreadable entry - skip.
+    }
+  }
+  return null
+}
+
+/**
+ * Verify an open document is still at `path`. When the path is gone, try to
+ * recover a same-folder rename by inode.
+ */
+export async function verifyOpenFile(path: string, inode: number): Promise<OpenFileStatus> {
+  try {
+    await stat(path)
+    return { status: 'present' }
+  } catch {
+    const moved = await findPathByInode(dirname(path), inode)
+    return moved !== null ? { status: 'renamed', newPath: moved } : { status: 'missing' }
+  }
 }
 
 // ---------------------------------------------------------------------------

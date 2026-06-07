@@ -3,7 +3,7 @@ import { IPC } from '@shared/ipc-channels'
 import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
 import type { WindowRegistry } from '@main/window'
-import { readTextFile, writeFileAtomic, buildFileTree, statFile, listArticles } from '@main/fs-helpers'
+import { readTextFile, writeFileAtomic, buildFileTree, statFile, verifyOpenFile, listArticles } from '@main/fs-helpers'
 import {
   createFile,
   createFolder,
@@ -61,6 +61,11 @@ export function registerFileHandlers(
 
   safeHandle(IPC.statFile, async (path) => {
     return statFile(String(path))
+  })
+
+  safeHandle(IPC.verifyOpenFile, async (arg) => {
+    const { path, inode } = arg as { path: string; inode: number }
+    return verifyOpenFile(String(path), Number(inode))
   })
 
   safeHandle(IPC.writeFile, async (path, content) => {
