@@ -37,6 +37,8 @@ export const IPC = {
   print: 'window:print',
   /** Renderer -> main: open the macOS share sheet for a file path. */
   share: 'window:share',
+  /** Renderer -> main: toggle the sender window's always-on-top state. */
+  setAlwaysOnTop: 'window:setAlwaysOnTop',
   command: 'app:command',
   /** Main -> renderer: open a specific file path (from the Open Recent menu). */
   openPath: 'app:openPath',

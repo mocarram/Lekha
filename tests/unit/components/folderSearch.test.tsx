@@ -57,6 +57,7 @@ function makeMockLekha(
     newWindow: vi.fn(),
     print: vi.fn(),
     share: vi.fn(),
+    setAlwaysOnTop: vi.fn(),
     onCommand: vi.fn(() => unsubscribe),
     onOpenPath: vi.fn(() => unsubscribe),
     onSetTheme: vi.fn(() => unsubscribe),

@@ -188,6 +188,7 @@ function stubLekha(): void {
     newWindow: vi.fn(),
     print: vi.fn(),
     share: vi.fn(),
+    setAlwaysOnTop: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
     readClipboardText: vi.fn(() => Promise.resolve('')),
@@ -509,6 +510,30 @@ describe('useCommands - sidebar and mode routing', () => {
     const { writeClipboard } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
     await waitForCall(writeClipboard!)
     expect(writeClipboard).toHaveBeenCalled()
+  })
+
+  it('dispatching "toggleStatusBar" flips the workspace store flag', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    useWorkspaceStore.setState({ showStatusBar: true })
+
+    renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('toggleStatusBar') })
+
+    expect(useWorkspaceStore.getState().showStatusBar).toBe(false)
+  })
+
+  it('dispatching "toggleAlwaysOnTop" sets the store and calls the IPC', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    useWorkspaceStore.setState({ alwaysOnTop: false })
+
+    renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('toggleAlwaysOnTop') })
+
+    expect(useWorkspaceStore.getState().alwaysOnTop).toBe(true)
+    const { setAlwaysOnTop } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(setAlwaysOnTop).toHaveBeenCalledWith(true)
   })
 
   it('dispatching "toggleSource" calls editorRef.toggleMode()', () => {

@@ -126,6 +126,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     newWindow: vi.fn(),
     print: vi.fn(),
     share: vi.fn(),
+    setAlwaysOnTop: vi.fn(),
     onCommand: vi.fn(() => () => undefined),
     onOpenPath: vi.fn(() => () => undefined),
     onSetTheme: vi.fn(() => () => undefined),

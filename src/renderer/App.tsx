@@ -194,6 +194,7 @@ export default function App() {
   // Workspace file tree (for quick-open) + root, kept live from the store.
   const fileTree = useWorkspaceStore((s) => s.fileTree)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
+  const showStatusBar = useWorkspaceStore((s) => s.showStatusBar)
   const paletteFiles = useMemo(
     () => flattenFiles(fileTree, rootFolder),
     [fileTree, rootFolder],
@@ -534,7 +535,9 @@ export default function App() {
         />
       </div>
 
-      <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
+      {showStatusBar && (
+        <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
+      )}
 
       <FindReplace
         open={findState.open}

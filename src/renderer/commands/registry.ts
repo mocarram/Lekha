@@ -45,6 +45,8 @@ export const COMMANDS: CommandDef[] = [
   // View
   { id: 'presentation', label: 'Enter Presentation', group: 'View', shortcut: 'F5' },
   { id: 'toggleSidebar', label: 'Toggle Sidebar', group: 'View', shortcut: '⌘\\' },
+  { id: 'toggleStatusBar', label: 'Toggle Status Bar', group: 'View' },
+  { id: 'toggleAlwaysOnTop', label: 'Always on Top', group: 'View' },
   { id: 'toggleSource', label: 'Toggle Source Mode', group: 'View', shortcut: '⌘⌥S' },
   { id: 'toggleFocusMode', label: 'Focus Mode', group: 'View', shortcut: 'F8' },
   { id: 'toggleTypewriterMode', label: 'Typewriter Mode', group: 'View', shortcut: 'F9' },

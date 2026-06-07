@@ -347,6 +347,11 @@ void app.whenReady().then(async () => {
     new ShareMenu({ filePaths: [path] }).popup({ window: win })
   })
 
+  // Always on Top: float the sender window above others (toggle from the View menu).
+  ipcMain.on(IPC.setAlwaysOnTop, (event, value: unknown) => {
+    BrowserWindow.fromWebContents(event.sender)?.setAlwaysOnTop(Boolean(value))
+  })
+
   // Remember valid saved bounds for restoring/cascading future windows.
   savedWindowBounds = isSaneBounds(initialSettings.windowBounds)
     ? initialSettings.windowBounds

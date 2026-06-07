@@ -224,6 +224,16 @@ export function useCommands(
         useWorkspaceStore.getState().toggleSidebar()
         return
       }
+      if (cmd === 'toggleStatusBar') {
+        useWorkspaceStore.getState().toggleStatusBar()
+        return
+      }
+      if (cmd === 'toggleAlwaysOnTop') {
+        const next = !useWorkspaceStore.getState().alwaysOnTop
+        useWorkspaceStore.getState().setAlwaysOnTop(next)
+        window.lekha.setAlwaysOnTop(next)
+        return
+      }
 
       // ------------------------------------------------------------------
       // Source mode toggle (editor pane + store sync)

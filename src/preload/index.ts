@@ -119,6 +119,10 @@ const api: LekhaAPI = {
     ipcRenderer.send(IPC.share, path)
   },
 
+  setAlwaysOnTop(value: boolean): void {
+    ipcRenderer.send(IPC.setAlwaysOnTop, value)
+  },
+
   // --- Commands from main ---
   // Subscribes to broadcast commands (e.g. menu items) and returns an unsubscribe
   // function so the renderer can clean up on unmount.

@@ -57,6 +57,8 @@ export type AppCommand =
   | 'exportOpml'
   | 'toggleFocusMode'
   | 'toggleTypewriterMode'
+  | 'toggleStatusBar'
+  | 'toggleAlwaysOnTop'
   | 'preferences'
   | 'copyAsHtml'
   | 'copyAsMarkdown'

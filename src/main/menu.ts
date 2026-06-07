@@ -309,6 +309,8 @@ export function buildMenuTemplate(
       item('Command Palette…',   'CmdOrCtrl+Shift+P', 'commandPalette', send),
       sep,
       item('Toggle Sidebar',     'CmdOrCtrl+\\',    'toggleSidebar', send),
+      item('Toggle Status Bar',  undefined,         'toggleStatusBar', send),
+      item('Always on Top',      undefined,         'toggleAlwaysOnTop', send),
       item('Toggle Source Mode', 'CmdOrCtrl+Alt+S', 'toggleSource',  send),
       sep,
       // Focus mode (F8) and Typewriter mode (F9) - plain command items.

@@ -605,3 +605,10 @@ Implemented (Edit/View additions, sub-wave B finish):
 - **Paste as Plain Text** (Cmd+Shift+V) - new `clipboard:readText` IPC (`readClipboardText`) + `insertText(text)` editor handle (replaces selection, scrolls, focuses); useCommands reads the clipboard and inserts plain text. Edit menu + registry + AppCommand.
 
 Tests: +1 dispatch; readClipboardText added to all 4 LekhaAPI mocks, insertText to the 2 EditorPaneHandle mocks. 1225 unit + 7 e2e green.
+
+### Wave 17 - Show Status Bar + Always on Top (`feat/wysiwyg-chrome-toggles`)
+Implemented (Edit/View additions, sub-wave C):
+- **Toggle Status Bar** - workspaceStore `showStatusBar` (default true) + `toggleStatusBar`; App renders `<StatusBar>` conditionally; View menu + `toggleStatusBar` command.
+- **Always on Top** - new `window:setAlwaysOnTop` IPC (sender window `setAlwaysOnTop`) + preload; workspaceStore `alwaysOnTop` + `setAlwaysOnTop`; `toggleAlwaysOnTop` command flips the store and calls the IPC; View menu.
+
+Tests: +2 dispatch; setAlwaysOnTop added to all 4 LekhaAPI mocks. 1227 unit + 7 e2e green.

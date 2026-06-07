@@ -75,6 +75,9 @@ export interface LekhaAPI {
   /** Open the macOS share sheet for `path` (no-op on other platforms). */
   share(path: string): void
 
+  /** Toggle this window's always-on-top (floating) state. */
+  setAlwaysOnTop(value: boolean): void
+
   // --- Commands from main ---
   /**
    * Subscribe to app commands broadcast from the main process (menu items, etc.).

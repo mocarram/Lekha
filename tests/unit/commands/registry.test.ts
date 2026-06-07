@@ -70,6 +70,8 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'exportOpml',
   'toggleFocusMode',
   'toggleTypewriterMode',
+  'toggleStatusBar',
+  'toggleAlwaysOnTop',
   'preferences',
   'copyAsHtml',
   'copyAsMarkdown',
