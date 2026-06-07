@@ -18,7 +18,7 @@ import {
   deleteTable,
   isInTable,
   selectedRect,
-  type TableMap,
+  TableMap,
 } from 'prosemirror-tables'
 
 /** The full set of toolbar-driven table operations. */
@@ -30,6 +30,10 @@ export type TableCommand =
   | 'addColumnAfter'
   | 'deleteColumn'
   | 'deleteTable'
+  | 'moveRowUp'
+  | 'moveRowDown'
+  | 'moveColumnLeft'
+  | 'moveColumnRight'
   | 'alignLeft'
   | 'alignCenter'
   | 'alignRight'
@@ -114,6 +118,87 @@ export const addRowOnTab: Command = (state, dispatch) => {
 }
 
 /**
+ * True for a "simple" GFM table: no row/col spans, so row index == row child
+ * index and column index == cell child index. Lekha only produces such tables,
+ * and the move operations below rely on this 1:1 mapping.
+ */
+function isSimpleTable(rect: ReturnType<typeof selectedRect>): boolean {
+  if (rect.table.childCount !== rect.map.height) return false
+  for (let r = 0; r < rect.table.childCount; r++) {
+    if (rect.table.child(r).childCount !== rect.map.width) return false
+  }
+  return true
+}
+
+/**
+ * Move the current row up (dir -1) or down (dir +1) by swapping it with its
+ * neighbor and rebuilding the table. Keeps the caret in the moved row.
+ */
+function moveRow(dir: -1 | 1): Command {
+  return (state, dispatch) => {
+    if (!isInTable(state)) return false
+    const rect = selectedRect(state)
+    if (!isSimpleTable(rect)) return false
+    const from = rect.top
+    const to = from + dir
+    if (to < 0 || to >= rect.map.height) return false
+    if (!dispatch) return true
+
+    const rows = []
+    for (let i = 0; i < rect.table.childCount; i++) rows.push(rect.table.child(i))
+    const moved = rows[from]!
+    rows[from] = rows[to]!
+    rows[to] = moved
+    const newTable = rect.table.type.create(rect.table.attrs, rows, rect.table.marks)
+
+    const tablePos = rect.tableStart - 1
+    let tr = state.tr.replaceWith(tablePos, tablePos + rect.table.nodeSize, newTable)
+    const newMap = TableMap.get(newTable)
+    const cellRel = newMap.map[to * newMap.width + rect.left]!
+    tr = tr.setSelection(TextSelection.near(tr.doc.resolve(rect.tableStart + cellRel + 1)))
+    dispatch(tr.scrollIntoView())
+    return true
+  }
+}
+
+/**
+ * Move the current column left (dir -1) or right (dir +1) by swapping the cell
+ * in that column with its neighbor in every row. Keeps the caret in the moved
+ * column.
+ */
+function moveColumn(dir: -1 | 1): Command {
+  return (state, dispatch) => {
+    if (!isInTable(state)) return false
+    const rect = selectedRect(state)
+    if (!isSimpleTable(rect)) return false
+    const from = rect.left
+    const to = from + dir
+    if (to < 0 || to >= rect.map.width) return false
+    if (!dispatch) return true
+
+    const rows = []
+    for (let r = 0; r < rect.table.childCount; r++) {
+      const row = rect.table.child(r)
+      const cells = []
+      for (let c = 0; c < row.childCount; c++) cells.push(row.child(c))
+      const moved = cells[from]!
+      cells[from] = cells[to]!
+      cells[to] = moved
+      rows.push(row.type.create(row.attrs, cells, row.marks))
+    }
+    const newTable = rect.table.type.create(rect.table.attrs, rows, rect.table.marks)
+
+    const tablePos = rect.tableStart - 1
+    let tr = state.tr.replaceWith(tablePos, tablePos + rect.table.nodeSize, newTable)
+    const newMap = TableMap.get(newTable)
+    const cellRel = newMap.map[rect.top * newMap.width + to]!
+    tr = tr.setSelection(TextSelection.near(tr.doc.resolve(rect.tableStart + cellRel + 1)))
+    dispatch(tr.scrollIntoView())
+    return true
+  }
+}
+
+/**
  * Map every {@link TableCommand} to a ProseMirror `Command`. Structural ops are
  * the prosemirror-tables commands verbatim; the four `align*` entries are
  * `setColumnAlign` partials.
@@ -126,6 +211,10 @@ export const tableCommandMap: Record<TableCommand, Command> = {
   addColumnAfter,
   deleteColumn,
   deleteTable,
+  moveRowUp: moveRow(-1),
+  moveRowDown: moveRow(1),
+  moveColumnLeft: moveColumn(-1),
+  moveColumnRight: moveColumn(1),
   alignLeft: setColumnAlign('left'),
   alignCenter: setColumnAlign('center'),
   alignRight: setColumnAlign('right'),

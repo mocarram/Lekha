@@ -48,6 +48,13 @@ const ALIGN_BUTTONS: ToolButton[] = [
   { cmd: 'alignRight', title: 'Align right', label: '⇥' },
 ]
 
+const MOVE_BUTTONS: ToolButton[] = [
+  { cmd: 'moveRowUp', title: 'Move row up', label: '↑' },
+  { cmd: 'moveRowDown', title: 'Move row down', label: '↓' },
+  { cmd: 'moveColumnLeft', title: 'Move column left', label: '←' },
+  { cmd: 'moveColumnRight', title: 'Move column right', label: '→' },
+]
+
 const TABLE_BUTTONS: ToolButton[] = [
   { cmd: 'deleteTable', title: 'Delete table', label: '✕' },
 ]
@@ -58,7 +65,7 @@ const TOOLBAR_OFFSET = 40
 export function TableToolbar({ show, rect, onCommand }: TableToolbarProps) {
   if (!show) return null
 
-  const groups = [ROW_BUTTONS, COLUMN_BUTTONS, ALIGN_BUTTONS, TABLE_BUTTONS]
+  const groups = [ROW_BUTTONS, COLUMN_BUTTONS, MOVE_BUTTONS, ALIGN_BUTTONS, TABLE_BUTTONS]
 
   return (
     <div

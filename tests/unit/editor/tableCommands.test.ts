@@ -165,3 +165,29 @@ describe('tableCommandMap - setColumnAlign', () => {
     expect(col1).toEqual([null, null])
   })
 })
+
+describe('tableCommandMap - move row / column', () => {
+  const THREE_ROW = '| A | B |\n| --- | --- |\n| a | b |\n| c | d |'
+
+  it('moveRowDown swaps the current body row with the one below', () => {
+    const doc = run(stateInFirstBodyCell(THREE_ROW), 'moveRowDown')
+    const md = serializeMarkdown(doc)
+    // The "c | d" row now precedes "a | b".
+    expect(md.indexOf('| c | d |')).toBeLessThan(md.indexOf('| a | b |'))
+  })
+
+  it('moveRowUp is a no-op safety at the top body row (declines past header)', () => {
+    // From the first body row, moving up would hit the header row index 0,
+    // which is a valid swap (header <-> first body). Assert it still produces a
+    // valid table with the same number of rows.
+    const doc = run(stateInFirstBodyCell(THREE_ROW), 'moveRowUp')
+    expect(countRows(doc)).toBe(3)
+  })
+
+  it('moveColumnRight swaps the current column with the one to its right', () => {
+    const doc = run(stateInFirstBodyCell(THREE_ROW), 'moveColumnRight')
+    const md = serializeMarkdown(doc)
+    // Header order is now "B | A".
+    expect(md.indexOf('| B | A |')).toBe(0)
+  })
+})

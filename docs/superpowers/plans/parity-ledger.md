@@ -612,3 +612,10 @@ Implemented (Edit/View additions, sub-wave C):
 - **Always on Top** - new `window:setAlwaysOnTop` IPC (sender window `setAlwaysOnTop`) + preload; workspaceStore `alwaysOnTop` + `setAlwaysOnTop`; `toggleAlwaysOnTop` command flips the store and calls the IPC; View menu.
 
 Tests: +2 dispatch; setAlwaysOnTop added to all 4 LekhaAPI mocks. 1227 unit + 7 e2e green.
+
+### Wave 18 - Move Row/Column in tables (`feat/wysiwyg-table-move`)
+Implemented (Edit/View additions, D1):
+- **Move Row Up/Down** + **Move Column Left/Right** - new `moveRow`/`moveColumn` in tableCommands.ts (rebuild the table node with neighboring rows/cols swapped via TableMap; keep the caret in the moved cell; guarded to simple GFM tables). Added to TableCommand union + tableCommandMap + a new MOVE_BUTTONS group in TableToolbar.
+Table ops stay in the contextual toolbar (not the Edit menu) - matches where WYSIWYG surfaces them.
+
+Tests: +3 (move row down ordering, move row up validity, move column right ordering). 1230 unit + 7 e2e green.
