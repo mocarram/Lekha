@@ -327,6 +327,12 @@ function escapeHtmlEntities(str: string): string {
 export interface BuildHtmlOptions {
   /** Used as the document <title>. Defaults to "Untitled". */
   title?: string
+  /**
+   * When false, omit the inlined CSS (theme + KaTeX + hljs) so the output
+   * adopts the destination's styling. Used by "Copy without Theme Styling".
+   * Defaults to true.
+   */
+  includeCss?: boolean
 }
 
 /**
@@ -391,8 +397,10 @@ export async function buildExportHtml(
   // 1. Render the markdown body (mermaid + math + code highlighting)
   const body = await renderMarkdownBody(markdown)
 
-  // 2. Concatenate all CSS (github theme + katex + hljs)
-  const cssBlob = [githubCss, katexCss, hljsCss].join('\n\n')
+  // 2. Concatenate all CSS (github theme + katex + hljs), unless the caller
+  //    asked for an unstyled copy ("Copy without Theme Styling").
+  const cssBlob =
+    (opts?.includeCss ?? true) ? [githubCss, katexCss, hljsCss].join('\n\n') : ''
 
   // 3. Assemble the complete HTML document
   return buildDocument(body, title, cssBlob)

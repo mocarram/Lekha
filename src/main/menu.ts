@@ -244,6 +244,8 @@ export function buildMenuTemplate(
       // to the clipboard via window.lekha.writeClipboard.
       item('Copy as HTML',     'CmdOrCtrl+Shift+C', 'copyAsHtml',     send),
       item('Copy as Markdown', undefined,            'copyAsMarkdown', send),
+      item('Copy as Plain Text', undefined,          'copyAsPlainText', send),
+      item('Copy without Theme Styling', undefined,  'copyWithoutStyling', send),
       sep,
       item('Find',    'CmdOrCtrl+F',       'find',    send),
       item('Replace', 'CmdOrCtrl+Alt+F',   'replace', send),

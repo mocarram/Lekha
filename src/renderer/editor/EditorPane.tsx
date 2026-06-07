@@ -106,6 +106,8 @@ export interface EditorPaneHandle {
   getLinkAt(): LinkInfo | null
   /** Return the currently selected text (empty string when collapsed). */
   getSelectionText(): string
+  /** Return the whole document as plain text. */
+  getPlainText(): string
   /** Insert/update a link from the dialog. */
   applyLink(args: ApplyLinkArgs): void
   /** Remove the link at the cursor. */
@@ -311,6 +313,9 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
         getSelectionText(): string {
           if (mode !== 'wysiwyg') return ''
           return wysiwygRef.current?.getSelectionText() ?? ''
+        },
+        getPlainText(): string {
+          return wysiwygRef.current?.getPlainText() ?? ''
         },
         applyLink(args: ApplyLinkArgs): void {
           if (mode !== 'wysiwyg') return

@@ -66,6 +66,7 @@ function makeMockEditor(): MockEditorResult {
   const getMatchInfo = vi.fn(() => ({ current: 0, count: 0 }))
   const getLinkAt = vi.fn(() => null)
   const getSelectionText = vi.fn(() => '')
+  const getPlainText = vi.fn(() => '')
   const applyLink = vi.fn()
   const removeLink = vi.fn()
   const insertImage = vi.fn()
@@ -89,6 +90,7 @@ function makeMockEditor(): MockEditorResult {
     getMatchInfo,
     getLinkAt,
     getSelectionText,
+    getPlainText,
     applyLink,
     removeLink,
     insertImage,
@@ -476,6 +478,18 @@ describe('useCommands - sidebar and mode routing', () => {
 
     expect(useWorkspaceStore.getState().sidebarVisible).toBe(true)
     expect(useWorkspaceStore.getState().sidebarTab).toBe('articles')
+  })
+
+  it('dispatching "copyAsPlainText" writes plain text to the clipboard', async () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('copyAsPlainText') })
+
+    const { writeClipboard } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    await waitForCall(writeClipboard!)
+    expect(writeClipboard).toHaveBeenCalled()
   })
 
   it('dispatching "toggleSource" calls editorRef.toggleMode()', () => {

@@ -419,6 +419,29 @@ export function useCommands(
         return
       }
 
+      // Copy as Plain Text: the document's visible text (no markdown markers).
+      if (cmd === 'copyAsPlainText') {
+        const text = editorRef.current?.getPlainText() ?? ''
+        void window.lekha.writeClipboard({ text }).catch((err: unknown) => {
+          console.error('[clipboard] Copy as Plain Text failed:', err)
+        })
+        return
+      }
+
+      // Copy without Theme Styling: rich HTML with no inlined CSS, so it adopts
+      // the paste destination's styling.
+      if (cmd === 'copyWithoutStyling') {
+        const markdown = editorRef.current?.getMarkdown() ?? ''
+        const { title } = useEditorStore.getState()
+        void loadBuildExportHtml()
+          .then((build) => build(markdown, { title, includeCss: false }))
+          .then((html) => window.lekha.writeClipboard({ html, text: markdown }))
+          .catch((err: unknown) => {
+            console.error('[clipboard] Copy without Theme Styling failed:', err)
+          })
+        return
+      }
+
       // ------------------------------------------------------------------
       // Copy as HTML
       //

@@ -47,6 +47,7 @@ function makeMockHandle() {
     getMatchInfo,
     getLinkAt: vi.fn(() => null),
     getSelectionText: vi.fn(() => ''),
+    getPlainText: vi.fn(() => ''),
     applyLink: vi.fn(),
     removeLink: vi.fn(),
     insertImage: vi.fn(),

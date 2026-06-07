@@ -238,3 +238,21 @@ describe('buildExportHtml - sanitization strips dangerous markup', () => {
     expect(html).toContain('<svg') // mermaid diagram SVG
   })
 })
+
+describe('buildExportHtml - includeCss option', () => {
+  // NOTE: in vitest the `?raw` CSS imports resolve to empty strings, so the
+  // styled/unstyled byte difference isn't observable here (it is in prod). We
+  // assert structural validity + that no theme tokens leak with includeCss:false.
+  it('still produces a valid document with includeCss:false', async () => {
+    const bare = await buildExportHtml('# Hi', { includeCss: false })
+    expect(bare).toContain('<!DOCTYPE html>')
+    expect(bare).toContain('markdown-body')
+    expect(bare).not.toContain('--gh-bg')
+  })
+
+  it('defaults to including CSS (valid doc, no error)', async () => {
+    const html = await buildExportHtml('# Hi')
+    expect(html).toContain('<!DOCTYPE html>')
+    expect(html).toContain('markdown-body')
+  })
+})

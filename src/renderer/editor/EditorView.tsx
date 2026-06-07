@@ -189,6 +189,8 @@ export interface EditorHandle {
   getLinkAt(): LinkInfo | null
   /** Return the currently selected text (empty string when collapsed). */
   getSelectionText(): string
+  /** Return the whole document as plain text (blocks separated by blank lines). */
+  getPlainText(): string
   /** Insert/update a link from the dialog. */
   applyLink(args: ApplyLinkArgs): void
   /** Remove the link at the cursor. */
@@ -501,6 +503,12 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           const { from, to } = view.state.selection
           if (from === to) return ''
           return view.state.doc.textBetween(from, to)
+        },
+        getPlainText(): string {
+          const view = viewRef.current
+          if (!view) return ''
+          const { doc } = view.state
+          return doc.textBetween(0, doc.content.size, '\n\n', '\n')
         },
         applyLink(args: ApplyLinkArgs): void {
           const view = viewRef.current

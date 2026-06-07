@@ -591,3 +591,11 @@ Implemented (Edit/View additions, sub-wave A):
 - **Jump to Top** / **Jump to Bottom** - editorCommandMap commands (TextSelection.atStart/atEnd + scrollIntoView). Edit menu, command registry. No accelerators (avoid clobbering native caret nav).
 
 Tests: +2 (jump selection to start/end). 1221 unit + 7 e2e green.
+
+### Wave 15 - Copy as Plain Text / Copy without Theme Styling (`feat/wysiwyg-copy-plain`)
+Implemented (Edit/View additions, sub-wave B):
+- **Copy as Plain Text** - new `getPlainText()` editor handle (doc.textBetween with blank-line block separators); useCommands writes it to the clipboard as text.
+- **Copy without Theme Styling** - `buildExportHtml` gains an `includeCss` option (default true); the command builds HTML with `includeCss:false` (no inlined theme/KaTeX/hljs CSS) and writes it as rich HTML + markdown fallback, so paste adopts the destination's styling.
+Edit menu + command registry + AppCommands. (Paste as Plain Text deferred to a follow-up - needs a clipboard-read IPC + insert.)
+
+Tests: +4 (buildHtml includeCss structural, copyAsPlainText dispatch); getPlainText added to the EditorPaneHandle mocks. 1224 unit + 7 e2e green.
