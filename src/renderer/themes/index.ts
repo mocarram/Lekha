@@ -19,10 +19,61 @@
 export type { ThemeDef } from '@shared/types'
 export { THEMES } from '@shared/types'
 
-import { THEMES } from '@shared/types'
+import { THEMES, type ThemeDef, type UserTheme } from '@shared/types'
 
-/** Set of valid theme ids for fast O(1) lookup. */
+/** Set of built-in theme ids for fast O(1) lookup. */
 const THEME_IDS = new Set(THEMES.map((t) => t.id))
+
+/**
+ * Ids of user-authored themes currently injected. Maintained by
+ * injectUserThemes so applyTheme accepts them too. Switching to a user id that
+ * is later removed falls back to 'github' (see applyTheme).
+ */
+const userThemeIds = new Set<string>()
+
+/** Attribute marking the managed <style> element that holds user theme CSS. */
+const USER_THEME_STYLE_ATTR = 'data-user-themes'
+
+/**
+ * Neutralize any closing `</style>` sequence in user CSS so it cannot break out
+ * of the injected <style> element (defense-in-depth; textContent already avoids
+ * HTML parsing, but this keeps serialized output safe too). Case-insensitive.
+ */
+export function escapeStyleCss(css: string): string {
+  return css.replace(/<\/(style)/gi, '<\\/$1')
+}
+
+/**
+ * Inject the given user themes' CSS into a single managed <style> element in
+ * <head> and register their ids so applyTheme accepts them. Idempotent: calling
+ * again replaces the previous content (used by Reload Themes).
+ */
+export function injectUserThemes(themes: UserTheme[]): void {
+  userThemeIds.clear()
+  for (const t of themes) userThemeIds.add(t.id)
+
+  const blob = themes
+    .map((t) => `/* user theme: ${t.id} */\n${escapeStyleCss(t.css)}`)
+    .join('\n\n')
+
+  let styleEl = document.head.querySelector<HTMLStyleElement>(
+    `style[${USER_THEME_STYLE_ATTR}]`,
+  )
+  if (styleEl === null) {
+    styleEl = document.createElement('style')
+    styleEl.setAttribute(USER_THEME_STYLE_ATTR, '')
+    document.head.appendChild(styleEl)
+  }
+  styleEl.textContent = blob
+}
+
+/**
+ * The merged theme list (built-in + currently injected user themes) as
+ * ThemeDef entries, for menus/pickers. User themes appear after built-ins.
+ */
+export function getAllThemes(userThemes: UserTheme[]): ThemeDef[] {
+  return [...THEMES, ...userThemes.map((t) => ({ id: t.id, label: t.label }))]
+}
 
 /**
  * Apply a theme by updating document.documentElement.dataset.theme.
@@ -31,7 +82,7 @@ const THEME_IDS = new Set(THEMES.map((t) => t.id))
  * never leaves the UI in an undefined state.
  */
 export function applyTheme(id: string): void {
-  const resolved = THEME_IDS.has(id) ? id : 'github'
+  const resolved = THEME_IDS.has(id) || userThemeIds.has(id) ? id : 'github'
   // Set the data-theme attribute on <html>. All CSS files loaded in main.tsx
   // use this attribute to select the correct token overrides. Setting it on
   // documentElement (not document.body) ensures :root selectors also match.

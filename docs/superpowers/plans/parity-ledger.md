@@ -719,3 +719,10 @@ Implemented (3, step 1):
 - Wiring: ipc-channels (listThemes/reloadThemes/openThemeFolder), preload index.ts + api.d.ts (listThemes/reloadThemes/openThemeFolder), index.ts registers handlers with userData + DEFAULT_TEMPLATE_CSS thunks. shared/types UserTheme {id,label,type,css}. Updated 3 LekhaAPI test mocks.
 
 Tests: +12 userThemes (parse/derive/filter/list/seed) ; Wave-24b template test repointed to DEFAULT_TEMPLATE_CSS. 1321 unit + 9 e2e green. Next: 25b renderer injection + registry merge.
+
+### Wave 25b - Custom themes: renderer injection + registry merge (`feat/custom-themes-renderer`)
+Implemented (3, step 2):
+- **themes/index.ts**: injectUserThemes(themes) - writes all user theme CSS into one managed `<style data-user-themes>` in <head> (idempotent replace, used by Reload), registers their ids; escapeStyleCss neutralizes `</style>` (defense-in-depth); applyTheme now resolves built-in OR injected user ids (falls back to github for unknown/removed); getAllThemes(userThemes) merges built-ins + user themes for menus.
+- **useStartup**: on launch, await window.lekha.listThemes() and injectUserThemes BEFORE applyTheme(s.theme) so a persisted custom-theme id resolves instead of falling back. Missing folder handled silently.
+
+Tests: +9 (escapeStyleCss case-insensitive; inject creates/replaces single style; escapes </style>; applyTheme accepts user id + falls back when removed + still accepts built-ins; getAllThemes ordering). 1330 unit + 9 e2e green. Next: 25c Theme menu (Open Theme Folder / Reload Themes) + native submenu merge.

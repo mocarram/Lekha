@@ -18,7 +18,7 @@ import { useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
-import { applyTheme, applyFontSize } from '@renderer/themes/index'
+import { applyTheme, applyFontSize, injectUserThemes } from '@renderer/themes/index'
 import { setSmartPunctuation } from '@renderer/editor/createState'
 import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
 import type { FileOps } from './useFileOps'
@@ -69,6 +69,15 @@ export function useStartup(fileOps: FileOps, onSidebarWidth?: (px: number) => vo
 
       // Apply recent files list.
       useWorkspaceStore.getState().setRecentFiles(s.recentFiles)
+
+      // Load + inject user-authored themes BEFORE applying the persisted theme
+      // so a saved custom-theme id resolves (instead of falling back to github).
+      try {
+        const userThemes = await window.lekha.listThemes()
+        injectUserThemes(userThemes)
+      } catch {
+        // Theme folder missing/unreadable - proceed with built-in themes only.
+      }
 
       // Restore persisted theme. applyTheme sets data-theme on <html> so all
       // CSS theme token overrides take effect immediately.
