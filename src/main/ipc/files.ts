@@ -3,6 +3,7 @@ import { IPC } from '@shared/ipc-channels'
 import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
 import type { WindowRegistry } from '@main/window'
+import { formatWindowTitle } from '@main/windowTitle'
 import { readTextFile, writeFileAtomic, buildFileTree, statFile, verifyOpenFile, listArticles } from '@main/fs-helpers'
 import {
   createFile,
@@ -148,8 +149,12 @@ export function registerFileHandlers(
     (event, state: { title: string; dirty: boolean; path: string | null }) => {
       const win = BrowserWindow.fromWebContents(event.sender)
       if (!win) return
-      win.setTitle(`${state.dirty ? '• ' : ''}${state.title}`)
-      if (process.platform === 'darwin') {
+      const isMac = process.platform === 'darwin'
+      win.setTitle(formatWindowTitle(state.title, state.dirty, isMac))
+      if (isMac) {
+        // Proxy icon (Cmd-click -> folder breadcrumb; drag to move) + the native
+        // edited dot on the close button. setRepresentedFilename('') clears the
+        // proxy icon for an unsaved (path-less) document.
         win.setRepresentedFilename(state.path ?? '')
         win.setDocumentEdited(state.dirty)
       }

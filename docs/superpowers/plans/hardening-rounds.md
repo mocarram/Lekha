@@ -167,3 +167,8 @@ Resolves the long-deferred ledger item "Detect external on-disk changes to the o
 - **Detach (safe):** a move-elsewhere/delete keeps the buffer (no data loss), clears the path so the next Save is Save As, marks dirty, and shows a quiet non-blocking notice bar (not a modal).
 - Plumbing: `FileStat.inode` + `OpenFileStatus` type; `findPathByInode`/`verifyOpenFile` (main, lstat-based, skips dotfiles); `fs:verifyOpenFile` IPC + preload; `editorStore.inode` + `DocumentTab.inode` captured on load/save and carried across tab switch/snapshot; App focus handler + `.external-notice` banner.
 Tests: +5 fs-helpers (statFile inode, verifyOpenFile present/renamed/missing, findPathByInode miss); store/mocks updated for inode. 1367 unit + 9 e2e green.
+
+### Wave 36 - macOS title-bar proxy icon (idiomatic)
+The proxy icon was already wired (setDocumentState -> setRepresentedFilename + setDocumentEdited on darwin); with Wave 35's external-change detection in place, the Finder rename/move/tags popover is now SAFE (the app follows the rename / detaches gracefully). This wave makes the title idiomatic:
+- Extracted a pure `formatWindowTitle(title, dirty, isMac)` and used it in the setDocumentState handler. On macOS the title is just the document name (the native edited-dot on the close button + the proxy icon convey state); on Windows/Linux a `• ` prefix marks dirty. Removes the redundant `• ` that previously showed on mac alongside the native dot.
+- +2 tests. Feature complete: proxy icon + Cmd-click breadcrumb + drag-to-move + native edited dot, kept in sync by the Wave-35 watcher.
