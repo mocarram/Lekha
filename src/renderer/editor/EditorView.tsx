@@ -191,6 +191,8 @@ export interface EditorHandle {
   getSelectionText(): string
   /** Return the whole document as plain text (blocks separated by blank lines). */
   getPlainText(): string
+  /** Insert plain text at the selection (for Paste as Plain Text). */
+  insertText(text: string): void
   /** Insert/update a link from the dialog. */
   applyLink(args: ApplyLinkArgs): void
   /** Remove the link at the cursor. */
@@ -509,6 +511,12 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           if (!view) return ''
           const { doc } = view.state
           return doc.textBetween(0, doc.content.size, '\n\n', '\n')
+        },
+        insertText(text: string): void {
+          const view = viewRef.current
+          if (!view || !text) return
+          view.dispatch(view.state.tr.insertText(text).scrollIntoView())
+          view.focus()
         },
         applyLink(args: ApplyLinkArgs): void {
           const view = viewRef.current

@@ -179,6 +179,10 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.writeClipboard, args) as Promise<void>
   },
 
+  readClipboardText(): Promise<string> {
+    return ipcRenderer.invoke(IPC.readClipboardText) as Promise<string>
+  },
+
   // --- Folder search ---
   searchFolder(args: { root: string; query: string; caseSensitive: boolean }): Promise<FolderSearchResult[]> {
     return ipcRenderer.invoke(IPC.searchFolder, args) as Promise<FolderSearchResult[]>

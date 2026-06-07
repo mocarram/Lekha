@@ -58,6 +58,7 @@ export const COMMANDS: CommandDef[] = [
   { id: 'copyAsMarkdown', label: 'Copy as Markdown', group: 'Edit' },
   { id: 'copyAsPlainText', label: 'Copy as Plain Text', group: 'Edit' },
   { id: 'copyWithoutStyling', label: 'Copy without Theme Styling', group: 'Edit' },
+  { id: 'pasteAsPlainText', label: 'Paste as Plain Text', group: 'Edit', shortcut: '⌘⇧V' },
   { id: 'jumpToTop', label: 'Jump to Top', group: 'Edit' },
   { id: 'jumpToBottom', label: 'Jump to Bottom', group: 'Edit' },
 

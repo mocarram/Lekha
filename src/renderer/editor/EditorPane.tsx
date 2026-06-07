@@ -108,6 +108,8 @@ export interface EditorPaneHandle {
   getSelectionText(): string
   /** Return the whole document as plain text. */
   getPlainText(): string
+  /** Insert plain text at the selection. */
+  insertText(text: string): void
   /** Insert/update a link from the dialog. */
   applyLink(args: ApplyLinkArgs): void
   /** Remove the link at the cursor. */
@@ -316,6 +318,10 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
         },
         getPlainText(): string {
           return wysiwygRef.current?.getPlainText() ?? ''
+        },
+        insertText(text: string): void {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.insertText(text)
         },
         applyLink(args: ApplyLinkArgs): void {
           if (mode !== 'wysiwyg') return

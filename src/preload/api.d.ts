@@ -142,6 +142,8 @@ export interface LekhaAPI {
    * just the plain-text clipboard.
    */
   writeClipboard(args: { text?: string; html?: string }): Promise<void>
+  /** Read plain text from the system clipboard (for Paste as Plain Text). */
+  readClipboardText(): Promise<string>
 
   // --- Folder search ---
   /**

@@ -43,6 +43,7 @@ interface MockEditorResult {
   getMode: ReturnType<typeof vi.fn>
   getLinkAt: ReturnType<typeof vi.fn>
   getSelectionText: ReturnType<typeof vi.fn>
+  insertText: ReturnType<typeof vi.fn>
   applyLink: ReturnType<typeof vi.fn>
   removeLink: ReturnType<typeof vi.fn>
   insertImage: ReturnType<typeof vi.fn>
@@ -67,6 +68,7 @@ function makeMockEditor(): MockEditorResult {
   const getLinkAt = vi.fn(() => null)
   const getSelectionText = vi.fn(() => '')
   const getPlainText = vi.fn(() => '')
+  const insertText = vi.fn()
   const applyLink = vi.fn()
   const removeLink = vi.fn()
   const insertImage = vi.fn()
@@ -91,6 +93,7 @@ function makeMockEditor(): MockEditorResult {
     getLinkAt,
     getSelectionText,
     getPlainText,
+    insertText,
     applyLink,
     removeLink,
     insertImage,
@@ -107,6 +110,7 @@ function makeMockEditor(): MockEditorResult {
     getMode,
     getLinkAt,
     getSelectionText,
+    insertText,
     applyLink,
     removeLink,
     insertImage,
@@ -186,6 +190,7 @@ function stubLekha(): void {
     share: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
+    readClipboardText: vi.fn(() => Promise.resolve('')),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
     exportPandoc: vi.fn(() => Promise.resolve()),
@@ -478,6 +483,20 @@ describe('useCommands - sidebar and mode routing', () => {
 
     expect(useWorkspaceStore.getState().sidebarVisible).toBe(true)
     expect(useWorkspaceStore.getState().sidebarTab).toBe('articles')
+  })
+
+  it('dispatching "pasteAsPlainText" reads the clipboard and inserts text', async () => {
+    const { ref, ...rest } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+
+    const mock = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    mock.readClipboardText = vi.fn(() => Promise.resolve('pasted'))
+
+    renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('pasteAsPlainText') })
+
+    await waitForCall(rest.insertText)
+    expect(rest.insertText).toHaveBeenCalledWith('pasted')
   })
 
   it('dispatching "copyAsPlainText" writes plain text to the clipboard', async () => {

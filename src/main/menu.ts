@@ -237,6 +237,7 @@ export function buildMenuTemplate(
       { role: 'cut' },
       { role: 'copy' },
       { role: 'paste' },
+      item('Paste as Plain Text', 'CmdOrCtrl+Shift+V', 'pasteAsPlainText', send),
       { role: 'selectAll' },
       sep,
       // Copy the whole document as rich HTML / as Markdown source. These route

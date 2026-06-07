@@ -419,6 +419,19 @@ export function useCommands(
         return
       }
 
+      // Paste as Plain Text: insert the clipboard's plain text at the cursor.
+      if (cmd === 'pasteAsPlainText') {
+        void window.lekha
+          .readClipboardText()
+          .then((text) => {
+            if (text) editorRef.current?.insertText(text)
+          })
+          .catch((err: unknown) => {
+            console.error('[clipboard] Paste as Plain Text failed:', err)
+          })
+        return
+      }
+
       // Copy as Plain Text: the document's visible text (no markdown markers).
       if (cmd === 'copyAsPlainText') {
         const text = editorRef.current?.getPlainText() ?? ''

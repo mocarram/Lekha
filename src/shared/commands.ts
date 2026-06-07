@@ -62,6 +62,7 @@ export type AppCommand =
   | 'copyAsMarkdown'
   | 'copyAsPlainText'
   | 'copyWithoutStyling'
+  | 'pasteAsPlainText'
   | 'commandPalette'
   | 'quickOpen'
   | 'presentation'

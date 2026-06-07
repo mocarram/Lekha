@@ -37,4 +37,7 @@ export function registerShellHandlers(): void {
       clipboard.writeText(text)
     }
   })
+
+  // Plain-text clipboard read (for "Paste as Plain Text").
+  ipcMain.handle(IPC.readClipboardText, (): string => clipboard.readText())
 }

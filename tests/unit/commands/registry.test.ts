@@ -75,6 +75,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'copyAsMarkdown',
   'copyAsPlainText',
   'copyWithoutStyling',
+  'pasteAsPlainText',
   'jumpToTop',
   'jumpToBottom',
   'commandPalette',

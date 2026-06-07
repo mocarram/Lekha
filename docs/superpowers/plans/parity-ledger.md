@@ -599,3 +599,9 @@ Implemented (Edit/View additions, sub-wave B):
 Edit menu + command registry + AppCommands. (Paste as Plain Text deferred to a follow-up - needs a clipboard-read IPC + insert.)
 
 Tests: +4 (buildHtml includeCss structural, copyAsPlainText dispatch); getPlainText added to the EditorPaneHandle mocks. 1224 unit + 7 e2e green.
+
+### Wave 16 - Paste as Plain Text (`feat/wysiwyg-paste-plain`)
+Implemented (Edit/View additions, sub-wave B finish):
+- **Paste as Plain Text** (Cmd+Shift+V) - new `clipboard:readText` IPC (`readClipboardText`) + `insertText(text)` editor handle (replaces selection, scrolls, focuses); useCommands reads the clipboard and inserts plain text. Edit menu + registry + AppCommand.
+
+Tests: +1 dispatch; readClipboardText added to all 4 LekhaAPI mocks, insertText to the 2 EditorPaneHandle mocks. 1225 unit + 7 e2e green.

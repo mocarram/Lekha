@@ -68,6 +68,8 @@ export const IPC = {
    * navigator.clipboard.writeText cannot provide.
    */
   writeClipboard: 'clipboard:write',
+  /** Renderer -> main: read plain text from the system clipboard. */
+  readClipboardText: 'clipboard:readText',
   /**
    * Renderer -> main: search all Markdown files under `root` for `query`.
    * Returns FolderSearchResult[] - one entry per file with at least one match.
