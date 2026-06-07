@@ -74,6 +74,26 @@ describe('global.css - structural skeleton only', () => {
   })
 })
 
+describe('global.css - keyboard focus indicators (WCAG 2.4.7)', () => {
+  const global = read('global.css')
+
+  // Every interactive control flagged by the a11y audit must have a
+  // :focus-visible rule so keyboard users get a visible focus ring.
+  const focusables = [
+    '.sidebar__tab-btn:focus-visible',
+    '.status-bar__counts:focus-visible',
+    '.status-bar__mode-btn:focus-visible',
+    '.dialog-btn:focus-visible',
+    '.outline__item:focus-visible',
+    '.file-tree__row:focus-visible',
+  ]
+  for (const sel of focusables) {
+    it(`defines ${sel}`, () => {
+      expect(global).toContain(sel)
+    })
+  }
+})
+
 describe('DEFAULT_TEMPLATE_CSS - custom-theme starter (seeded into userData)', () => {
   // Imported from the main-process source of truth (seeded as _template.css).
   const template = DEFAULT_TEMPLATE_CSS
