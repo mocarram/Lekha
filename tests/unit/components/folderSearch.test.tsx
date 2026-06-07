@@ -29,6 +29,7 @@ function makeMockLekha(
     confirmUnsaved: vi.fn(() => Promise.resolve('cancel' as const)),
     readFile: vi.fn(() => Promise.resolve('')),
     statFile: vi.fn(() => Promise.resolve({ sizeBytes: 0, birthtimeMs: 0, mtimeMs: 0, inode: 0 })),
+    getPathForFile: vi.fn(() => ''),
     verifyOpenFile: vi.fn(() => Promise.resolve({ status: 'present' as const })),
     writeFile: vi.fn(() => Promise.resolve()),
     readDir: vi.fn(() => Promise.resolve([])),

@@ -19,6 +19,7 @@ import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { TabBar } from '@renderer/components/TabBar'
 import { Sidebar } from '@renderer/components/Sidebar'
+import { EditorDropZone } from '@renderer/components/EditorDropZone'
 import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
 import { ImageDialog } from '@renderer/components/ImageDialog'
@@ -86,6 +87,15 @@ export default function App() {
   // Sidebar width: restored from settings on startup, updated live via drag.
   // Declared before useStartup so the setter can be passed to the hook.
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH)
+
+  // Transient toast for brief drag-and-drop feedback (auto-dismisses).
+  const [dropToast, setDropToast] = useState<string | null>(null)
+  const dropToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const notifyDrop = useCallback((message: string) => {
+    setDropToast(message)
+    if (dropToastTimer.current !== null) clearTimeout(dropToastTimer.current)
+    dropToastTimer.current = setTimeout(() => setDropToast(null), 3000)
+  }, [])
 
   // Restore persisted settings on mount and persist sidebar/folder changes.
   // The second argument receives the restored sidebarWidth so the React state
@@ -538,11 +548,17 @@ export default function App() {
           onRenameEntry={(oldPath, newName) => { void fileOps.renameEntry(oldPath, newName) }}
           onDeleteEntry={(path) => { void fileOps.deleteEntry(path) }}
           onRevealEntry={(path) => { fileOps.revealEntry(path) }}
+          onOpenFolderPath={(dir) => { void fileOps.openFolderPath(dir) }}
+          onNotify={notifyDrop}
           sidebarWidth={sidebarWidth}
           onSidebarWidthChange={setSidebarWidth}
         />
 
-        <div className="editor-area">
+        <EditorDropZone
+          onOpenFolder={(dir) => { void fileOps.openFolderPath(dir) }}
+          onOpenFiles={(paths) => { for (const p of paths) void fileOps.openPath(p) }}
+          onNotify={notifyDrop}
+        >
           <TabBar
             onSelect={(id) => { void fileOps.selectTab(id) }}
             onClose={(id) => { void fileOps.closeTab(id) }}
@@ -558,11 +574,15 @@ export default function App() {
             onInsertImage={() => dispatch('insertImage')}
             className="editor-pane"
           />
-        </div>
+        </EditorDropZone>
       </div>
 
       {showStatusBar && (
         <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
+      )}
+
+      {dropToast !== null && (
+        <div className="drop-toast" role="status">{dropToast}</div>
       )}
 
       <FindReplace

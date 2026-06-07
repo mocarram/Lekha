@@ -31,6 +31,18 @@ window.addEventListener('error', (event) => {
   console.error('Uncaught error:', event.error ?? event.message)
 })
 
+// Global drag-and-drop guard: a file dropped anywhere we do NOT explicitly
+// handle (title bar, status bar, gaps) would otherwise make the browser try to
+// navigate the window to that file. Our drop targets call stopPropagation, so
+// these bubble-phase listeners only fire for UNHANDLED drops - swallowing them
+// keeps a stray drop from doing anything. (Handlers run on the target first.)
+window.addEventListener('dragover', (event) => {
+  if (Array.from(event.dataTransfer?.types ?? []).includes('Files')) event.preventDefault()
+})
+window.addEventListener('drop', (event) => {
+  if (Array.from(event.dataTransfer?.types ?? []).includes('Files')) event.preventDefault()
+})
+
 const root = document.getElementById('root')
 if (!root) throw new Error('Root element not found')
 

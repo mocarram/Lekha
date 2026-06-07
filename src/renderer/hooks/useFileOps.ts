@@ -29,6 +29,8 @@ export interface FileOps {
   newFile(): Promise<void>
   /** Show the OS folder picker and populate the workspace file tree. */
   openFolder(): Promise<void>
+  /** Open a folder by absolute path (no dialog) as the workspace root. */
+  openFolderPath(dir: string): Promise<void>
   /**
    * Re-read the current root folder and refresh the workspace file tree.
    * Called after any file-tree mutation (create/rename/delete) so the sidebar
@@ -589,18 +591,22 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     window.lekha.setDocumentState({ title, dirty: false, path })
   }, [documentsStore, editorStore])
 
+  // Open a folder by absolute path (no dialog): read its tree and set it as the
+  // workspace root. Shared by openFolder (dialog) and sidebar drag-and-drop.
+  // lastFolder is persisted by the useStartup subscriber watching rootFolder.
+  const openFolderPath = useCallback(async (dir: string): Promise<void> => {
+    const tree = await window.lekha.readDir(dir)
+    workspaceStore.getState().setRootFolder(dir)
+    workspaceStore.getState().setFileTree(tree)
+  }, [workspaceStore])
+
   // openFolder does NOT replace the current document, so it does not need
   // the unsaved-changes guard.
   const openFolder = useCallback(async (): Promise<void> => {
     const dir = await window.lekha.openFolderDialog()
     if (dir === null) return
-
-    const tree = await window.lekha.readDir(dir)
-    workspaceStore.getState().setRootFolder(dir)
-    workspaceStore.getState().setFileTree(tree)
-    // Note: lastFolder is persisted by the useStartup subscriber that watches
-    // workspaceStore.rootFolder - no explicit setSettings call needed here.
-  }, [workspaceStore])
+    await openFolderPath(dir)
+  }, [openFolderPath])
 
   // Re-read the open root folder and push the fresh tree into the store.
   // No-op when no folder is open (nothing to refresh).
@@ -820,6 +826,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     saveAs,
     newFile,
     openFolder,
+    openFolderPath,
     refreshTree,
     guardUnsaved,
     revertToSaved,

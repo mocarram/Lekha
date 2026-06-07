@@ -27,6 +27,11 @@ export interface LekhaAPI {
   /** Stat a file: size + created/modified timestamps + inode (for Get Info). */
   statFile(path: string): Promise<FileStat>
   /**
+   * Resolve the absolute filesystem path of a dropped/selected File object
+   * (via Electron's webUtils.getPathForFile). Used by sidebar drag-and-drop.
+   */
+  getPathForFile(file: File): string
+  /**
    * Verify an open document is still at its path, recovering a same-folder
    * rename by inode. Returns present / renamed (with newPath) / missing.
    */

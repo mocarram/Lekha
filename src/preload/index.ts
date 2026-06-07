@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 import type { LekhaAPI } from './api'
 import type {
@@ -41,6 +41,12 @@ const api: LekhaAPI = {
 
   statFile(path: string): Promise<FileStat> {
     return ipcRenderer.invoke(IPC.statFile, path) as Promise<FileStat>
+  },
+  // Resolve the absolute filesystem path of a dropped/selected File. File.path
+  // was removed in modern Electron; webUtils.getPathForFile is the supported
+  // replacement and must run in the preload (it is not exposed to the sandbox).
+  getPathForFile(file: File): string {
+    return webUtils.getPathForFile(file)
   },
   verifyOpenFile(args: { path: string; inode: number }): Promise<OpenFileStatus> {
     return ipcRenderer.invoke(IPC.verifyOpenFile, args) as Promise<OpenFileStatus>

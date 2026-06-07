@@ -46,6 +46,8 @@ describe('Sidebar', () => {
     onRenameEntry: noop,
     onDeleteEntry: noop,
     onRevealEntry: noop,
+    onOpenFolderPath: noop,
+    onNotify: noop,
     sidebarWidth: 240,
     onSidebarWidthChange: noop,
   }
@@ -65,13 +67,28 @@ describe('Sidebar', () => {
     expect(container.querySelector('.sidebar')).toBeNull()
   })
 
-  it('shows FileTree when sidebarTab is "files"', () => {
-    useWorkspaceStore.setState({ sidebarTab: 'files' })
+  it('shows FileTree when sidebarTab is "files" and a folder is open', () => {
+    // With a folder open the tree renders; with none open the Files panel shows
+    // an empty drop-state instead (covered below).
+    useWorkspaceStore.setState({
+      sidebarTab: 'files',
+      rootFolder: '/root',
+      fileTree: [{ name: 'a.md', path: '/root/a.md', isDirectory: false }],
+    })
     const { container } = render(
       <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
     )
     expect(container.querySelector('.file-tree')).not.toBeNull()
     expect(container.querySelector('.outline')).toBeNull()
+  })
+
+  it('shows the empty drop-state when the Files tab is active with no folder open', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'files', rootFolder: null, fileTree: [] })
+    const { container } = render(
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
+    )
+    expect(container.querySelector('.files-empty')).not.toBeNull()
+    expect(container.querySelector('.file-tree')).toBeNull()
   })
 
   it('shows Outline when sidebarTab is "outline"', () => {

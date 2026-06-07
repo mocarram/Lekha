@@ -85,6 +85,7 @@ function makeFileOps(readFile: (p: string) => Promise<string>): FileOps {
     saveAs: noop,
     newFile: noop,
     openFolder: noop,
+    openFolderPath: noop,
     refreshTree: noop,
     guardUnsaved: vi.fn(() => Promise.resolve(true)),
     revertToSaved: noop,

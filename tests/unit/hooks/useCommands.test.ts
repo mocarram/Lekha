@@ -139,6 +139,7 @@ function makeMockFileOps(): MockFileOpsResult {
   const save = vi.fn(() => Promise.resolve())
   const saveAs = vi.fn(() => Promise.resolve())
   const openFolder = vi.fn(() => Promise.resolve())
+  const openFolderPath = vi.fn(() => Promise.resolve())
   const refreshTree = vi.fn(() => Promise.resolve())
   const guardUnsaved = vi.fn(() => Promise.resolve(true))
   const revertToSaved = vi.fn(() => Promise.resolve())
@@ -156,7 +157,7 @@ function makeMockFileOps(): MockFileOpsResult {
   const revealEntry = vi.fn()
   const verifyActiveDoc = vi.fn(() => Promise.resolve())
   const resetToBlank = vi.fn()
-  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab, discardActiveBackup, syncActivePath, createFileEntry, createFolderEntry, renameEntry, deleteEntry, revealEntry, verifyActiveDoc, resetToBlank }
+  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, openFolderPath, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab, discardActiveBackup, syncActivePath, createFileEntry, createFolderEntry, renameEntry, deleteEntry, revealEntry, verifyActiveDoc, resetToBlank }
   return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, discardActiveBackup }
 }
 

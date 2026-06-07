@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { FileTree } from './FileTree'
@@ -5,6 +6,7 @@ import { Outline } from './Outline'
 import { Articles } from './Articles'
 import { FolderSearch } from './FolderSearch'
 import { SidebarResizer } from './SidebarResizer'
+import { classifyDrop, dragMaybeFolder } from './sidebarDrop'
 
 interface SidebarProps {
   /** Called when the user selects a file from the file tree. */
@@ -27,6 +29,10 @@ interface SidebarProps {
   onDeleteEntry: (path: string) => void | Promise<void>
   /** Reveal `path` in the OS file manager. */
   onRevealEntry: (path: string) => void
+  /** Open a folder (by absolute path) as the workspace - used by drag-and-drop. */
+  onOpenFolderPath: (dir: string) => void | Promise<void>
+  /** Show a brief transient message to the user (e.g. drop feedback). */
+  onNotify: (message: string) => void
   /** Current sidebar width in pixels - driven from persisted settings. */
   sidebarWidth: number
   /** Called when the drag handle changes the width (live updates). */
@@ -53,6 +59,8 @@ export function Sidebar({
   onRenameEntry,
   onDeleteEntry,
   onRevealEntry,
+  onOpenFolderPath,
+  onNotify,
   sidebarWidth,
   onSidebarWidthChange,
 }: SidebarProps) {
@@ -63,6 +71,42 @@ export function Sidebar({
 
   const activePath = useEditorStore((s) => s.path)
   const outline = useEditorStore((s) => s.outline)
+
+  // Drag-and-drop onto the Files panel opens a dropped FOLDER as the workspace.
+  // Files are NOT opened here (the tree only shows the open folder's contents);
+  // dropping files is handled by the editor area instead. dragActive drives the
+  // drop affordance.
+  const [dragActive, setDragActive] = useState(false)
+
+  // Only invite the drop for drags that COULD be a folder (the sidebar accepts
+  // folders only). A clearly-typed file drag (image/png, application/pdf, ...)
+  // gets no glow here; the global guard swallows it so nothing odd happens.
+  const handleDragOver = (e: React.DragEvent): void => {
+    if (!dragMaybeFolder(e.dataTransfer)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    if (!dragActive) setDragActive(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent): void => {
+    // Ignore leave events fired while moving between child elements.
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
+    setDragActive(false)
+  }
+
+  const handleDrop = (e: React.DragEvent): void => {
+    if (!dragMaybeFolder(e.dataTransfer)) return
+    e.preventDefault()
+    setDragActive(false)
+    const { folders } = classifyDrop(e.dataTransfer)
+    if (folders.length > 0) {
+      void onOpenFolderPath(folders[0]!)
+    } else {
+      // A file (not a folder) was dropped on the sidebar: it belongs to the
+      // editor. Tell the user instead of silently doing nothing.
+      onNotify('Drop files onto the editor to open them as tabs.')
+    }
+  }
 
   if (!sidebarVisible) return null
 
@@ -81,16 +125,36 @@ export function Sidebar({
       <div className="sidebar__header">{headerLabel}</div>
       <div className="sidebar__content">
         {sidebarTab === 'files' ? (
-          <FileTree
-            nodes={fileTree}
-            activePath={activePath}
-            onSelect={onSelectFile}
-            onNewFile={onNewFile}
-            onNewFolder={onNewFolder}
-            onRename={onRenameEntry}
-            onDelete={onDeleteEntry}
-            onReveal={onRevealEntry}
-          />
+          <div
+            className={`files-panel${dragActive ? ' files-panel--drop' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {rootFolder === null && fileTree.length === 0 ? (
+              <div className="files-empty">
+                <p className="files-empty__title">No folder open</p>
+                <p className="files-empty__hint">
+                  Drag a folder here to open it. Drop files onto the editor to open them as tabs.
+                </p>
+              </div>
+            ) : (
+              <FileTree
+                nodes={fileTree}
+                activePath={activePath}
+                onSelect={onSelectFile}
+                onNewFile={onNewFile}
+                onNewFolder={onNewFolder}
+                onRename={onRenameEntry}
+                onDelete={onDeleteEntry}
+                onReveal={onRevealEntry}
+              />
+            )}
+            {/* Drag-over overlay hint (shown whether empty or populated). */}
+            <div className="files-panel__drop-hint" aria-hidden="true">
+              Drop to open
+            </div>
+          </div>
         ) : sidebarTab === 'outline' ? (
           <Outline items={outline} onJump={onJumpToHeading} />
         ) : sidebarTab === 'articles' ? (

@@ -213,6 +213,47 @@ body,
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
+  /* Positioning context for the drag-and-drop "Drop to open" overlay. */
+  position: relative;
+}
+
+/* Shown while dragging a folder / markdown file over the editor area. Covers the
+   area with an accent dashed outline + hint; pointer-events:none so the drop
+   still reaches the underlying handler. */
+/* Transient drag-and-drop feedback pill (auto-dismisses). */
+.drop-toast {
+  position: fixed;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: 70%;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+.editor-drop-overlay {
+  position: absolute;
+  inset: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border: 2px dashed var(--color-accent);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-accent);
 }
 
 .editor-pane {
@@ -540,6 +581,64 @@ body,
 /* ---------------------------------------------------------------------------
  * FileTree
  * --------------------------------------------------------------------------- */
+/* Files panel: wraps the tree (or empty state) and is the drag-and-drop target
+   for opening a folder / files. Fills the content area so a drop anywhere in the
+   panel is accepted, even when empty. */
+.files-panel {
+  position: relative;
+  min-height: 100%;
+}
+
+/* Drag-over affordance: an inset accent outline + subtle tint, echoing the
+   sidebar resizer's accent indicator so the drop target reads clearly. */
+.files-panel--drop {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -6px;
+  border-radius: 6px;
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.files-panel__drop-hint {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.files-panel--drop .files-panel__drop-hint {
+  display: flex;
+}
+
+/* Empty state shown when no folder is open. */
+.files-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+}
+
+.files-empty__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.files-empty__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .file-tree {
   width: 100%;
 }
