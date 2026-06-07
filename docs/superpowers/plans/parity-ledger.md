@@ -710,3 +710,12 @@ Implemented (2, step 2 - design system COMPLETE):
 - Verified all six built-in themes (night/graphite/sepia/nord/solarized-light/solarized-dark) are already TOKEN-ONLY (every rule block scoped to [data-theme]; zero component selectors) - so the 24b "convert themes" step was already satisfied by the architecture; locked it with a test. Theme registry (ThemeDef + THEMES in shared/types.ts) is already the single typed declaration point (24c satisfied).
 
 Tests: +13 (_template.css starter contract + per-theme token-only structural assertion). 1309 unit + 9 e2e green. DESIGN SYSTEM (item 2) COMPLETE: tokens.css single contract, github.css component-only, all themes token-only, typed registry, documented author template.
+
+### Wave 25a - Custom themes: main process (folder + IPC + parser) (`feat/custom-themes-main`)
+Implemented (3, step 1):
+- **src/main/userThemes.ts** (new): pure + fs helpers. parseThemeMetadata (/* @name X @type dark|light */ header), deriveUserTheme (id=filename, label=@name||id, type=@type||'dark'), isThemeFile (*.css, skips _ and . prefixes), listUserThemes (scan dir, sorted by label), ensureUserThemesDir (mkdir + seed _template.css when empty).
+- **src/main/themeTemplate.ts** (new): DEFAULT_TEMPLATE_CSS - the single source of truth for the seeded _template.css starter ([data-theme="my-theme"] token-override block, @name/@type header, every overridable token documented). Replaces the standalone styles/themes/_template.css (deleted) to keep ONE source and avoid a cross-bundle ?raw import.
+- **src/main/ipc/themes.ts** (new): registerThemeHandlers - themes:list + themes:reload (ensure dir + seed + listUserThemes), themes:openFolder (shell.openPath). Security: only *.css in the one folder, no traversal; CSS returned for style-only injection.
+- Wiring: ipc-channels (listThemes/reloadThemes/openThemeFolder), preload index.ts + api.d.ts (listThemes/reloadThemes/openThemeFolder), index.ts registers handlers with userData + DEFAULT_TEMPLATE_CSS thunks. shared/types UserTheme {id,label,type,css}. Updated 3 LekhaAPI test mocks.
+
+Tests: +12 userThemes (parse/derive/filter/list/seed) ; Wave-24b template test repointed to DEFAULT_TEMPLATE_CSS. 1321 unit + 9 e2e green. Next: 25b renderer injection + registry merge.

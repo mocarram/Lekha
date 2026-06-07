@@ -82,4 +82,13 @@ export const IPC = {
    * Returns Template[] (id, name, content). Empty array when dir is missing.
    */
   listTemplates: 'templates:list',
+  /**
+   * Renderer -> main: list user-authored themes from the userData/themes dir
+   * (seeds the folder with _template.css on first run). Returns UserTheme[].
+   */
+  listThemes: 'themes:list',
+  /** Renderer -> main: reveal the user themes folder in the OS file manager. */
+  openThemeFolder: 'themes:openFolder',
+  /** Renderer -> main: re-scan the user themes folder and return UserTheme[]. */
+  reloadThemes: 'themes:reload',
 } as const

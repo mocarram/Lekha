@@ -7,6 +7,7 @@ import type {
   FolderSearchResult,
   PandocFormat,
   Template,
+  UserTheme,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -166,6 +167,17 @@ export interface LekhaAPI {
    * Returns an empty array when the directory does not exist.
    */
   listTemplates(): Promise<Template[]>
+
+  // --- User themes ---
+  /**
+   * List user-authored themes from the userData/themes directory (seeding it
+   * with _template.css on first run). Returns [] when none exist.
+   */
+  listThemes(): Promise<UserTheme[]>
+  /** Re-scan the user themes directory and return the current themes. */
+  reloadThemes(): Promise<UserTheme[]>
+  /** Reveal the user themes directory in the OS file manager. */
+  openThemeFolder(): Promise<void>
 }
 
 declare global {

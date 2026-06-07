@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const stylesDir = resolve(here, '../../../src/renderer/styles')
@@ -73,8 +74,9 @@ describe('global.css - structural skeleton only', () => {
   })
 })
 
-describe('themes/_template.css - custom-theme starter', () => {
-  const template = read('themes/_template.css')
+describe('DEFAULT_TEMPLATE_CSS - custom-theme starter (seeded into userData)', () => {
+  // Imported from the main-process source of truth (seeded as _template.css).
+  const template = DEFAULT_TEMPLATE_CSS
 
   it('scopes overrides to a [data-theme] selector (never :root, so it is inert)', () => {
     expect(template).toContain('[data-theme="my-theme"]')

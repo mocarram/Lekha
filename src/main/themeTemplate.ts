@@ -1,4 +1,17 @@
-/*
+/**
+ * themeTemplate.ts (main process)
+ *
+ * The canonical custom-theme starter. This single string is the source of
+ * truth for the `_template.css` file seeded into the user themes folder
+ * (userData/themes) on first run. Keeping it here (main scope) avoids a
+ * cross-bundle ?raw import from the renderer styles directory.
+ *
+ * A theme is only a set of design-token overrides scoped to a
+ * [data-theme="<id>"] selector (see styles/tokens.css for the full token
+ * catalogue). Users copy this file, rename it, set @name/@type, and override
+ * the tokens they want.
+ */
+export const DEFAULT_TEMPLATE_CSS = `/*
  * _template.css - starter for a custom Lekha theme.
  *
  * @name  My Theme
@@ -8,22 +21,21 @@
  * ---------------
  * A theme is JUST a set of design-token overrides scoped to a
  * [data-theme="<your-id>"] selector. You never write component CSS - you only
- * re-assign the semantic tokens defined in styles/tokens.css. Lekha applies a
- * theme by setting `data-theme="<your-id>"` on the <html> element, so your
- * block wins over the :root defaults.
+ * re-assign the semantic tokens (see Lekha's tokens.css). Lekha applies a theme
+ * by setting data-theme="<your-id>" on <html>, so your block wins.
  *
  * TO CREATE A THEME
  *   1. Copy this file and rename it (the file name is your theme id, e.g.
- *      "solar-flare.css" -> id "solar-flare").
+ *      "solar-flare.css" -> id "solar-flare"). Files starting with "_" are
+ *      treated as templates and are NOT listed as selectable themes.
  *   2. Change the selector below to [data-theme="solar-flare"].
  *   3. Set the @name / @type metadata in the header comment above.
  *   4. Override the tokens you want. Anything you omit inherits the default
- *      (GitHub-light) value from tokens.css, so you only specify what differs.
- *   5. Drop the file in your user themes folder (Themes -> Open Theme Folder)
- *      and choose Themes -> Reload Themes.
+ *      (GitHub-light) value, so you only specify what differs.
+ *   5. Choose Themes -> Reload Themes, then pick your theme.
  *
  * The values below are the GitHub-light defaults, shown so you can see every
- * token you can override in one place. Delete the ones you keep as default.
+ * token you can override in one place.
  */
 
 [data-theme="my-theme"] {
@@ -61,7 +73,6 @@
   --sidebar-hover:   #efefef;   /* hovered file/outline row */
   --titlebar-bg:     #fafafa;   /* titlebar background */
   --statusbar-text:  #9b9b9b;   /* status bar text */
-  /* --sidebar-active is auto-derived from --accent; override only if needed. */
 
   /* --- Find / highlight --- */
   --find-match:         #fff3b0;  /* non-current find highlight */
@@ -89,7 +100,7 @@
   --editor-font-scale:  1;                 /* multiply the base font size */
   --editor-line-height: 1.7;               /* body line spacing */
 
-  /* --- Semantic (danger / overlays / shadows) --- */
+  /* --- Semantic (danger / overlays) --- */
   --danger:               #cb2431;
   --on-accent:            #ffffff;          /* text on accent backgrounds */
   --overlay-scrim:        rgba(0, 0, 0, 0.35);
@@ -99,3 +110,4 @@
   --list-indent: 1.6em;   /* list indent (outer + per nested level) */
   --focus-dim:   0.25;    /* opacity of non-focused blocks in Focus Mode */
 }
+`

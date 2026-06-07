@@ -35,6 +35,18 @@ export interface ThemeDef {
 }
 
 /**
+ * A user-authored theme loaded at runtime from the userData/themes folder.
+ * Extends the built-in ThemeDef with the theme's light/dark hint and its raw
+ * CSS (a [data-theme="id"] token-override block), injected by the renderer.
+ */
+export interface UserTheme {
+  id: string
+  label: string
+  type: 'dark' | 'light'
+  css: string
+}
+
+/**
  * The canonical list of available themes.
  * Defined here (shared) so the main process (menu builder) and the renderer
  * (theme registry) both reference the same list without cross-boundary imports.

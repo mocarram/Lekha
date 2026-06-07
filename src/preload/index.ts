@@ -10,6 +10,7 @@ import type {
   FolderSearchResult,
   PandocFormat,
   Template,
+  UserTheme,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -195,6 +196,17 @@ const api: LekhaAPI = {
   // --- Templates ---
   listTemplates(): Promise<Template[]> {
     return ipcRenderer.invoke(IPC.listTemplates) as Promise<Template[]>
+  },
+
+  // --- User themes ---
+  listThemes(): Promise<UserTheme[]> {
+    return ipcRenderer.invoke(IPC.listThemes) as Promise<UserTheme[]>
+  },
+  reloadThemes(): Promise<UserTheme[]> {
+    return ipcRenderer.invoke(IPC.reloadThemes) as Promise<UserTheme[]>
+  },
+  openThemeFolder(): Promise<void> {
+    return ipcRenderer.invoke(IPC.openThemeFolder) as Promise<void>
   },
 }
 

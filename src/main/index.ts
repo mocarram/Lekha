@@ -7,6 +7,8 @@ import { registerImageHandlers } from '@main/ipc/images'
 import { registerShellHandlers } from '@main/ipc/shell'
 import { registerSearchHandlers } from '@main/ipc/search'
 import { registerTemplateHandlers } from '@main/ipc/templates'
+import { registerThemeHandlers } from '@main/ipc/themes'
+import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
 import { buildMenuTemplate } from '@main/menu'
 import { setupAutoUpdater, checkForUpdates } from '@main/updater'
 import { applySpellCheck } from '@main/spellCheck'
@@ -326,6 +328,13 @@ void app.whenReady().then(async () => {
   // Register the user-templates listing handler. Pass a thunk so the userData
   // path is resolved at call time (consistent with the image handler pattern).
   registerTemplateHandlers(() => app.getPath('userData'))
+
+  // Register the user-themes handlers (list / reload / open folder). The themes
+  // folder is seeded with _template.css on first run.
+  registerThemeHandlers(
+    () => app.getPath('userData'),
+    () => DEFAULT_TEMPLATE_CSS,
+  )
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens

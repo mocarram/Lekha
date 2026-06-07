@@ -71,6 +71,9 @@ function makeMockLekha(
     readClipboardText: vi.fn(() => Promise.resolve('')),
     searchFolder: vi.fn(searchFolder),
     listTemplates: vi.fn(() => Promise.resolve([])),
+    listThemes: vi.fn(() => Promise.resolve([])),
+    reloadThemes: vi.fn(() => Promise.resolve([])),
+    openThemeFolder: vi.fn(() => Promise.resolve()),
   }
 }
 
