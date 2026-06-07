@@ -55,6 +55,11 @@ interface DocumentsActions {
   activateDocument(id: string): void
   /** Patch the active tab in place (id cannot be changed). */
   updateActive(patch: Partial<Omit<DocumentTab, 'id'>>): void
+  /**
+   * Rewrite the path (+ derived title) of any tab whose file was renamed/moved:
+   * an exact path match, or a path under a renamed/moved containing folder.
+   */
+  updatePath(oldPath: string, newPath: string): void
   /** The active tab, or null. */
   activeDocument(): DocumentTab | null
   /** Reset to an empty session (clears tabs + id counter). */
@@ -184,6 +189,23 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       documents: s.documents.map((d) =>
         d.id === activeId ? { ...d, ...patch } : d,
       ),
+    }))
+  },
+
+  updatePath(oldPath, newPath) {
+    set((s) => ({
+      documents: s.documents.map((d) => {
+        if (d.path === oldPath) {
+          return { ...d, path: newPath, title: deriveTitle(newPath) }
+        }
+        // A containing folder was renamed/moved: rewrite the path prefix so
+        // tabs of files under it keep pointing at the right (moved) location.
+        if (d.path !== null && d.path.startsWith(oldPath + '/')) {
+          const moved = newPath + d.path.slice(oldPath.length)
+          return { ...d, path: moved, title: deriveTitle(moved) }
+        }
+        return d
+      }),
     }))
   },
 

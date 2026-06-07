@@ -117,6 +117,30 @@ describe('documentsStore - updateActive', () => {
   })
 })
 
+describe('documentsStore - updatePath', () => {
+  it('rewrites an exact-match tab path + title (any tab, not just active)', () => {
+    const a = store().openDocument({ path: '/dir/a.md', markdown: 'A' })
+    store().openDocument({ path: '/dir/b.md', markdown: 'B' }) // active = b
+    store().updatePath('/dir/a.md', '/dir/renamed.md')
+    const tabA = store().documents.find((d) => d.id === a)!
+    expect(tabA.path).toBe('/dir/renamed.md')
+    expect(tabA.title).toBe('renamed.md')
+  })
+
+  it('rewrites tabs under a renamed/moved containing folder (prefix match)', () => {
+    store().openDocument({ path: '/proj/notes/x.md', markdown: 'X' })
+    store().updatePath('/proj/notes', '/proj/archive')
+    expect(store().documents[0]!.path).toBe('/proj/archive/x.md')
+    expect(store().documents[0]!.title).toBe('x.md')
+  })
+
+  it('leaves non-matching tabs untouched', () => {
+    store().openDocument({ path: '/dir/a.md', markdown: 'A' })
+    store().updatePath('/other/z.md', '/other/zz.md')
+    expect(store().documents[0]!.path).toBe('/dir/a.md')
+  })
+})
+
 describe('documentsStore - closeDocument', () => {
   it('removes a tab and activates the left neighbour', () => {
     const a = store().openDocument({ path: '/a.md', markdown: 'A' })

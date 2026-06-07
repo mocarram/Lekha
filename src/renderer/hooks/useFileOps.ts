@@ -459,8 +459,15 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (destDir === null) return
     const newPath = await window.lekha.movePath(path, destDir)
     await refreshTree()
-    await openPath(newPath)
-  }, [editorStore, refreshTree, openPath])
+    // Update the path IN PLACE rather than re-opening: the document is the same
+    // (only its location changed), so re-reading from disk would duplicate the
+    // tab and discard any unsaved in-memory edits. updatePath rewrites the tab;
+    // editorStore.setPath keeps the live save target correct.
+    documentsStore.getState().updatePath(path, newPath)
+    editorStore.getState().setPath(newPath)
+    const { title, isDirty } = editorStore.getState()
+    window.lekha.setDocumentState({ title, dirty: isDirty, path: newPath })
+  }, [editorStore, documentsStore, refreshTree])
 
   return {
     open,

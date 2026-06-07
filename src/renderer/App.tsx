@@ -433,8 +433,11 @@ export default function App() {
   const handleRenameEntry = useCallback(async (oldPath: string, newName: string) => {
     try {
       const newPath = await window.lekha.renamePath(oldPath, newName)
-      // If the renamed entry is the open document, update the editor's path so
-      // saves keep targeting the right file.
+      // Update EVERY open tab whose path matches (or sits under) the renamed
+      // entry so no tab keeps a stale on-disk path.
+      useDocumentsStore.getState().updatePath(oldPath, newPath)
+      // If the renamed entry is the active document, also update the editor's
+      // live path so saves keep targeting the right file.
       if (useEditorStore.getState().path === oldPath) {
         useEditorStore.getState().setPath(newPath)
         const { title } = useEditorStore.getState()

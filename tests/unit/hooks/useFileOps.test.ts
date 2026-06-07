@@ -262,6 +262,31 @@ describe('useFileOps - openPath()', () => {
     expect(alertSpy).toHaveBeenCalledOnce()
     expect(useDocumentsStore.getState().documents).toEqual([])
   })
+
+  it('does not clobber an existing blank tab when the read fails (bug 13)', async () => {
+    const { handle } = makeMockEditor()
+    const readFile = vi.fn(() => Promise.reject(new Error('EACCES')))
+    const mockLekha = makeMockLekha({ readFile })
+    vi.stubGlobal('lekha', mockLekha)
+    vi.stubGlobal('alert', vi.fn())
+
+    // Seed a blank Untitled tab (the welcome/blank tab) - the reuse-blank path.
+    useDocumentsStore.getState().newDocument()
+    const before = useDocumentsStore.getState().activeDocument()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.openPath('/missing.md') })
+
+    // The blank tab is untouched: still one tab, still path null + empty.
+    expect(useDocumentsStore.getState().documents).toHaveLength(1)
+    const after = useDocumentsStore.getState().activeDocument()
+    expect(after?.id).toBe(before?.id)
+    expect(after?.path).toBeNull()
+    expect(after?.markdown).toBe('')
+  })
 })
 
 // ---------------------------------------------------------------------------

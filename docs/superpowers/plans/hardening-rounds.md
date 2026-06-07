@@ -147,3 +147,8 @@ Deferred (round-2): (3) empty links `[](url)` vanish - links are MARKS so empty-
 
 ### Wave 32 - FIXED: perf reuse live AST (round-2 bugs 4, 10, 11)
 WYSIWYG typing no longer re-parses the whole markdown string to derive outline + word/char counts. EditorView already hands EditorPane the live ProseMirror doc; EditorPane now forwards it to App's onChange as a second arg, and recomputeDerived(doc) consumes it directly (getOutline/countWords already take a Node). The 150ms-debounced full markdown-it parse on the typing path is eliminated for WYSIWYG (the common case). Source mode (no PM doc) still parses the string once per debounce window. recomputeDerived signature changed string->Node; mount seed parses once.
+
+### Wave 33 - FIXED/VERIFIED: tab edge-cases (round-2 bugs 5, 12, 13)
+- (5, HIGH) FIXED: documentsStore.updatePath(oldPath, newPath) rewrites the path+title of any tab matching the renamed/moved entry (exact match) or sitting under a renamed/moved folder (prefix match). App.handleRenameEntry now calls it for ALL tabs (not just the active editorStore path). useFileOps.moveCurrentTo now updates the active tab's path IN PLACE instead of openPath(newPath) - the old code duplicated the tab and re-read from disk, discarding unsaved in-memory edits. +3 store tests.
+- (12, MEDIUM) VERIFIED no race: closeTab is async and awaits selectTab -> guardUnsaved -> save -> closeDocument sequentially; the UI triggers closes one at a time. Covered by the existing Wave-23c save-then-close test. No code change.
+- (13, MEDIUM) VERIFIED fixed (by Wave 29): openPath reads the file in a try/catch and returns BEFORE any tab mutation, so a failed read never clobbers the blank/reuse tab. +1 test confirming the seeded blank tab is untouched on read failure.
