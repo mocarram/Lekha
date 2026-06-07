@@ -100,6 +100,15 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     // as alternates (shared impl from editorCommandMap).
     'Mod-0': cmds.paragraph!,
     'Mod-Alt-0': cmds.paragraph!,
+
+    // Indent / outdent list items (WYSIWYG: Cmd+] / Cmd+[). Shared impl from
+    // editorCommandMap (chained sink/lift across list_item + task_item).
+    'Mod-]': cmds.indent!,
+    'Mod-[': cmds.outdent!,
+
+    // Increase / decrease heading level (WYSIWYG: Cmd+Shift+= / Cmd+Shift+-).
+    'Mod-Shift-=': cmds.increaseHeading!,
+    'Mod-Shift--': cmds.decreaseHeading!,
   }
 
   // Add heading level shortcuts: Mod-1..6 (WYSIWYG) + Mod-Alt-1..6 (alternate).

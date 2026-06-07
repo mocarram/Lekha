@@ -293,7 +293,8 @@ export function buildMenuTemplate(
   })
 
   // -------------------------------------------------------------------------
-  // Format menu
+  // Format menu - inline character formatting only (WYSIWYG splits block-level
+  // structure into a separate "Paragraph" menu, added below).
   // -------------------------------------------------------------------------
   template.push({
     label: 'Format',
@@ -310,7 +311,16 @@ export function buildMenuTemplate(
       sep,
       item('Insert Link…',  'CmdOrCtrl+K',        'link',        send),
       item('Insert Image…', 'CmdOrCtrl+Shift+I',  'insertImage', send),
-      sep,
+    ],
+  })
+
+  // -------------------------------------------------------------------------
+  // Paragraph menu - block-level structure (headings, lists, quote, code,
+  // indent/outdent). Mirrors WYSIWYG's dedicated Paragraph menu.
+  // -------------------------------------------------------------------------
+  template.push({
+    label: 'Paragraph',
+    submenu: [
       // Headings 1-6 (WYSIWYG shortcuts: Cmd+1..6, Cmd+0 for paragraph).
       ...(([1, 2, 3, 4, 5, 6] as const).map((level) =>
         item(
@@ -322,12 +332,18 @@ export function buildMenuTemplate(
       )),
       item('Paragraph',    'CmdOrCtrl+0', 'paragraph', send),
       sep,
+      item('Increase Heading Level', 'CmdOrCtrl+Shift+=', 'increaseHeading', send),
+      item('Decrease Heading Level', 'CmdOrCtrl+Shift+-', 'decreaseHeading', send),
+      sep,
       item('Bullet List',      undefined, 'bulletList',     send),
       item('Ordered List',     undefined, 'orderedList',    send),
       item('Task List',        undefined, 'taskList',       send),
       item('Blockquote',       undefined, 'blockquote',     send),
       item('Code Block',       undefined, 'codeBlock',      send),
       item('Horizontal Rule',  undefined, 'horizontalRule', send),
+      sep,
+      item('Indent',  'CmdOrCtrl+]', 'indent',  send),
+      item('Outdent', 'CmdOrCtrl+[', 'outdent', send),
     ],
   })
 

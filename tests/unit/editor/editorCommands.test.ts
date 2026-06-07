@@ -72,7 +72,7 @@ describe('editorCommandMap - entries present', () => {
     'selectLine', 'selectBlock',
     'jumpToTop', 'jumpToBottom',
     'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6',
-    'paragraph',
+    'paragraph', 'increaseHeading', 'decreaseHeading', 'indent', 'outdent',
     'bulletList', 'orderedList', 'blockquote', 'codeBlock',
     'horizontalRule',
     'undo', 'redo',
@@ -287,6 +287,86 @@ describe('editorCommandMap - block type conversions', () => {
     const next = applyCmd(state, cmdMap['codeBlock']!)
     expect(next).not.toBeNull()
     expect(next!.doc.firstChild!.type.name).toBe('code_block')
+  })
+
+  it('increaseHeading turns a paragraph into an H6 (one step up the ladder)', () => {
+    const state = stateWithText('hello')
+    const next = applyCmd(state, cmdMap['increaseHeading']!)
+    expect(next).not.toBeNull()
+    expect(next!.doc.firstChild!.type.name).toBe('heading')
+    expect(next!.doc.firstChild!.attrs['level']).toBe(6)
+  })
+
+  it('increaseHeading promotes H3 to H2', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('heading', { level: 3 }, [schema.text('title')]),
+    ])
+    const state = EditorState.create({ schema, doc })
+    const next = applyCmd(state, cmdMap['increaseHeading']!)
+    expect(next).not.toBeNull()
+    expect(next!.doc.firstChild!.attrs['level']).toBe(2)
+  })
+
+  it('increaseHeading declines at H1 (already most prominent)', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('heading', { level: 1 }, [schema.text('title')]),
+    ])
+    const state = EditorState.create({ schema, doc })
+    const fired = cmdMap['increaseHeading']!(state, undefined)
+    expect(fired).toBe(false)
+  })
+
+  it('decreaseHeading demotes H1 to H2', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('heading', { level: 1 }, [schema.text('title')]),
+    ])
+    const state = EditorState.create({ schema, doc })
+    const next = applyCmd(state, cmdMap['decreaseHeading']!)
+    expect(next).not.toBeNull()
+    expect(next!.doc.firstChild!.attrs['level']).toBe(2)
+  })
+
+  it('decreaseHeading demotes H6 back to a paragraph', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('heading', { level: 6 }, [schema.text('deep')]),
+    ])
+    const state = EditorState.create({ schema, doc })
+    const next = applyCmd(state, cmdMap['decreaseHeading']!)
+    expect(next).not.toBeNull()
+    expect(next!.doc.firstChild!.type.name).toBe('paragraph')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Indent / outdent (list items)
+// ---------------------------------------------------------------------------
+
+describe('editorCommandMap - indent / outdent', () => {
+  it('indent declines outside a list', () => {
+    const fired = cmdMap['indent']!(stateWithText('plain'), undefined)
+    expect(fired).toBe(false)
+  })
+
+  it('indent sinks the second list item under the first', () => {
+    const li = (t: string) =>
+      schema.node('list_item', null, [schema.node('paragraph', null, [schema.text(t)])])
+    const doc = schema.node('doc', null, [
+      schema.node('bullet_list', null, [li('one'), li('two')]),
+    ])
+    // Caret inside the second list item.
+    const state = EditorState.create({
+      schema,
+      doc,
+      selection: TextSelection.create(doc, doc.content.size - 2),
+    })
+    const next = applyCmd(state, cmdMap['indent']!)
+    expect(next).not.toBeNull()
+    // After sinking, a nested bullet_list should exist somewhere in the doc.
+    let nested = 0
+    next!.doc.descendants((node) => {
+      if (node.type.name === 'bullet_list') nested++
+    })
+    expect(nested).toBeGreaterThan(1)
   })
 })
 

@@ -645,3 +645,12 @@ Implemented (Edit additions, D4):
 - **macOS-only**: Speech submenu (Start/Stop Speaking) + Emoji & Symbols (`showSubstitutions`) via Electron built-in roles.
 
 Tests: +4 (selectLine textblock span, selectBlock list-item span, +2 entries-present). VALID_IDS patched. Suite + 7 e2e green.
+
+### Wave 22 - Paragraph menu + Indent/Outdent + Heading promote/demote (`feat/wysiwyg-paragraph-menu`)
+Implemented (h):
+- **Dedicated Paragraph menu** (WYSIWYG parity): Format menu now holds inline formatting + link/image only; block-level structure (Heading 1-6, Paragraph, Increase/Decrease Heading Level, lists, blockquote, code block, HR, Indent/Outdent) moved to a new top-level **Paragraph** menu.
+- **increaseHeading / decreaseHeading** in editorCommandMap: single ladder paragraph <-> H6 <-> ... <-> H1. increase = one step more prominent (paragraph->H6, H3->H2; declines at H1); decrease = one step less prominent (H1->H2, H6->paragraph). Shortcuts Cmd+Shift+= / Cmd+Shift+-.
+- **indent / outdent** in editorCommandMap: chained sinkListItem/liftListItem across list_item + task_item (no-op outside a list). Shortcuts Cmd+] / Cmd+[.
+- AppCommand + palette registry (group 'Paragraph') + keymap bindings.
+
+Tests: +8 (increase from paragraph->H6, H3->H2, declines at H1; decrease H1->H2, H6->paragraph; indent declines outside list, sinks 2nd item; entries-present). menu.test split into Format (inline) + Paragraph (block) assertions. 1253 unit + 7 e2e green.

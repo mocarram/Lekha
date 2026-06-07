@@ -8,9 +8,9 @@
  */
 import { type Schema, type NodeType, type Node as ProseMirrorNode } from 'prosemirror-model'
 import { type Command, type Transaction, TextSelection } from 'prosemirror-state'
-import { toggleMark, setBlockType, wrapIn } from 'prosemirror-commands'
+import { toggleMark, setBlockType, wrapIn, chainCommands } from 'prosemirror-commands'
 import { undo, redo } from 'prosemirror-history'
-import { wrapInList } from 'prosemirror-schema-list'
+import { wrapInList, sinkListItem, liftListItem } from 'prosemirror-schema-list'
 import type { AppCommand } from '@shared/commands'
 
 // ---------------------------------------------------------------------------
@@ -189,6 +189,38 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   const heading = (level: number): Command =>
     setBlockType(schema.nodes['heading']!, { level })
 
+  // Promote / demote the heading level of the current block along a single
+  // ladder: paragraph <-> H6 <-> H5 <-> ... <-> H1.
+  //   increaseHeading: one step MORE prominent (paragraph -> H6, H3 -> H2).
+  //   decreaseHeading: one step LESS prominent (H1 -> H2, H6 -> paragraph).
+  // Mirrors WYSIWYG's "Increase / Decrease Heading Level".
+  const headingType = schema.nodes['heading']!
+  const paragraphType = schema.nodes['paragraph']!
+  const shiftHeading = (delta: number): Command => (state, dispatch) => {
+    const { $from } = state.selection
+    const node = $from.parent
+    if (node.type !== headingType && node.type !== paragraphType) return false
+    const current = node.type === headingType ? (node.attrs['level'] as number) : 7
+    // delta < 0 => more prominent (smaller number); delta > 0 => less prominent.
+    const next = current + delta
+    if (next < 1) return false
+    if (next > 6) {
+      // Demoting past H6 turns the block back into a paragraph.
+      return setBlockType(paragraphType)(state, dispatch)
+    }
+    return setBlockType(headingType, { level: next })(state, dispatch)
+  }
+  const increaseHeading = shiftHeading(-1)
+  const decreaseHeading = shiftHeading(1)
+
+  // Indent / outdent: sink or lift the current list item. Chained across
+  // list_item and task_item so it works in both list flavours. Returns false
+  // outside a list (lets the caller treat it as a no-op).
+  const listItemType = schema.nodes['list_item']!
+  const taskItemType = schema.nodes['task_item']!
+  const indent = chainCommands(sinkListItem(listItemType), sinkListItem(taskItemType))
+  const outdent = chainCommands(liftListItem(listItemType), liftListItem(taskItemType))
+
   // -------------------------------------------------------------------------
   // Wrap commands (list / blockquote)
   // -------------------------------------------------------------------------
@@ -231,6 +263,10 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     heading4: heading(4),
     heading5: heading(5),
     heading6: heading(6),
+    increaseHeading,
+    decreaseHeading,
+    indent,
+    outdent,
 
     // Lists and wraps
     bulletList,

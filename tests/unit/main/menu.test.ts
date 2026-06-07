@@ -113,7 +113,7 @@ describe('buildMenuTemplate - top-level submenus', () => {
     expect(editLabels).toContain('Replace')
   })
 
-  it('Format submenu contains Bold, Italic, Strikethrough, heading items', () => {
+  it('Format submenu contains inline formatting commands', () => {
     const send = vi.fn()
     const template = buildMenuTemplate(send)
 
@@ -124,10 +124,28 @@ describe('buildMenuTemplate - top-level submenus', () => {
     expect(formatLabels).toContain('Bold')
     expect(formatLabels).toContain('Italic')
     expect(formatLabels).toContain('Strikethrough')
-    expect(formatLabels).toContain('Heading 2')
-    expect(formatLabels).toContain('Paragraph')
-    expect(formatLabels).toContain('Bullet List')
-    expect(formatLabels).toContain('Code Block')
+    expect(formatLabels).toContain('Insert Link…')
+    // Block-level items now live in the dedicated Paragraph menu.
+    expect(formatLabels).not.toContain('Heading 2')
+    expect(formatLabels).not.toContain('Bullet List')
+  })
+
+  it('Paragraph submenu contains block-level structure commands', () => {
+    const send = vi.fn()
+    const template = buildMenuTemplate(send)
+
+    const para = template.find((t) => t.label === 'Paragraph')
+    expect(para).toBeDefined()
+    const paraItems = para!.submenu as MenuItemConstructorOptions[]
+    const paraLabels = paraItems.map((i) => i.label)
+    expect(paraLabels).toContain('Heading 2')
+    expect(paraLabels).toContain('Paragraph')
+    expect(paraLabels).toContain('Increase Heading Level')
+    expect(paraLabels).toContain('Decrease Heading Level')
+    expect(paraLabels).toContain('Bullet List')
+    expect(paraLabels).toContain('Code Block')
+    expect(paraLabels).toContain('Indent')
+    expect(paraLabels).toContain('Outdent')
   })
 
   it('View submenu contains Toggle Sidebar and Toggle Source Mode', () => {
