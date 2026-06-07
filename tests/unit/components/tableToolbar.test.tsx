@@ -43,7 +43,7 @@ describe('TableToolbar - positioning', () => {
     const farRight = { top: 100, left: 5000, width: 200, height: 80 }
     render(<TableToolbar show rect={farRight} onCommand={vi.fn()} />)
     const bar = screen.getByRole('toolbar')
-    const left = parseFloat((bar as HTMLElement).style.left)
+    const left = parseFloat((bar).style.left)
     expect(left).toBeLessThanOrEqual(window.innerWidth)
     expect(left).toBeGreaterThanOrEqual(8)
   })
@@ -52,7 +52,7 @@ describe('TableToolbar - positioning', () => {
     const pane = document.createElement('div')
     pane.className = 'editor-pane'
     pane.getBoundingClientRect = () =>
-      ({ top: 80, bottom: 800, left: 0, right: 1000, width: 1000, height: 720, x: 0, y: 80, toJSON() {} }) as DOMRect
+      ({ top: 80, bottom: 800, left: 0, right: 1000, width: 1000, height: 720, x: 0, y: 80, toJSON() {} })
     document.body.appendChild(pane)
 
     // Table sits entirely above the pane's visible top -> toolbar hidden.
@@ -68,12 +68,12 @@ describe('TableToolbar - positioning', () => {
     const pane = document.createElement('div')
     pane.className = 'editor-pane'
     pane.getBoundingClientRect = () =>
-      ({ top: 80, bottom: 800, left: 0, right: 1000, width: 1000, height: 720, x: 0, y: 80, toJSON() {} }) as DOMRect
+      ({ top: 80, bottom: 800, left: 0, right: 1000, width: 1000, height: 720, x: 0, y: 80, toJSON() {} })
     document.body.appendChild(pane)
 
     const inView = { top: 300, left: 50, width: 300, height: 80 }
     render(<TableToolbar show rect={inView} onCommand={vi.fn()} />)
-    const bar = screen.getByRole('toolbar') as HTMLElement
+    const bar = screen.getByRole('toolbar')
     expect(bar.style.visibility).toBe('visible')
     // Never above the editor content top (pane.top + 4 = 84).
     expect(parseFloat(bar.style.top)).toBeGreaterThanOrEqual(84)

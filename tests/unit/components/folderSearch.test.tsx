@@ -62,6 +62,7 @@ function makeMockLekha(
     setAlwaysOnTop: vi.fn(),
     onCommand: vi.fn(() => unsubscribe),
     onOpenPath: vi.fn(() => unsubscribe),
+    takePendingOpen: vi.fn(() => Promise.resolve([])),
     onSetTheme: vi.fn(() => unsubscribe),
     onSetAutoSave: vi.fn(() => unsubscribe),
     writeBackup: vi.fn(() => Promise.resolve()),

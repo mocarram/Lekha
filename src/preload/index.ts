@@ -152,6 +152,13 @@ const api: LekhaAPI = {
     return () => ipcRenderer.removeListener(IPC.openPath, listener)
   },
 
+  // Drains the launch-open queue: files the OS asked Lekha to open before any
+  // window existed ("Open With"/double-click on macOS, a CLI arg on Win/Linux).
+  // Called once on mount; the queue is cleared by the read.
+  takePendingOpen(): Promise<string[]> {
+    return ipcRenderer.invoke(IPC.takePendingOpen)
+  },
+
   // Subscribes to set-theme messages from main (Theme menu).
   // Returns an unsubscribe function for cleanup on unmount.
   onSetTheme(cb: (id: string) => void): () => void {

@@ -15,6 +15,28 @@ files:
 
 npmRebuild: false
 
+# File associations: declare which document types Lekha can open so the OS shows
+# it in "Open With" and routes double-clicked files to the app. On macOS this
+# generates CFBundleDocumentTypes in Info.plist (delivered via the `open-file`
+# event); on Windows it registers the extensions. role: Editor (we can edit, not
+# just view). Extensions mirror the renderer's openable set (sidebarDrop.ts).
+fileAssociations:
+  - ext: md
+    name: Markdown Document
+    role: Editor
+  - ext: markdown
+    name: Markdown Document
+    role: Editor
+  - ext: mdx
+    name: MDX Document
+    role: Editor
+  - ext: txt
+    name: Plain Text Document
+    role: Editor
+  - ext: text
+    name: Plain Text Document
+    role: Editor
+
 # Auto-update channel. electron-builder writes app-update.yml into the packaged
 # app from this block; electron-updater reads it at runtime to locate releases.
 # No actual GitHub release is required to wire the channel - publishing a real

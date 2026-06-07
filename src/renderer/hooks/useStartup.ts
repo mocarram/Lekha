@@ -265,6 +265,26 @@ export function useStartup(
 
       // Restore phase is complete. Future store changes should be persisted.
       restoringRef.current = false
+
+      // -----------------------------------------------------------------
+      // Launch-open: files the OS asked Lekha to open ("Open With" /
+      // double-click on macOS, or a command-line arg on Win/Linux) before this
+      // window existed. We drain the queue AFTER restore so the launched file
+      // opens on top of (and active over) the restored session, and AFTER the
+      // restore flag is cleared so the new tab is persisted normally. Done last
+      // so a launched file wins focus over recovered/restored tabs.
+      try {
+        const launchPaths = await window.lekha.takePendingOpen()
+        for (const p of launchPaths) {
+          try {
+            await fileOpsRef.current.openPath(p)
+          } catch {
+            // File no longer exists or is not readable - skip silently.
+          }
+        }
+      } catch {
+        // Bridge unavailable - nothing to open at launch.
+      }
     })
 
     // -----------------------------------------------------------------

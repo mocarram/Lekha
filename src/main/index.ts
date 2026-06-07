@@ -10,7 +10,9 @@ import { registerTemplateHandlers } from '@main/ipc/templates'
 import { registerThemeHandlers } from '@main/ipc/themes'
 import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
 import { listUserThemes } from '@main/userThemes'
-import { join } from 'node:path'
+import { markdownPathsFromArgv } from '@main/openWith'
+import { join, resolve } from 'node:path'
+import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
 import { setupAutoUpdater, checkForUpdates } from '@main/updater'
 import { applySpellCheck } from '@main/spellCheck'
@@ -61,6 +63,91 @@ app.setName('Lekha')
 const QUIT_GUARD_DISABLED = process.env['LEKHA_DISABLE_QUIT_GUARD'] === '1'
 
 const registry = new WindowRegistry()
+
+// ---------------------------------------------------------------------------
+// OS file-open ("Open With" / double-click / command line)
+//
+// macOS delivers opened files via the `open-file` event, which can fire BEFORE
+// `app.whenReady()`; Windows/Linux pass them as command-line arguments (on cold
+// launch via process.argv, on a second launch via the `second-instance` event).
+// Both routes funnel into `pendingLaunchPaths` until a window exists. The first
+// renderer drains the queue on mount (IPC.takePendingOpen); once `appReady` is
+// set, later requests are pushed straight to a live window via IPC.openPath -
+// the same channel the Open Recent menu already uses.
+// ---------------------------------------------------------------------------
+
+/**
+ * Files the OS asked Lekha to open before a window was ready to receive them.
+ * Drained by the renderer via IPC.takePendingOpen on mount; the splice clears it
+ * so a second window cannot re-open the same files.
+ */
+const pendingLaunchPaths: string[] = []
+
+/** True once the first window is open: gates push-to-window vs. queue routing. */
+let appReady = false
+
+/** True if `p` is an existing regular file (not a directory / missing). */
+function isExistingFile(p: string): boolean {
+  try {
+    return statSync(p).isFile()
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Route an opened file into a running app. With a live window, push the path to
+ * the focused (or first) window so it opens as a tab; with none, queue it and
+ * open a fresh window whose renderer pulls the queue on mount.
+ */
+function openFileInApp(path: string): void {
+  const target = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
+  if (target && !target.isDestroyed()) {
+    if (target.isMinimized()) target.restore()
+    target.focus()
+    target.webContents.send(IPC.openPath, path)
+  } else {
+    pendingLaunchPaths.push(path)
+    openWindowAt(firstWindowBounds())
+  }
+}
+
+/** Enqueue (before ready) or immediately open (after ready) one opened file. */
+function handleOpenFile(path: string): void {
+  if (!path) return
+  if (appReady) openFileInApp(path)
+  else pendingLaunchPaths.push(path)
+}
+
+// macOS: opened files arrive here, possibly BEFORE whenReady - so this is
+// registered at module load, not inside whenReady, or early opens are dropped.
+// preventDefault suppresses Electron's default no-handler behaviour. Other
+// platforms never emit this event.
+app.on('open-file', (event, filePath) => {
+  event.preventDefault()
+  handleOpenFile(filePath)
+})
+
+// Windows/Linux: a second launch (double-clicking a file while Lekha is already
+// running) starts a new process. The single-instance lock routes that process's
+// argv into THIS instance via `second-instance` instead of opening a duplicate.
+// Gated off on macOS, which is single-instance by default and routes through
+// `open-file` - and where the e2e harness intentionally runs multiple Electron
+// instances that this lock would otherwise kill.
+if (process.platform !== 'darwin') {
+  if (!app.requestSingleInstanceLock()) {
+    app.quit()
+  } else {
+    app.on('second-instance', (_event, argv, workingDirectory) => {
+      const paths = markdownPathsFromArgv(argv, {
+        cwd: workingDirectory || process.cwd(),
+        exists: isExistingFile,
+        resolve,
+      })
+      for (const p of paths) handleOpenFile(p)
+    })
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Menu helpers
@@ -421,6 +508,12 @@ void app.whenReady().then(async () => {
     () => DEFAULT_TEMPLATE_CSS,
   )
 
+  // Drain the launch-open queue for the renderer. A renderer calls this once on
+  // mount to open any files the OS requested before it existed (Open With /
+  // double-click / CLI arg). The splice clears the queue so a second window does
+  // not re-open the same files.
+  ipcMain.handle(IPC.takePendingOpen, () => pendingLaunchPaths.splice(0))
+
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens
   // windows directly via openNewWindow without this round-trip.)
@@ -458,6 +551,19 @@ void app.whenReady().then(async () => {
     language: initialSettings.spellCheckLanguage,
   })
 
+  // Windows/Linux cold launch: a file double-clicked while Lekha was closed
+  // arrives as a command-line argument. Seed the queue before the first window
+  // opens so its renderer picks the file up on mount. macOS uses `open-file`
+  // (handled above), so its argv is left alone here.
+  if (process.platform !== 'darwin') {
+    const launchPaths = markdownPathsFromArgv(process.argv, {
+      cwd: process.cwd(),
+      exists: isExistingFile,
+      resolve,
+    })
+    for (const p of launchPaths) pendingLaunchPaths.push(p)
+  }
+
   // First window: honor saved bounds exactly (no cascade). When none are saved,
   // open big and centered relative to the display work area.
   openWindowAt(firstWindowBounds())
@@ -469,6 +575,10 @@ void app.whenReady().then(async () => {
   // Configure auto-update and kick off a background check. NO-OP in dev
   // (!app.isPackaged) and never throws, so this is safe to always call.
   setupAutoUpdater()
+
+  // The first window now exists. From here on, OS file-open requests are pushed
+  // straight to a live window instead of being queued for the startup drain.
+  appReady = true
 
   app.on('activate', () => {
     // macOS: re-open a window when the dock icon is clicked and none are open.

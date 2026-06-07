@@ -122,6 +122,7 @@ function stubLekha(settings: Settings): void {
     listBackups,
     readFile,
     deleteBackup,
+    takePendingOpen: vi.fn(() => Promise.resolve([])),
   })
 }
 

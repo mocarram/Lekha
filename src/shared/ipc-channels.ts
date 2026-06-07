@@ -48,6 +48,14 @@ export const IPC = {
   /** Main -> renderer: open a specific file path (from the Open Recent menu). */
   openPath: 'app:openPath',
   /**
+   * Renderer -> main (invoke): drain the queue of file paths the app was asked
+   * to open at launch (via macOS "Open With"/double-click `open-file`, or a
+   * command-line argument on Windows/Linux) before any renderer existed to
+   * receive them. The renderer pulls these once on mount; the queue is cleared
+   * by the read so a second window does not re-open the same files.
+   */
+  takePendingOpen: 'app:takePendingOpen',
+  /**
    * Main -> renderer: the user picked a theme from the native Themes menu.
    * Value-carrying (like openPath): the IPC message carries the theme id string.
    * The renderer applies + persists the theme and replies so main can rebuild

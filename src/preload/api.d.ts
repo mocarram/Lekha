@@ -106,6 +106,14 @@ export interface LekhaAPI {
   onOpenPath(cb: (path: string) => void): () => void
 
   /**
+   * Drain the queue of files the OS asked Lekha to open at launch, before any
+   * renderer existed to receive them (macOS "Open With"/double-click, or a
+   * command-line argument on Windows/Linux). Resolves with the queued absolute
+   * paths and clears the queue, so a second window won't re-open the same files.
+   */
+  takePendingOpen(): Promise<string[]>
+
+  /**
    * Subscribe to set-theme messages from the main process (Theme menu).
    * The callback receives the chosen theme id string.
    * Returns an unsubscribe function that removes the listener.
