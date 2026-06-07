@@ -112,6 +112,73 @@ describe('TabBar', () => {
     expect(onNew).toHaveBeenCalledOnce()
   })
 
+  it('gives only the active tab a tabindex of 0 (roving tabindex)', () => {
+    const ids = openTabs(3)
+    useDocumentsStore.getState().activateDocument(ids[1]!)
+    const { getAllByRole } = render(
+      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    expect(tabs[0]!.getAttribute('tabindex')).toBe('-1')
+    expect(tabs[1]!.getAttribute('tabindex')).toBe('0')
+    expect(tabs[2]!.getAttribute('tabindex')).toBe('-1')
+  })
+
+  it('ArrowRight moves focus to the next tab and selects it', () => {
+    const ids = openTabs(3)
+    useDocumentsStore.getState().activateDocument(ids[0]!)
+    const onSelect = vi.fn()
+    const { getAllByRole } = render(
+      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    tabs[0]!.focus()
+    fireEvent.keyDown(tabs[0]!, { key: 'ArrowRight' })
+    expect(onSelect).toHaveBeenCalledWith(ids[1])
+    expect(document.activeElement).toBe(tabs[1])
+  })
+
+  it('ArrowLeft wraps from the first tab to the last', () => {
+    const ids = openTabs(3)
+    useDocumentsStore.getState().activateDocument(ids[0]!)
+    const onSelect = vi.fn()
+    const { getAllByRole } = render(
+      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    tabs[0]!.focus()
+    fireEvent.keyDown(tabs[0]!, { key: 'ArrowLeft' })
+    expect(onSelect).toHaveBeenCalledWith(ids[2])
+    expect(document.activeElement).toBe(tabs[2])
+  })
+
+  it('Home/End jump to the first/last tab', () => {
+    const ids = openTabs(3)
+    const onSelect = vi.fn()
+    const { getAllByRole } = render(
+      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    tabs[1]!.focus()
+    fireEvent.keyDown(tabs[1]!, { key: 'End' })
+    expect(onSelect).toHaveBeenLastCalledWith(ids[2])
+    tabs[2]!.focus()
+    fireEvent.keyDown(tabs[2]!, { key: 'Home' })
+    expect(onSelect).toHaveBeenLastCalledWith(ids[0])
+  })
+
+  it('Enter activates the focused tab', () => {
+    const ids = openTabs(2)
+    const onSelect = vi.fn()
+    const { getAllByRole } = render(
+      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    tabs[0]!.focus()
+    fireEvent.keyDown(tabs[0]!, { key: 'Enter' })
+    expect(onSelect).toHaveBeenCalledWith(ids[0])
+  })
+
   it('adds the tab--dirty class to dirty tabs', () => {
     const ids = openTabs(2)
     useDocumentsStore.getState().activateDocument(ids[1]!)

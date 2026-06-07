@@ -219,6 +219,74 @@ describe('useFocusTrap - non-Tab keys pass through', () => {
 // useFocusTrap - cleanup on deactivate
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// useFocusTrap - focus return on close
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders an opener button plus a trap container that only mounts while active
+ * (mirroring how dialogs unmount on close). Used to verify focus returns to the
+ * opener when the modal closes.
+ */
+function TrapWithOpener({ active }: { active: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useFocusTrap(ref, active)
+  return (
+    <div>
+      <button type="button" data-testid="opener">Open</button>
+      {active ? (
+        <div ref={ref} data-testid="container" tabIndex={-1}>
+          <button type="button" data-testid="dlg-btn">Inside</button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+describe('useFocusTrap - focus return on close', () => {
+  it('returns focus to the opener when the trap deactivates', () => {
+    const { getByTestId, rerender } = render(<TrapWithOpener active={false} />)
+    const opener = getByTestId('opener')
+    opener.focus()
+    expect(document.activeElement).toBe(opener)
+
+    // Open: focus moves into the dialog.
+    rerender(<TrapWithOpener active />)
+    expect(document.activeElement).toBe(getByTestId('dlg-btn'))
+
+    // Close: focus returns to the opener that triggered it.
+    rerender(<TrapWithOpener active={false} />)
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it('does not steal focus back if focus already moved elsewhere', () => {
+    const { getByTestId, rerender } = render(
+      <div>
+        <button type="button" data-testid="elsewhere">Elsewhere</button>
+        <TrapWithOpener active={false} />
+      </div>,
+    )
+    getByTestId('opener').focus()
+    rerender(
+      <div>
+        <button type="button" data-testid="elsewhere">Elsewhere</button>
+        <TrapWithOpener active />
+      </div>,
+    )
+    // Simulate the app moving focus to an unrelated element before close.
+    const elsewhere = getByTestId('elsewhere')
+    elsewhere.focus()
+    rerender(
+      <div>
+        <button type="button" data-testid="elsewhere">Elsewhere</button>
+        <TrapWithOpener active={false} />
+      </div>,
+    )
+    // Focus stays on the unrelated element - the hook must not steal it back.
+    expect(document.activeElement).toBe(elsewhere)
+  })
+})
+
 describe('useFocusTrap - cleanup', () => {
   it('stops intercepting Tab after the hook is deactivated', () => {
     const { getByTestId, rerender } = render(<TrapFixture active />)

@@ -113,3 +113,9 @@ handleChange no longer mirrors `markdown` into the active tab on every keystroke
 - (15) reloadThemes: if the active theme's file was removed (id no longer built-in or in the reloaded list), fall back to applyTheme('github') + persist, so the UI is never stuck on a dead theme.
 - (19) Dirty tabs now italicize their title (.tab--dirty .tab__title) so the unsaved state stays visible even while hovered (when the dot is swapped for the close x). +1 CSS test.
 Deferred: (14) close-last-tab leaves a blank Untitled - this is intentional WYSIWYG-like behavior (wontfix). (12) combobox aria-expanded - cosmetic, low value (wontfix). (17) MarkdownIt escape micro-opt - negligible (deferred). (6 tab arrow-key nav, 11 dialog focus-return) -> next wave.
+
+### Wave 30 - FIXED: keyboard a11y (findings 6, 11) - AUDIT ROUND 1 COMPLETE
+- (11) useFocusTrap now returns focus to the opener element on close (captures document.activeElement when the trap engages; restores on cleanup, but only when focus is "loose" - body/null/inside the closing container - so it never steals focus the user/app moved elsewhere). All dialogs (Rename/GetInfo/Link/Image/Preferences) get this for free. +2 tests.
+- (6) TabBar implements the WAI-ARIA tabs keyboard pattern: roving tabindex (active tab = 0, others = -1), ArrowLeft/ArrowRight (wrap), Home/End, Enter/Space activate; .tab:focus-visible ring. +5 tests.
+
+Round-1 tally: 19 confirmed -> 15 fixed (1,2,3,4,6,7,8,9,10,11,13,15,16,18,19) + 1 root-cause-resolved (5) + 3 reasoned-deferred (12 cosmetic, 14 intentional WYSIWYG behavior, 17 negligible micro-opt). Suite: 1350 unit + 9 e2e green.

@@ -66,6 +66,11 @@ export function useFocusTrap(
     const container = ref.current
     if (!container) return
 
+    // Remember what had focus before the modal opened so we can return focus
+    // there when it closes (WCAG 2.4.3 Focus Order). Captured before we move
+    // focus into the container below.
+    const previouslyFocused = document.activeElement as HTMLElement | null
+
     // Move focus into the container if it is not already inside.
     if (!container.contains(document.activeElement)) {
       const first = getFocusableElements(container)[0] ?? container
@@ -104,6 +109,22 @@ export function useFocusTrap(
     container.addEventListener('keydown', handleKeyDown)
     return () => {
       container.removeEventListener('keydown', handleKeyDown)
+      // Return focus to the opener when the modal closes. Only do so when focus
+      // is "loose" - i.e. nothing meaningful holds it: either it is gone (body /
+      // null, which happens when the modal element unmounts) or still inside the
+      // closing container. If the user/app already moved focus to some other
+      // real element, we must NOT steal it back.
+      const current = document.activeElement
+      const focusIsLoose =
+        current === null || current === document.body || container.contains(current)
+      if (
+        focusIsLoose &&
+        previouslyFocused &&
+        previouslyFocused.isConnected &&
+        typeof previouslyFocused.focus === 'function'
+      ) {
+        previouslyFocused.focus()
+      }
     }
   }, [ref, active])
 }

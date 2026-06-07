@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
 
 interface TabBarProps {
@@ -26,8 +27,40 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
 
   if (documents.length <= 1) return null
 
+  // Roving-tabindex keyboard navigation for the tab strip (WAI-ARIA tabs
+  // pattern). Left/Right (and Home/End) move focus between tabs and activate
+  // them; Enter/Space activate the focused tab; the active tab is the single
+  // Tab-stop into the strip.
+  const onTablistKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', ' ']
+    if (!keys.includes(e.key)) return
+    const tabEls = Array.from(
+      e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]'),
+    )
+    const curIdx = tabEls.indexOf(document.activeElement as HTMLElement)
+    if (curIdx === -1) return
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSelect(documents[curIdx]!.id)
+      return
+    }
+    let next = curIdx
+    if (e.key === 'ArrowRight') next = (curIdx + 1) % tabEls.length
+    else if (e.key === 'ArrowLeft') next = (curIdx - 1 + tabEls.length) % tabEls.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = tabEls.length - 1
+    e.preventDefault()
+    tabEls[next]!.focus()
+    onSelect(documents[next]!.id)
+  }
+
   return (
-    <div className="tab-bar no-drag" role="tablist" aria-label="Open documents">
+    <div
+      className="tab-bar no-drag"
+      role="tablist"
+      aria-label="Open documents"
+      onKeyDown={onTablistKeyDown}
+    >
       <div className="tab-bar__tabs">
         {documents.map((doc) => {
           const isActive = doc.id === activeId
@@ -36,6 +69,9 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
               key={doc.id}
               role="tab"
               aria-selected={isActive}
+              // Roving tabindex: only the active tab is in the Tab order; arrow
+              // keys move focus among the rest.
+              tabIndex={isActive ? 0 : -1}
               className={`tab${isActive ? ' tab--active' : ''}${doc.isDirty ? ' tab--dirty' : ''}`}
               title={doc.path ?? doc.title}
               onClick={() => onSelect(doc.id)}
