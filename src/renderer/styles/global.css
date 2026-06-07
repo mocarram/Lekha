@@ -53,8 +53,9 @@ body,
   height: var(--titlebar-height);
   flex-shrink: 0;
   -webkit-app-region: drag;
+  /* No divider border: the chrome surface tint vs the editor background already
+     separates the title bar from the content (WYSIWYG-style). */
   background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
   user-select: none;
 }
 
@@ -77,8 +78,14 @@ body,
 }
 
 .title-bar__dirty {
-  margin-right: 4px;
-  color: var(--color-text-muted);
+  margin-right: 6px;
+  /* Bigger, accent-colored unsaved indicator so it is clearly noticeable.
+     line-height:0 + vertical-align keep the larger glyph aligned with the
+     title text without shifting the bar height. */
+  color: var(--color-accent);
+  font-size: 22px;
+  line-height: 0;
+  vertical-align: -0.18em;
 }
 
 /* ---------------------------------------------------------------------------
@@ -103,8 +110,9 @@ body,
   width: var(--sidebar-width);
   flex-shrink: 0;
   overflow: hidden;
+  /* No divider border: the surface tint vs the editor background separates the
+     sidebar from the content. The resize handle still lives at the right edge. */
   background-color: var(--color-surface);
-  border-right: 1px solid var(--color-border);
   /* Positioning context for the absolutely-placed .sidebar-resizer handle. */
   position: relative;
 }
@@ -233,8 +241,8 @@ body,
   height: var(--statusbar-height);
   flex-shrink: 0;
   padding: 0 12px;
+  /* No divider border: the surface tint separates the status bar from content. */
   background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
   font-size: 11px;
   color: var(--color-text-muted);
   font-family: var(--font-ui);
@@ -392,8 +400,8 @@ body,
   align-items: stretch;
   flex-shrink: 0;
   height: 36px;
+  /* No divider border: the surface tint separates the tab bar from the editor. */
   background-color: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
   font-family: var(--font-ui);
   overflow: hidden;
 }
@@ -561,13 +569,24 @@ body,
 .file-tree__arrow,
 .file-tree__arrow-spacer {
   flex-shrink: 0;
-  width: 16px;
+  width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   color: var(--color-text-muted);
+}
+
+/* Use the SAME glyph (▾) + rotate as the outline chevron so the two sidebar
+   trees show pixel-identical disclosure arrows in matching states. */
+.file-tree__arrow {
+  transition: transform 0.12s ease;
+}
+
+.file-tree__arrow--collapsed {
+  transform: rotate(-90deg);
 }
 
 /* Row icon: muted by default, brightens to follow the row text on hover/active. */
@@ -674,8 +693,8 @@ body,
 .outline__chevron,
 .outline__chevron-spacer {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -686,18 +705,18 @@ body,
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 9px;
+  /* Match the file-tree disclosure arrow: same size + muted color + glyph, so
+     the two sidebar trees read as the same control. font-family MUST be inherited
+     - a <button> otherwise defaults to Arial, which renders the ▾ glyph at a
+     different size than the file-tree span's inherited system-ui font. */
+  font-family: inherit;
+  font-size: 18px;
   line-height: 1;
   color: var(--color-text-muted);
-  border-radius: 3px;
-  transition: transform 0.12s ease, color 0.12s ease;
+  transition: transform 0.12s ease;
 }
 
-.outline__chevron:hover {
-  color: var(--color-accent);
-}
-
-/* Collapsed: rotate the down-chevron to point right. */
+/* Collapsed: rotate the down-chevron to point right (matches file-tree's ▸). */
 .outline__chevron--collapsed {
   transform: rotate(-90deg);
 }

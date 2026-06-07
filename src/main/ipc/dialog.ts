@@ -1,8 +1,6 @@
 import { ipcMain, dialog } from 'electron'
-import { dirname } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import { senderWindow } from '@main/senderWindow'
-import { grantRoot } from '@main/permittedRoots'
 
 /** The three choices the user can make when there are unsaved changes. */
 export type UnsavedChoice = 'save' | 'dontSave' | 'cancel'
@@ -43,12 +41,7 @@ export function registerDialogHandlers(): void {
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     })
     if (result.canceled || result.filePaths.length === 0) return null
-    const picked = result.filePaths[0]!
-    // The user explicitly chose this file: grant it (and its dir) so the
-    // subsequent readFile/statFile passes confinement.
-    grantRoot(picked)
-    grantRoot(dirname(picked))
-    return picked
+    return result.filePaths[0]!
   })
 
   ipcMain.handle(IPC.openFolderDialog, async (event) => {
@@ -57,11 +50,7 @@ export function registerDialogHandlers(): void {
       properties: ['openDirectory'],
     })
     if (result.canceled || result.filePaths.length === 0) return null
-    const picked = result.filePaths[0]!
-    // Grant the opened folder so readDir / listArticles / searchFolder and every
-    // file beneath it are permitted.
-    grantRoot(picked)
-    return picked
+    return result.filePaths[0]!
   })
 
   ipcMain.handle(IPC.saveAsDialog, async (event, suggestedName?: string) => {
@@ -71,10 +60,6 @@ export function registerDialogHandlers(): void {
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     })
     if (result.canceled || !result.filePath) return null
-    // The user chose a save destination: grant the target file and its dir so the
-    // following writeFile (and any sibling save) passes confinement.
-    grantRoot(result.filePath)
-    grantRoot(dirname(result.filePath))
     return result.filePath
   })
 }

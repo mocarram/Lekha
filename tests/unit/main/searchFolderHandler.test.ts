@@ -26,22 +26,14 @@ vi.mock('electron', () => ({
 import { registerSearchHandlers } from '@main/ipc/search'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult } from '@shared/types'
-import { grantRoot, resetPermittedRoots } from '@main/permittedRoots'
 
 let tmpDir: string
 
 beforeEach(() => {
   handlers.clear()
-  resetPermittedRoots()
   registerSearchHandlers()
   tmpDir = mkdtempSync(join(tmpdir(), 'lekha-searchh-'))
   writeFileSync(join(tmpDir, 'notes.md'), '# Notes\nhello world\n', 'utf8')
-  // searchFolder is gated by the permittedRoots allowlist; the opened folder is
-  // granted in production (openFolderDialog / lastFolder restore), so grant the
-  // temp root here to exercise the real search path. Missing subdirs under it are
-  // still covered by the grant (containment), so the "unreadable root" case
-  // reaches the collectMarkdownPaths try/catch rather than being rejected here.
-  grantRoot(tmpDir)
 })
 
 afterEach(() => {
@@ -71,10 +63,5 @@ describe('registerSearchHandlers - fs:searchFolder', () => {
 
   it('returns [] for an empty query without touching the filesystem', async () => {
     await expect(invoke(tmpDir, '')).resolves.toEqual([])
-  })
-
-  it('rejects a non-empty search when the root is not granted', async () => {
-    resetPermittedRoots()
-    await expect(invoke(tmpDir, 'hello')).rejects.toThrow(/not permitted/i)
   })
 })

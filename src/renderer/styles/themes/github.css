@@ -431,15 +431,27 @@
  * radius and preserves horizontal scrolling for wide tables. Inner cells carry
  * only right/bottom borders (the last column/row drop theirs) so lines never
  * double up. */
+/* The columnResizing plugin wraps every table in div.tableWrapper. The outer
+ * border, rounded corners and horizontal scroll live on the WRAPPER so the
+ * <table> itself stays a real table that distributes its columns across the
+ * full width. (Putting display:block on the <table> stretched the bordered box
+ * to 100% while the cell grid stayed content-width, leaving a large empty gap
+ * to the right of the last column.) */
+.editor-pane .ProseMirror .tableWrapper {
+  margin: 0 0 1em;
+  /* Size to the table's content (GitHub/WYSIWYG style) rather than forcing full
+     width - a small table stays compact instead of stretching edge-to-edge.
+     max-width caps it at the editor width; overflow scrolls wider tables. */
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--table-border);
+  border-radius: 8px;
+  overflow: auto;
+}
+
 .editor-pane .ProseMirror table {
   border-collapse: separate;
   border-spacing: 0;
-  border: 1px solid var(--table-border);
-  border-radius: 8px;
-  margin: 0 0 1em;
-  width: 100%;
-  overflow: auto;
-  display: block;
 }
 
 .editor-pane .ProseMirror th,

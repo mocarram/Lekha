@@ -23,6 +23,7 @@ import {
   runCloseGuard,
   nextWindowBounds,
   isSaneBounds,
+  boundsIntersectAny,
   defaultWindowBounds,
   type WindowBounds,
   type OpenBounds,
@@ -31,8 +32,6 @@ import { IPC } from '@shared/ipc-channels'
 import { THEMES } from '@shared/types'
 import type { Settings } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
-import { dirname } from 'node:path'
-import { grantRoot } from '@main/permittedRoots'
 
 // Last-resort handlers so a stray rejection or throw in the main process is
 // logged instead of taking the app down silently.
@@ -172,7 +171,16 @@ function saveBounds(bounds: WindowBounds): void {
  * work area at call time (not startup) picks up display/resolution changes.
  */
 function firstWindowBounds(): OpenBounds {
-  return savedWindowBounds ?? defaultWindowBounds(screen.getPrimaryDisplay().workAreaSize)
+  if (savedWindowBounds) {
+    // Honor saved bounds (including a window on a secondary monitor at negative
+    // coordinates) as long as they still land on a connected display.
+    const displays = screen.getAllDisplays().map((d) => d.workArea)
+    if (boundsIntersectAny(savedWindowBounds, displays)) return savedWindowBounds
+    // The display the window was saved on is no longer connected: keep the saved
+    // SIZE but drop x/y so Electron recenters it on the primary display.
+    return { width: savedWindowBounds.width, height: savedWindowBounds.height }
+  }
+  return defaultWindowBounds(screen.getPrimaryDisplay().workAreaSize)
 }
 
 // Per-window debounce timers. A single module-global timer would let one window
@@ -353,23 +361,6 @@ void app.whenReady().then(async () => {
   // Load persisted settings before creating the window so we can restore
   // window bounds and build the initial menu with saved recents.
   const initialSettings = await settings.get()
-
-  // --- Seed the filesystem path allowlist (security trust boundary) ---
-  // Every path-taking IPC handler is gated by permittedRoots.isPathAllowed.
-  // Grant the roots that legitimate startup flows need so tab-restore, Open
-  // Recent, and folder search work without a single false rejection:
-  //   - userData + the app install dir (always-permitted infrastructure paths).
-  //   - lastFolder (the restored open folder -> readDir/listArticles/search).
-  //   - the containing dir of every recent file (Open Recent re-opens).
-  //   - the containing dir of every restored tab path + the active tab path
-  //     (tab restore reads each file on launch).
-  // Dialog results and addRecentFile grant additional roots at runtime.
-  grantRoot(app.getPath('userData'))
-  grantRoot(app.getAppPath())
-  if (initialSettings.lastFolder) grantRoot(initialSettings.lastFolder)
-  for (const recent of initialSettings.recentFiles) grantRoot(dirname(recent))
-  for (const tabPath of initialSettings.openTabPaths) grantRoot(dirname(tabPath))
-  if (initialSettings.activeTabPath) grantRoot(dirname(initialSettings.activeTabPath))
 
   // Register IPC handlers before creating any window so they are ready the
   // moment a renderer sends its first message. Handlers derive their target

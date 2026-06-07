@@ -108,6 +108,27 @@ function tableIdentity(view: ProseMirrorView): number | null {
 }
 
 /**
+ * Find the nearest scrollable ancestor of `el` (the element whose own scrollbar
+ * actually moves content). Used to confine jump-to-heading scrolling to the
+ * editor's scroll container instead of letting Element.scrollIntoView() bubble
+ * the scroll up to outer app-shell containers.
+ */
+function findScrollParent(el: HTMLElement): HTMLElement | null {
+  let cur: HTMLElement | null = el.parentElement
+  while (cur) {
+    const overflowY = getComputedStyle(cur).overflowY
+    if (
+      (overflowY === 'auto' || overflowY === 'scroll') &&
+      cur.scrollHeight > cur.clientHeight
+    ) {
+      return cur
+    }
+    cur = cur.parentElement
+  }
+  return null
+}
+
+/**
  * Scroll the footnote_definition matching `label` into view (best-effort).
  *
  * Finds the first footnote_definition block with the same label, reads its
@@ -445,9 +466,34 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           // Clamp position to valid document range
           const safePos = Math.min(Math.max(pos, 0), doc.content.size)
           const selection = TextSelection.near(doc.resolve(safePos))
-          const tr = view.state.tr.setSelection(selection).scrollIntoView()
-          view.dispatch(tr)
+          // Set the selection WITHOUT the transaction's scrollIntoView: we scroll
+          // manually below so we can confine scrolling to the editor's own
+          // scroll container.
+          view.dispatch(view.state.tr.setSelection(selection))
           view.focus()
+          // Resolve the heading's DOM element. nodeDOM(pos) returns the element of
+          // the node that STARTS at `pos` (the heading); domAtPos(pos) would
+          // return the inter-block boundary (the editor root). (`Node` here is the
+          // prosemirror-model type, so use the numeric ELEMENT_NODE === 1.)
+          const headingDom = view.nodeDOM(safePos)
+          const el =
+            headingDom && headingDom.nodeType === 1
+              ? (headingDom as HTMLElement)
+              : view.domAtPos(safePos).node.parentElement
+          if (!el) return
+          // Scroll ONLY the editor's scroll container, not via Element
+          // scrollIntoView() - that bubbles to EVERY scrollable ancestor up to
+          // the app shell, shifting the whole layout (title bar, sidebar). Find
+          // the editor's own scroller and set its scrollTop directly so the jump
+          // never moves anything outside the editor pane.
+          const scroller = findScrollParent(el)
+          if (scroller) {
+            const delta =
+              el.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+            scroller.scrollTop += delta
+          } else {
+            el.scrollIntoView({ block: 'start', inline: 'nearest' })
+          }
         },
         runCommand(cmd: AppCommand): boolean {
           const view = viewRef.current

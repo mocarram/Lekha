@@ -171,8 +171,11 @@ function FileTreeNode({
         onContextMenu={(e) => onContextMenu(e, node)}
       >
         {node.isDirectory ? (
-          <span className="file-tree__arrow" aria-hidden="true">
-            {expanded ? '▾' : '▸'}
+          <span
+            className={`file-tree__arrow${expanded ? '' : ' file-tree__arrow--collapsed'}`}
+            aria-hidden="true"
+          >
+            ▾
           </span>
         ) : (
           <span className="file-tree__arrow-spacer" aria-hidden="true" />

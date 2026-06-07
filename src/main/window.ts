@@ -86,9 +86,12 @@ const MIN_WIDTH = 400
 const MIN_HEIGHT = 300
 
 /**
- * Validate that saved window bounds are reasonable: finite numbers, minimum
- * size, and x/y are non-negative (on-screen). Returns true if the bounds can
- * be used safely.
+ * Validate that saved window bounds are reasonable: finite numbers and at least
+ * the minimum size. x/y may be NEGATIVE - on multi-monitor macOS setups a
+ * secondary display sits at negative coordinates relative to the primary, so a
+ * window legitimately saved there has a negative x/y. Whether those coordinates
+ * are still on a connected display is checked separately (boundsIntersectAny)
+ * so the size is preserved even when the saved monitor is gone.
  */
 export function isSaneBounds(b: Settings['windowBounds']): b is WindowBounds {
   if (!b) return false
@@ -98,10 +101,25 @@ export function isSaneBounds(b: Settings['windowBounds']): b is WindowBounds {
     Number.isFinite(b.width) &&
     Number.isFinite(b.height) &&
     b.width >= MIN_WIDTH &&
-    b.height >= MIN_HEIGHT &&
-    b.x >= 0 &&
-    b.y >= 0
+    b.height >= MIN_HEIGHT
   )
+}
+
+/** A rectangle in screen coordinates (a window or a display work area). */
+type Rect = { x: number; y: number; width: number; height: number }
+
+/**
+ * True when `b` overlaps at least one of the given display rects (positive
+ * intersection area), i.e. the window would be visible on some connected
+ * display. Pure so the geometry can be unit-tested; the caller passes
+ * screen.getAllDisplays().map(d => d.workArea).
+ */
+export function boundsIntersectAny(b: Rect, displays: Rect[]): boolean {
+  return displays.some((d) => {
+    const overlapW = Math.min(b.x + b.width, d.x + d.width) - Math.max(b.x, d.x)
+    const overlapH = Math.min(b.y + b.height, d.y + d.height) - Math.max(b.y, d.y)
+    return overlapW > 0 && overlapH > 0
+  })
 }
 
 /**

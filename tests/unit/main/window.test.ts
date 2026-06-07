@@ -10,11 +10,45 @@ import { describe, it, expect } from 'vitest'
 import {
   nextWindowBounds,
   defaultWindowBounds,
+  isSaneBounds,
+  boundsIntersectAny,
   DEFAULT_WINDOW_SIZE,
   DEFAULT_FILL_RATIO,
   DEFAULT_MAX_SIZE,
   CASCADE_OFFSET,
 } from '../../../src/main/window'
+
+describe('isSaneBounds - accepts multi-monitor (negative) coordinates', () => {
+  it('accepts bounds on a secondary display at negative coordinates', () => {
+    // Regression: a window saved on an external monitor to the left has negative
+    // x/y; rejecting it forced the small default instead of the saved size.
+    expect(isSaneBounds({ x: -2950, y: -81, width: 1781, height: 1160 })).toBe(true)
+  })
+
+  it('rejects undefined, non-finite, and below-minimum sizes', () => {
+    expect(isSaneBounds(undefined)).toBe(false)
+    expect(isSaneBounds({ x: 0, y: 0, width: NaN, height: 800 })).toBe(false)
+    expect(isSaneBounds({ x: 0, y: 0, width: 100, height: 100 })).toBe(false)
+  })
+})
+
+describe('boundsIntersectAny - window visible on some display', () => {
+  const primary = { x: 0, y: 0, width: 1512, height: 982 }
+  const leftExternal = { x: -2992, y: -200, width: 2992, height: 1680 }
+
+  it('true when the window overlaps a connected display (external monitor)', () => {
+    expect(
+      boundsIntersectAny({ x: -2950, y: -81, width: 1781, height: 1160 }, [primary, leftExternal]),
+    ).toBe(true)
+  })
+
+  it('false when the saved display is gone (window off all displays)', () => {
+    // Only the primary remains; the window saved at -2950 no longer intersects.
+    expect(
+      boundsIntersectAny({ x: -2950, y: -81, width: 1781, height: 1160 }, [primary]),
+    ).toBe(false)
+  })
+})
 
 describe('nextWindowBounds - cascade offset for additional windows', () => {
   it('offsets a new window down-right from the base bounds', () => {
