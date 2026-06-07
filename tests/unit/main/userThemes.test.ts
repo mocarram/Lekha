@@ -5,7 +5,7 @@
  * functions use a tmp directory.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync, readdirSync, readFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync, readdirSync, readFileSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import {
@@ -85,6 +85,18 @@ describe('listUserThemes (fs)', () => {
     expect(themes.map((t) => t.id)).toEqual(['abyss', 'zen'])
     expect(themes[0]!.label).toBe('Abyss')
     expect(themes[1]!.type).toBe('light')
+  })
+
+  it('does NOT follow a *.css symlink (no arbitrary file read)', async () => {
+    // A symlink named like a theme, pointing at a secret outside the folder.
+    const secret = join(dir, 'secret.txt')
+    writeFileSync(secret, 'TOP SECRET')
+    symlinkSync(secret, join(dir, 'evil.css'))
+    writeFileSync(join(dir, 'real.css'), '[data-theme="real"]{}')
+    const themes = await listUserThemes(dir)
+    // Only the real regular file is listed; the symlink is skipped.
+    expect(themes.map((t) => t.id)).toEqual(['real'])
+    expect(JSON.stringify(themes)).not.toContain('TOP SECRET')
   })
 })
 

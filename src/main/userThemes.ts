@@ -13,7 +13,7 @@
  * style-only content (never executed); the renderer also strips any closing
  * </style> sequence. Themes are local-trust, like WYSIWYG.
  */
-import { readdir, readFile, stat, mkdir, writeFile } from 'node:fs/promises'
+import { readdir, readFile, lstat, mkdir, writeFile } from 'node:fs/promises'
 import { join, basename, extname } from 'node:path'
 import type { UserTheme } from '@shared/types'
 
@@ -81,7 +81,10 @@ export async function listUserThemes(dir: string): Promise<UserTheme[]> {
   for (const fileName of entries.filter(isThemeFile)) {
     const filePath = join(dir, fileName)
     try {
-      const info = await stat(filePath)
+      // lstat (not stat) so symlinks are NOT followed: a symlink named *.css
+      // pointing at, say, ~/.ssh/id_rsa is rejected here (isFile() is false for
+      // a symlink), preventing arbitrary file reads via the themes folder.
+      const info = await lstat(filePath)
       if (!info.isFile()) continue
     } catch {
       continue

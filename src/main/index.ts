@@ -282,6 +282,10 @@ function applyContentSecurityPolicy(targetSession: Electron.Session): void {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [CSP_DIRECTIVES],
+        // Defense-in-depth: never MIME-sniff responses, and forbid the renderer
+        // from being framed (no remote content is loaded, but these are cheap).
+        'X-Content-Type-Options': ['nosniff'],
+        'X-Frame-Options': ['DENY'],
       },
     })
   })

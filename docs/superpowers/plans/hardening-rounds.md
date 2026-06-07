@@ -99,3 +99,7 @@ parallel review workflows and the fix decisions (fixed / wontfix + why).
 
 ### Wave 26 - FIXED: a11y focus-visible (findings 1, 7, 8, 9, 10)
 Added :focus-visible rules in global.css for .sidebar__tab-btn, .status-bar__counts/.status-bar__mode-btn, .dialog-btn, .outline__item, .file-tree__row (box-shadow var(--focus-ring) for radiused controls; inset outline for rows). +6 structural tests.
+
+### Wave 27 - FIXED: security (findings 2, 16)
+- (2) userThemes.listUserThemes now uses lstat (not stat) so a *.css SYMLINK is rejected (isFile() false) before readFile - prevents arbitrary file read via the themes folder. +1 test (symlink to a secret is skipped, content never surfaces).
+- (16) Added X-Content-Type-Options: nosniff + X-Frame-Options: DENY response headers alongside the CSP (defense-in-depth).
