@@ -6,8 +6,10 @@
  *
  * Positioning: anchored just above the table's top-left, using the client rect
  * reported by the editor. `position: fixed` keeps it in viewport coordinates,
- * matching `getBoundingClientRect()`.
+ * matching `getBoundingClientRect()`. The anchor is clamped to the window and
+ * editor-pane bounds (and hidden when the table scrolls out of view).
  */
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { TableCommand, TableState } from '@renderer/editor/EditorPane'
 
 type TableRect = NonNullable<TableState['rect']>
@@ -61,21 +63,58 @@ const TABLE_BUTTONS: ToolButton[] = [
 
 /** Vertical gap between the toolbar and the top of the table. */
 const TOOLBAR_OFFSET = 40
+/** Margin kept between the toolbar and the window edges. */
+const EDGE_MARGIN = 8
 
 export function TableToolbar({ show, rect, onCommand }: TableToolbarProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  // Clamped position + visibility, computed against the toolbar's own measured
+  // width and the editor pane's visible bounds (so it never overflows the right
+  // edge, never overlaps the top chrome, and hides when the table is scrolled
+  // out of view). Defaults to the raw anchor; useLayoutEffect refines it before
+  // paint, so there is no flicker.
+  const [pos, setPos] = useState({ top: rect.top - TOOLBAR_OFFSET, left: rect.left, visible: true })
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const width = el.offsetWidth
+    const pane = document.querySelector('.editor-pane')
+    const pr = pane?.getBoundingClientRect() ?? null
+
+    let visible = true
+    let top = rect.top - TOOLBAR_OFFSET
+    if (pr) {
+      // Hide once the table is essentially scrolled out of the editor viewport.
+      if (rect.top + rect.height < pr.top + 8 || rect.top > pr.bottom - 8) visible = false
+      // Never let the toolbar rise above the editor content area (top chrome).
+      top = Math.max(top, pr.top + 4)
+    } else {
+      top = Math.max(top, 4)
+    }
+
+    // Clamp horizontally so the (often wide) toolbar stays on screen.
+    const maxLeft = window.innerWidth - width - EDGE_MARGIN
+    const left = Math.min(Math.max(rect.left, EDGE_MARGIN), Math.max(EDGE_MARGIN, maxLeft))
+
+    setPos({ top, left, visible })
+  }, [rect.top, rect.left, rect.width, rect.height])
+
   if (!show) return null
 
   const groups = [ROW_BUTTONS, COLUMN_BUTTONS, MOVE_BUTTONS, ALIGN_BUTTONS, TABLE_BUTTONS]
 
   return (
     <div
+      ref={ref}
       className="table-toolbar"
       role="toolbar"
       aria-label="Table editing"
       style={{
         position: 'fixed',
-        top: Math.max(rect.top - TOOLBAR_OFFSET, 4),
-        left: rect.left,
+        top: pos.top,
+        left: pos.left,
+        visibility: pos.visible ? 'visible' : 'hidden',
       }}
       // Keep editor focus/selection when pressing a button: prevent the
       // mousedown from moving the caret out of the table before the command
@@ -89,7 +128,10 @@ export function TableToolbar({ show, rect, onCommand }: TableToolbarProps) {
               key={btn.cmd}
               type="button"
               className="table-toolbar-btn"
-              title={btn.title}
+              // data-tooltip drives a fast CSS tooltip (the native `title`
+              // attribute has a ~1s browser delay). aria-label keeps the
+              // accessible name for screen readers.
+              data-tooltip={btn.title}
               aria-label={btn.title}
               onClick={() => onCommand(btn.cmd)}
             >

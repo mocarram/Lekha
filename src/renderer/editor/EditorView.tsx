@@ -85,7 +85,16 @@ function computeTableState(view: ProseMirrorView): TableState {
   // read the rendered <table>'s client rect from the DOM at that position.
   const { tableStart } = selectedRect(view.state)
   const dom = view.nodeDOM(tableStart - 1)
-  const el = dom instanceof HTMLElement ? dom.closest('table') : null
+  // The columnResizing plugin renders each table inside a div.tableWrapper, so
+  // nodeDOM returns the WRAPPER, not the <table>. Resolve the actual <table>
+  // whether dom is the table itself, the wrapper (descendant), or a cell
+  // (ancestor) - otherwise no rect is produced and the toolbar never shows.
+  let el: HTMLElement | null = null
+  if (dom instanceof HTMLElement) {
+    el = dom.matches('table')
+      ? dom
+      : dom.querySelector('table') ?? dom.closest('table')
+  }
   if (!el) return { inTable: true }
   const r = el.getBoundingClientRect()
   return {

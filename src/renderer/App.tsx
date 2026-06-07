@@ -232,6 +232,33 @@ export default function App() {
   // change via EditorPane's onTableStateChange.
   const [tableState, setTableState] = useState<TableState>({ inTable: false })
 
+  // Keep the floating table toolbar glued to the table while editing: the rect
+  // is reported on selection/doc changes, but NOT on scroll/resize, so without
+  // this the toolbar drifts away from the table when the editor scrolls. While
+  // the caret is in a table, re-read the table's rect on editor-pane scroll and
+  // window resize (rAF-throttled) and refresh the anchor.
+  useEffect(() => {
+    if (!tableState.inTable) return undefined
+    const pane = document.querySelector('.editor-pane')
+    if (!pane) return undefined
+    let raf = 0
+    const reposition = (): void => {
+      raf = 0
+      const next = editorRef.current?.getTableState()
+      if (next) setTableState(next)
+    }
+    const schedule = (): void => {
+      if (raf === 0) raf = requestAnimationFrame(reposition)
+    }
+    pane.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      if (raf !== 0) cancelAnimationFrame(raf)
+      pane.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [tableState.inTable])
+
   // Open the link dialog from a click on a link in the editor (edit mode).
   const openLinkFromClick = useCallback((info: LinkInfo) => {
     setLinkState((prev) => ({
