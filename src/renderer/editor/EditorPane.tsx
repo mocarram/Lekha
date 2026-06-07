@@ -125,7 +125,7 @@ interface EditorPaneProps {
    * Called whenever content changes in either mode.
    * Receives the new markdown string so the app can track dirty state.
    */
-  onChange?: (markdown: string) => void
+  onChange?: (markdown: string, doc?: Node) => void
   /** Called when the user clicks a link in the WYSIWYG editor. */
   onLinkClick?: (info: LinkInfo) => void
   /**
@@ -188,14 +188,18 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
     // Update the ref on every render so it always points to the latest prop
     onChangeRef.current = onChange
 
-    // Called when the ProseMirror doc changes; receives a ProseMirror Node
+    // Called when the ProseMirror doc changes; receives a ProseMirror Node.
+    // We pass the live `doc` up alongside the serialized markdown so the parent
+    // can derive outline/word-count WITHOUT re-parsing the markdown string
+    // (which is O(document) per keystroke on large docs).
     const handleWysiwygChange = useCallback((doc: Node) => {
       const md = serializeMarkdown(doc)
       setMarkdownState(md)
-      onChangeRef.current?.(md)
+      onChangeRef.current?.(md, doc)
     }, [])
 
-    // Called when the CodeMirror doc changes; receives raw markdown text
+    // Called when the CodeMirror doc changes; receives raw markdown text. No PM
+    // doc is available in source mode, so the parent re-parses the string.
     const handleSourceChange = useCallback((value: string) => {
       setMarkdownState(value)
       onChangeRef.current?.(value)

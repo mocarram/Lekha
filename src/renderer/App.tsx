@@ -10,6 +10,7 @@ import { useStartup } from '@renderer/hooks/useStartup'
 import { useAutoSave } from '@renderer/hooks/useAutoSave'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { parseMarkdown } from '@renderer/editor/parser'
+import type { Node as ProseMirrorNode } from 'prosemirror-model'
 import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
 import { TitleBar } from '@renderer/components/TitleBar'
@@ -70,8 +71,7 @@ Start typing to edit this document. Your changes are tracked automatically.
  * results into the editor store. Shared by the mount effect (initial document)
  * and the debounced handler inside handleChange (subsequent edits).
  */
-function recomputeDerived(markdown: string): void {
-  const doc = parseMarkdown(markdown)
+function recomputeDerived(doc: ProseMirrorNode): void {
   useEditorStore.getState().setOutline(getOutline(doc))
   useEditorStore.getState().setCounts(countWords(doc))
 }
@@ -338,7 +338,7 @@ export default function App() {
   // because handleChange (onChange) never fires for the pre-loaded welcome doc.
   useEffect(() => {
     useEditorStore.getState().setMarkdown(WELCOME_MARKDOWN)
-    recomputeDerived(WELCOME_MARKDOWN)
+    recomputeDerived(parseMarkdown(WELCOME_MARKDOWN))
     // Seed the tab session with the initial document so there is always exactly
     // one active tab matching editorStore (the TabBar stays hidden at one tab).
     const docs = useDocumentsStore.getState()
@@ -352,7 +352,7 @@ export default function App() {
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
   }, [])
 
-  const handleChange = useCallback((markdown: string) => {
+  const handleChange = useCallback((markdown: string, doc?: ProseMirrorNode) => {
     // 1. Update store markdown and mark dirty immediately.
     const store = useEditorStore.getState()
     store.setMarkdown(markdown)
@@ -377,14 +377,17 @@ export default function App() {
       window.lekha.setDocumentState({ title, dirty: true, path })
     }
 
-    // 3. Debounce the heavier parse + outline/count recomputation (~150ms).
-    //    Cancels any pending timer so rapid keystrokes only trigger one parse.
+    // 3. Debounce the outline/word-count recomputation (~150ms). In WYSIWYG mode
+    //    the live ProseMirror `doc` is passed through, so we derive directly from
+    //    it (no re-parse). In source mode no doc is available, so we parse the
+    //    markdown string once per debounce window. PM nodes are immutable, so
+    //    capturing `doc` across the timer is safe.
     if (debounceTimer.current !== null) {
       clearTimeout(debounceTimer.current)
     }
     debounceTimer.current = setTimeout(() => {
       debounceTimer.current = null
-      recomputeDerived(markdown)
+      recomputeDerived(doc ?? parseMarkdown(markdown))
     }, 150)
   }, [])
 
