@@ -1,11 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import 'katex/dist/katex.min.css'
+// tokens.css is the design-token contract (Layer 1 palette + Layer 2 semantic
+// tokens + layout/font defaults). It MUST be imported before global.css and the
+// theme files so its :root defaults exist for everything that follows.
+import './styles/tokens.css'
 import './styles/global.css'
 // All theme files are bundled together. Switching themes is instant: setting
 // document.documentElement.dataset.theme selects the active token override.
-// github.css defines the :root defaults (light). night.css and sepia.css each
-// override the universal design tokens under their [data-theme="..."] selector.
+// github.css holds the default (light) component rules; the token defaults live
+// in tokens.css. night.css and sepia.css each override the universal design
+// tokens under their [data-theme="..."] selector.
 import './styles/themes/github.css'
 import './styles/themes/night.css'
 import './styles/themes/graphite.css'

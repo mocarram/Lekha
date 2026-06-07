@@ -1,62 +1,15 @@
 /*
- * themes/github.css - WYSIWYG GitHub theme for Lekha (default / light)
+ * themes/github.css - GitHub theme component rules (default / light).
  *
- * DESIGN TOKEN SYSTEM
- * -------------------
- * All theme-relevant colors are defined as CSS custom properties in two layers:
- *
- *   Layer 1 - Palette constants (--gh-*): the specific GitHub color values.
- *   Layer 2 - Universal design tokens (--bg, --text, etc.): semantic aliases
- *             that point at the palette values.
- *
- * Component CSS (section 2+) exclusively uses Layer 2 tokens. Switching
- * themes works by overriding only Layer 2 tokens in a [data-theme="..."]
- * block (see night.css and sepia.css) - component rules never need to change.
- *
- * Token catalogue (Layer 2):
- *   --bg               Editor / app background
- *   --surface          Panel / sidebar / titlebar background
- *   --border           Default border color
- *   --border-light     Slightly lighter border (headings, inputs)
- *   --text             Primary body text
- *   --text-muted       Secondary / de-emphasized text
- *   --text-sub         Blockquote / h6 / muted-interactive text
- *   --text-dark        Emphasized text (active items)
- *   --text-file        File-tree and outline item text
- *   --heading          Heading color (same as --text for GitHub)
- *   --link             Hyperlinks and accent
- *   --accent           Accent / focus color (same as --link)
- *   --selection        Text selection background
- *   --code-bg          Fenced code block background
- *   --code-bg-inline   Inline code background
- *   --code-text        Code text color (same as --text)
- *   --blockquote-text  Blockquote body text
- *   --blockquote-border Blockquote left border
- *   --table-border     Table cell borders
- *   --table-header-bg  Table header / alternating row background
- *   --sidebar-bg       Sidebar panel background (alias of --surface)
- *   --sidebar-active   Active file/outline row background
- *   --sidebar-hover    Hover file/outline row background
- *   --titlebar-bg      Titlebar background
- *   --statusbar-text   Status bar text color (alias of --text-muted)
- *   --find-match       Find highlight (non-current)
- *   --find-match-current Find highlight (current match)
- *   --hr-color         Horizontal rule color
- *   --hljs-keyword     Syntax: keyword / deletion
- *   --hljs-string      Syntax: string / regexp / addition
- *   --hljs-comment     Syntax: comment / quote
- *   --hljs-function    Syntax: function / title / type / class
- *   --hljs-number      Syntax: number / literal / built_in / attr / symbol / bullet
- *   --hljs-tag         Syntax: tag / name
- *   --hljs-attribute   Syntax: attribute / variable / template-variable
- *   --hljs-section     Syntax: section header
- *   --font-editor      Editor body font stack
- *   --font-mono        Monospace font stack
- *   --font-ui          UI chrome font stack
+ * The design-token CONTRACT (Layer 1 palette + Layer 2 semantic tokens) now
+ * lives in styles/tokens.css - the single source of truth imported before this
+ * file. This file holds ONLY token-driven component rules (app chrome, editor
+ * typography, code, tables, find, scrollbars, math, diagrams). It consumes
+ * Layer-2 tokens exclusively and never declares them, so it doubles as the
+ * "default" appearance: tokens.css :root already carries the GitHub-light
+ * values, and other themes override those tokens under [data-theme="..."].
  *
  * Organization:
- *   1. Palette constants (--gh-*)
- *   2. Universal design tokens (:root - Layer 2)
  *   3. App chrome (title bar, status bar, sidebar)
  *   4. Editor column (ProseMirror container)
  *   5. Editor typography (headings, paragraph, lists, blockquote, hr, images)
@@ -71,162 +24,6 @@
  *  14. Diagrams (Mermaid)
  */
 
-/* ===========================================================================
- * 1. Palette constants (GitHub light colors)
- * =========================================================================== */
-
-:root {
-  /* Surface */
-  --gh-bg:           #ffffff;
-  --gh-surface:      #fafafa;
-  --gh-border:       #ededed;
-  --gh-border-light: #e1e4e8;
-
-  /* Text */
-  --gh-text:         #333333;
-  --gh-text-muted:   #9b9b9b;
-  --gh-text-sub:     #6a737d;
-  --gh-text-dark:    #2b2b2b;
-  --gh-text-file:    #4a4a4a;
-
-  /* Accent / link */
-  --gh-link:         #4183c4;
-
-  /* Editor content */
-  --gh-blockquote-border: #dfe2e5;
-  --gh-table-border:      #dfe2e5;
-  --gh-table-header-bg:   #f6f8fa;
-  --gh-code-bg:           #f6f8fa;
-  --gh-code-bg-inline:    #f8f8f8;
-  --gh-hr-color:          #e1e4e8;
-
-  /* Sidebar rows (hover only; the active row uses an accent-derived tint set in
-   * the Layer-2 tokens below, so it stays consistent across every theme). */
-  --gh-row-hover-bg:  #efefef;
-
-  /* Find highlights */
-  --gh-find-match:         #fff3b0;
-  --gh-find-match-current: #ffb454;
-
-  /* Markdown ==highlight== (mark) */
-  --gh-highlight-bg:   #fff8c5;
-  --gh-highlight-text: #24292e;
-
-  /* Selection */
-  --gh-selection: #d7e4ff;
-
-  /* GitHub light hljs token colors */
-  --gh-hljs-keyword:   #d73a49;
-  --gh-hljs-string:    #032f62;
-  --gh-hljs-comment:   #6a737d;
-  --gh-hljs-function:  #6f42c1;
-  --gh-hljs-number:    #005cc5;
-  --gh-hljs-tag:       #22863a;
-  --gh-hljs-attribute: #e36209;
-  --gh-hljs-section:   #005cc5;
-}
-
-/* ===========================================================================
- * 2. Universal design tokens (:root - these are the tokens components use)
- *
- * Switching themes = overriding these in a [data-theme="..."] selector.
- * Component CSS never uses --gh-* directly.
- * =========================================================================== */
-
-:root {
-  /* Surfaces */
-  --bg:              var(--gh-bg);
-  --surface:         var(--gh-surface);
-  --border:          var(--gh-border);
-  --border-light:    var(--gh-border-light);
-
-  /* Text */
-  --text:            var(--gh-text);
-  --text-muted:      var(--gh-text-muted);
-  --text-sub:        var(--gh-text-sub);
-  --text-dark:       var(--gh-text-dark);
-  --text-file:       var(--gh-text-file);
-  --heading:         var(--gh-text);
-
-  /* Accent */
-  --link:            var(--gh-link);
-  --accent:          var(--gh-link);
-
-  /* Editor content */
-  --selection:          var(--gh-selection);
-  --code-bg:            var(--gh-code-bg);
-  --code-bg-inline:     var(--gh-code-bg-inline);
-  --code-text:          var(--gh-text);
-  --blockquote-text:    var(--gh-text-sub);
-  --blockquote-border:  var(--gh-blockquote-border);
-  --table-border:       var(--gh-table-border);
-  --table-header-bg:    var(--gh-table-header-bg);
-  --hr-color:           var(--gh-hr-color);
-
-  /* Sidebar / chrome.
-   * The active-row background is a faint, accent-tinted wash (WYSIWYG-style) so
-   * the selection whispers instead of shouting. Because it is derived from
-   * --accent via color-mix, every theme gets a coherent subtle highlight without
-   * needing its own --sidebar-active override. */
-  --sidebar-bg:      var(--gh-surface);
-  --sidebar-active:  color-mix(in srgb, var(--accent) 14%, transparent);
-  --sidebar-hover:   var(--gh-row-hover-bg);
-  --titlebar-bg:     var(--gh-surface);
-  --statusbar-text:  var(--gh-text-muted);
-
-  /* Find highlights */
-  --find-match:         var(--gh-find-match);
-  --find-match-current: var(--gh-find-match-current);
-  --highlight-bg:       var(--gh-highlight-bg);
-  --highlight-text:     var(--gh-highlight-text);
-
-  /* Syntax highlighting tokens */
-  --hljs-keyword:   var(--gh-hljs-keyword);
-  --hljs-string:    var(--gh-hljs-string);
-  --hljs-comment:   var(--gh-hljs-comment);
-  --hljs-function:  var(--gh-hljs-function);
-  --hljs-number:    var(--gh-hljs-number);
-  --hljs-tag:       var(--gh-hljs-tag);
-  --hljs-attribute: var(--gh-hljs-attribute);
-  --hljs-section:   var(--gh-hljs-section);
-
-  /* Typography */
-  --font-editor: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-mono:   "SF Mono", "Consolas", "Liberation Mono", Menlo, monospace;
-  --font-ui:     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-
-  /* Editor layout metrics (theme-overridable). A theme can widen the reading
-     column, scale the type, or loosen line spacing without touching the engine.
-     The width is WYSIWYG-like: it expands to fill the available pane (88%) up to
-     a 1150px cap, so wide windows use the space instead of leaving big empty
-     gutters, while narrower windows keep comfortable side margins. */
-  --editor-max-width:  min(1150px, 88%);
-  --editor-font-scale: 1;
-  --editor-line-height: 1.7;
-
-  /* Semantic tokens for danger, overlays, shadows, and on-accent text.
-   * Dark themes override these where the light defaults would look wrong. */
-  --danger:              #cb2431;   /* error/delete red (legible on light bg) */
-  --on-accent:           #ffffff;   /* text on accent-colored backgrounds */
-  --on-accent-muted:     rgba(255, 255, 255, 0.82);  /* dimmed text on accent */
-  --overlay-scrim:       rgba(0, 0, 0, 0.35);        /* standard modal backdrop */
-  --overlay-scrim-strong: rgba(0, 0, 0, 0.82);       /* heavy backdrop (lightbox) */
-  --shadow:              0 8px 32px rgba(0, 0, 0, 0.18);  /* standard elevation */
-  --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.14);   /* small elevation (toolbars) */
-  --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.28); /* large elevation (palette) */
-
-  /* Soft accent focus ring shared by inputs, checkboxes, and switches. Derived
-   * from --accent so every theme gets a coherent glow. */
-  --focus-ring:          0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
-
-  /* Override the structural fallbacks defined in global.css */
-  --color-bg:         var(--bg);
-  --color-surface:    var(--surface);
-  --color-border:     var(--border);
-  --color-text:       var(--text);
-  --color-text-muted: var(--text-muted);
-  --color-accent:     var(--accent);
-}
 
 /* ===========================================================================
  * 3. App Chrome
@@ -486,12 +283,9 @@
  *
  * All three list flavors share the SAME left padding so bullets, numbers, and
  * checkboxes line up at one consistent left edge (WYSIWYG-tight alignment). The
- * `--list-indent` token drives both the outer indent and each nested level.
+ * `--list-indent` token drives both the outer indent and each nested level
+ * (declared in tokens.css; override per-theme there).
  */
-:root {
-  --list-indent: 1.6em;
-}
-
 .editor-pane .ProseMirror ul,
 .editor-pane .ProseMirror ol,
 .editor-pane .ProseMirror ul.contains-task-list {
@@ -1047,10 +841,7 @@
  * need to override --focus-dim if a different opacity looks better.
  * =========================================================================== */
 
-/* Design token: override in night.css / sepia.css if needed. */
-:root {
-  --focus-dim: 0.25;
-}
+/* --focus-dim is declared in tokens.css; override per-theme there if needed. */
 
 /* Dim all top-level blocks when focus mode is active. */
 .editor-pane.focus-mode .ProseMirror > * {

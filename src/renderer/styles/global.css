@@ -8,27 +8,10 @@
  */
 
 /* ---------------------------------------------------------------------------
- * CSS variables - structural + neutral-color fallbacks
- * M14 will override these with the approved GitHub theme palette.
+ * Design tokens (layout metrics, semantic colors, fonts) now live in the
+ * single contract file styles/tokens.css, imported before this file. global.css
+ * holds ONLY the structural skeleton and consumes those tokens via var().
  * --------------------------------------------------------------------------- */
-:root {
-  --titlebar-height: 34px;
-  --statusbar-height: 26px;
-  --sidebar-width: 240px;
-
-  /* Neutral fallback colors - M14 will replace these */
-  --color-bg: #ffffff;
-  --color-surface: #f5f5f5;
-  --color-border: #e0e0e0;
-  --color-text: #333333;
-  --color-text-muted: #888888;
-  --color-accent: #0078d4;
-
-  /* Typography fallbacks */
-  --font-ui: system-ui, -apple-system, sans-serif;
-  --font-editor: Georgia, 'Times New Roman', serif;
-  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-}
 
 /* ---------------------------------------------------------------------------
  * Reset

@@ -43,6 +43,10 @@ import { renderMermaid } from '../editor/mermaid'
 // NOTE: These are imported as raw CSS strings by Vite's ?raw query. In tests
 // (vitest/happy-dom) a plugin stubs ?raw imports to empty strings so no Vite
 // pipeline is needed at test time. The actual CSS appears in the build output.
+// tokens.css carries the design-token defaults (Layer 1 palette + Layer 2
+// semantic tokens); it must be inlined BEFORE github.css (which now holds only
+// token-driven component rules) so exported documents resolve every var().
+import tokensCss from '../styles/tokens.css?raw'
 import githubCss from '../styles/themes/github.css?raw'
 import katexCss from 'katex/dist/katex.min.css?raw'
 import hljsCss from 'highlight.js/styles/github.css?raw'
@@ -400,7 +404,7 @@ export async function buildExportHtml(
   // 2. Concatenate all CSS (github theme + katex + hljs), unless the caller
   //    asked for an unstyled copy ("Copy without Theme Styling").
   const cssBlob =
-    (opts?.includeCss ?? true) ? [githubCss, katexCss, hljsCss].join('\n\n') : ''
+    (opts?.includeCss ?? true) ? [tokensCss, githubCss, katexCss, hljsCss].join('\n\n') : ''
 
   // 3. Assemble the complete HTML document
   return buildDocument(body, title, cssBlob)

@@ -691,3 +691,15 @@ Implemented (i, step 4 of 4 - COMPLETE):
 - **Persistence**: Settings gains `openTabPaths: string[]` + `activeTabPath: string|null` (types.ts + main DEFAULTS + settings.test). useStartup restores saved tabs on launch (openPath per path, skip missing, then selectTab the active one) and subscribes to documentsStore to debounce-persist the tab set (saved paths only; signature-compared so per-keystroke markdown edits don't trigger writes). fileOps held in a ref synced via effect (no ref-write during render).
 
 Tests: +6 nextTabId pure, +1 Window menu, +2 settings round-trip; updated all Settings mock literals (folderSearch/useFileOps/imagePaste/preferences) with the two new fields; +1 e2e (command-driven cycle + close). 1291 unit + 9 e2e green. DOCUMENT TABS feature COMPLETE (23a store, 23b TabBar, 23c wiring, 23d persistence+keyboard).
+
+### Wave 24a - Design system: extract tokens.css contract (`feat/design-system-tokens`)
+Implemented (2, step 1 - pure relocation, zero visual change):
+- **src/renderer/styles/tokens.css** (new): THE single documented design-token contract. Layer 1 palette primitives (--gh-*), Layer 2 semantic tokens (--bg/--surface/--text/--accent/--border/editor layout/fonts/shadows/focus-ring/danger/overlay), the component-scoped tokens --list-indent/--focus-dim, and the legacy --color-* aliases mapped onto Layer-2. Heavily commented as the author-facing catalogue.
+- **github.css**: stripped BOTH :root token blocks + the two stray component :root token defaults; now holds ONLY token-driven component rules (0 --gh-* refs, 0 :root blocks). Slim header points to tokens.css.
+- **global.css**: removed its :root color/font/layout fallback block (now in tokens.css); pure structural skeleton.
+- **main.tsx**: import tokens.css FIRST (before global.css + themes).
+- **buildHtml.ts** (export): inline tokens.css?raw before github.css so exported docs resolve every var().
+
+Token namespaces reconciled: --color-* are now aliases of the Layer-2 semantic tokens (one effective namespace). Verified visually identical (GitHub-light screenshot) + e2e.
+
+Tests: +9 contract tests (tokens.css declares all token layers; github.css has no --gh-/:root; global.css has no color literals). 1300 unit + 9 e2e green. Next: 24b token-only themes.
