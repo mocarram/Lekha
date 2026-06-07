@@ -465,3 +465,42 @@ test('clicking a task checkbox toggles the tick glyph, not just the text', async
 // unit tests in tests/unit/main/.
 //
 // test.skip('save round-trip', ...)
+
+// ---------------------------------------------------------------------------
+// Test 9: Document tabs - new creates tabs, switching swaps content, close removes
+// ---------------------------------------------------------------------------
+// Drives the documentsStore integration end-to-end via the 'new' AppCommand
+// (same IPC path as File > New). Uses blank Untitled tabs so closing never hits
+// the native unsaved-changes dialog (which Playwright cannot drive).
+test('document tabs: new creates tabs, switching swaps content, close removes a tab', async () => {
+  const win = sharedWin
+
+  // Baseline: a single document -> the tab bar is hidden.
+  await expect(win.locator('.tab-bar')).toHaveCount(0)
+
+  // Create a second document -> the tab bar appears with two tabs.
+  await sendCommand(sharedApp, 'new')
+  await expect(win.locator('.tab-bar')).toHaveCount(1)
+  await expect(win.locator('.tab')).toHaveCount(2)
+
+  const tabs = win.locator('.tab')
+
+  // The freshly created tab is active and its editor is blank.
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  const blankText = (await win.locator('.ProseMirror').innerText()).trim()
+  expect(blankText.length).toBe(0)
+
+  // Switch back to the first tab -> its content reloads into the editor.
+  await tabs.nth(0).click()
+  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true')
+  const firstText = (await win.locator('.ProseMirror').innerText()).trim()
+  expect(firstText.length).toBeGreaterThan(0)
+
+  // The blank second tab is clean (no unsaved-changes prompt on close).
+  await expect(tabs.nth(1)).not.toHaveClass(/tab--dirty/)
+
+  // Close the blank tab via its close button -> back to a single document,
+  // so the tab bar hides again.
+  await tabs.nth(1).locator('.tab__close').click()
+  await expect(win.locator('.tab-bar')).toHaveCount(0)
+})

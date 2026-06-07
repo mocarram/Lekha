@@ -4,7 +4,12 @@ import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
-import { normalizeLineEndings } from '@shared/eol'
+import {
+  useDocumentsStore,
+  type DocumentTab,
+} from '@renderer/store/documentsStore'
+import { normalizeLineEndings, detectEol } from '@shared/eol'
+import { deriveTitle } from '@shared/pathTitle'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 
 // ---------------------------------------------------------------------------
@@ -58,6 +63,17 @@ export interface FileOps {
    * no path or the user cancels the picker.
    */
   moveCurrentTo(): Promise<void>
+  /**
+   * Switch the active tab. Snapshots the current document into its tab, then
+   * loads the target tab's snapshot into the editor. No-op if already active.
+   */
+  selectTab(id: string): Promise<void>
+  /**
+   * Close a tab. When the tab has unsaved changes it is first activated and the
+   * save guard runs (cancel aborts the close). When the last tab is closed a
+   * fresh blank Untitled document takes its place.
+   */
+  closeTab(id: string): Promise<void>
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +93,7 @@ export interface FileOps {
 export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileOps {
   const editorStore = useEditorStore
   const workspaceStore = useWorkspaceStore
+  const documentsStore = useDocumentsStore
 
   // -------------------------------------------------------------------------
   // Private helpers
@@ -107,8 +124,18 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       // Sync OS window title / dirty indicator via the preload bridge.
       const { title } = editorStore.getState()
       window.lekha.setDocumentState({ title, dirty: false, path })
+
+      // Keep the active tab snapshot in sync with the freshly loaded content
+      // (matters for Revert to Saved, which reloads an already-open tab).
+      documentsStore.getState().updateActive({
+        markdown: md,
+        isDirty: false,
+        path,
+        title,
+        eol: editorStore.getState().eol,
+      })
     },
-    [editorRef, editorStore, workspaceStore],
+    [editorRef, editorStore, workspaceStore, documentsStore],
   )
 
   /**
@@ -131,9 +158,62 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
 
       const { title } = editorStore.getState()
       window.lekha.setDocumentState({ title, dirty: false, path })
+
+      // Mirror the saved state into the active tab snapshot.
+      documentsStore.getState().updateActive({ markdown: md, isDirty: false, path, title })
     },
-    [editorRef, editorStore, workspaceStore],
+    [editorRef, editorStore, workspaceStore, documentsStore],
   )
+
+  // -------------------------------------------------------------------------
+  // Tab helpers (snapshot / load / blank)
+  // -------------------------------------------------------------------------
+
+  /** Recompute outline + word/char counts from a markdown string. */
+  const recompute = useCallback((md: string): void => {
+    const doc = parseMarkdown(md)
+    editorStore.getState().setOutline(getOutline(doc))
+    editorStore.getState().setCounts(countWords(doc))
+  }, [editorStore])
+
+  /**
+   * Snapshot the live editor + active-document state back into the active tab,
+   * so switching away preserves unsaved edits and metadata. No-op when no tab
+   * is active.
+   */
+  const snapshotActive = useCallback((): void => {
+    const active = documentsStore.getState().activeDocument()
+    if (active === null) return
+    const md = editorRef.current?.getMarkdown() ?? active.markdown
+    const { isDirty, eol, path, title } = editorStore.getState()
+    documentsStore.getState().updateActive({ markdown: md, isDirty, eol, path, title })
+  }, [editorRef, editorStore, documentsStore])
+
+  /**
+   * Load a tab's snapshot into the editor + editor store WITHOUT touching the
+   * disk. Preserves the snapshot's dirty flag and line-ending style.
+   */
+  const loadTab = useCallback((tab: DocumentTab): void => {
+    editorRef.current?.setMarkdown(tab.markdown)
+    // openFile resets dirty=false, mode=wysiwyg, eol=detect, derives title.
+    editorStore.getState().openFile(tab.path, tab.markdown)
+    editorStore.getState().setEol(tab.eol)
+    if (tab.isDirty) editorStore.getState().markDirty()
+    recompute(tab.markdown)
+    window.lekha.setDocumentState({
+      title: editorStore.getState().title,
+      dirty: tab.isDirty,
+      path: tab.path,
+    })
+  }, [editorRef, editorStore, recompute])
+
+  /** Reset the editor to a blank Untitled document (no tab bookkeeping). */
+  const blankEditor = useCallback((): void => {
+    editorRef.current?.setMarkdown('')
+    editorStore.getState().newFile()
+    recompute('')
+    window.lekha.setDocumentState({ title: 'Untitled', dirty: false, path: null })
+  }, [editorRef, editorStore, recompute])
 
   // -------------------------------------------------------------------------
   // Public operations
@@ -194,32 +274,99 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     return false
   }, [editorStore, save])
 
+  // Open a file as a tab. With tabs, opening NEVER discards the current
+  // document (it stays open in its own tab) so there is no unsaved guard here -
+  // the guard runs on tab close / app quit instead.
+  //
+  // Rules:
+  //   - Already open (same path)  -> just activate that tab.
+  //   - Active tab is a blank Untitled (no path, not dirty) -> reuse it in
+  //     place so the welcome/blank tab is replaced rather than left behind.
+  //   - Otherwise -> snapshot the current doc into its tab and add a new tab.
   const openPath = useCallback(
     async (path: string): Promise<void> => {
-      if (!(await guardUnsaved())) return
+      const existing = documentsStore.getState().documents.find((d) => d.path === path)
+      if (existing) {
+        const active = documentsStore.getState().activeDocument()
+        if (active?.id !== existing.id) {
+          snapshotActive()
+          documentsStore.getState().activateDocument(existing.id)
+          const tab = documentsStore.getState().activeDocument()
+          if (tab) loadTab(tab)
+        }
+        return
+      }
+
+      const active = documentsStore.getState().activeDocument()
+      const reuseBlank =
+        active !== null && active.path === null && !active.isDirty && active.markdown.trim() === ''
+
       const md = await window.lekha.readFile(path)
+      if (reuseBlank) {
+        documentsStore.getState().updateActive({
+          path,
+          title: deriveTitle(path),
+          markdown: md,
+          isDirty: false,
+          eol: detectEol(md),
+        })
+      } else {
+        snapshotActive()
+        documentsStore.getState().openDocument({ path, markdown: md })
+      }
       await loadInto(path, md)
     },
-    [guardUnsaved, loadInto],
+    [documentsStore, snapshotActive, loadTab, loadInto],
   )
 
   const open = useCallback(async (): Promise<void> => {
-    if (!(await guardUnsaved())) return
     const path = await window.lekha.openFileDialog()
     if (path !== null) {
-      // openPath's own guardUnsaved would re-prompt; call loadInto directly
-      // since we already confirmed above.
-      const md = await window.lekha.readFile(path)
-      await loadInto(path, md)
+      await openPath(path)
     }
-  }, [guardUnsaved, loadInto])
+  }, [openPath])
 
-  const newFile = useCallback(async (): Promise<void> => {
-    if (!(await guardUnsaved())) return
-    editorRef.current?.setMarkdown('')
-    editorStore.getState().newFile()
-    window.lekha.setDocumentState({ title: 'Untitled', dirty: false, path: null })
-  }, [editorRef, editorStore, guardUnsaved])
+  // New document = a new blank tab. Does not discard the current doc (it stays
+  // open in its tab), so no unsaved guard is needed.
+  const newFile = useCallback((): Promise<void> => {
+    snapshotActive()
+    documentsStore.getState().newDocument()
+    blankEditor()
+    return Promise.resolve()
+  }, [snapshotActive, documentsStore, blankEditor])
+
+  // Switch the active tab: snapshot the current doc, then load the target.
+  const selectTab = useCallback((id: string): Promise<void> => {
+    if (documentsStore.getState().activeId === id) return Promise.resolve()
+    snapshotActive()
+    documentsStore.getState().activateDocument(id)
+    const tab = documentsStore.getState().activeDocument()
+    if (tab) loadTab(tab)
+    return Promise.resolve()
+  }, [documentsStore, snapshotActive, loadTab])
+
+  // Close a tab. Dirty tabs are activated and run the save guard first (cancel
+  // aborts). Closing the last tab leaves a fresh blank Untitled in its place.
+  const closeTab = useCallback(async (id: string): Promise<void> => {
+    const tab = documentsStore.getState().documents.find((d) => d.id === id)
+    if (tab === undefined) return
+    // Activate the target so the guard + save act on the right document.
+    if (documentsStore.getState().activeId !== id) {
+      await selectTab(id)
+    }
+    if (editorStore.getState().isDirty) {
+      if (!(await guardUnsaved())) return // user cancelled -> abort close
+    }
+    documentsStore.getState().closeDocument(id)
+    const next = documentsStore.getState().activeDocument()
+    if (next) {
+      loadTab(next)
+    } else {
+      // No tabs remain: keep a blank Untitled so there is always a document.
+      documentsStore.getState().newDocument()
+      blankEditor()
+    }
+  }, [documentsStore, selectTab, editorStore, guardUnsaved, loadTab, blankEditor])
 
   // openFolder does NOT replace the current document, so it does not need
   // the unsaved-changes guard.
@@ -281,9 +428,17 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       return
     }
     await window.lekha.deletePath(path)
-    await newFile()
+    // The file is gone: mark the active doc clean so closing its tab does not
+    // prompt to save, then close it (a blank Untitled replaces the last tab).
+    editorStore.getState().markClean()
+    const activeId = documentsStore.getState().activeId
+    if (activeId !== null) {
+      await closeTab(activeId)
+    } else {
+      await newFile()
+    }
     await refreshTree()
-  }, [editorStore, newFile, refreshTree])
+  }, [editorStore, documentsStore, closeTab, newFile, refreshTree])
 
   // Move the current file into a folder chosen via the native picker.
   const moveCurrentTo = useCallback(async (): Promise<void> => {
@@ -309,5 +464,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     duplicateCurrent,
     deleteCurrent,
     moveCurrentTo,
+    selectTab,
+    closeTab,
   }
 }

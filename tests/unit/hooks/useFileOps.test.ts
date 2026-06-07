@@ -10,6 +10,7 @@ import { createRef } from 'react'
 import { useFileOps } from '../../../src/renderer/hooks/useFileOps'
 import { useEditorStore } from '../../../src/renderer/store/editorStore'
 import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
+import { useDocumentsStore } from '../../../src/renderer/store/documentsStore'
 import type { EditorPaneHandle } from '../../../src/renderer/editor/EditorPane'
 import type { LekhaAPI } from '../../../src/preload/api'
 import type { FileNode } from '../../../src/shared/types'
@@ -152,6 +153,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
 
 beforeEach(() => {
   useEditorStore.getState().reset()
+  useDocumentsStore.getState().reset()
   useWorkspaceStore.setState({
     rootFolder: null,
     fileTree: [],
@@ -377,12 +379,14 @@ describe('useFileOps - newFile()', () => {
     expect(confirmUnsaved).not.toHaveBeenCalled()
   })
 
-  it('aborts when dirty and user cancels', async () => {
+  it('adds a new blank tab without prompting, preserving the current dirty doc', async () => {
     const { handle, setMarkdown } = makeMockEditor()
     const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
     const mockLekha = makeMockLekha({ confirmUnsaved })
     vi.stubGlobal('lekha', mockLekha)
 
+    // Seed a current dirty document tab.
+    useDocumentsStore.getState().openDocument({ path: '/file.md', markdown: '# Dirty' })
     useEditorStore.getState().openFile('/file.md', '# Dirty')
     useEditorStore.getState().markDirty()
 
@@ -392,9 +396,13 @@ describe('useFileOps - newFile()', () => {
     const { result } = renderHook(() => useFileOps(editorRef))
     await act(async () => { await result.current.newFile() })
 
-    // Should NOT have cleared the editor.
-    expect(setMarkdown).not.toHaveBeenCalled()
-    expect(useEditorStore.getState().path).toBe('/file.md')
+    // With tabs, New never discards the current doc - no prompt.
+    expect(confirmUnsaved).not.toHaveBeenCalled()
+    // The previous tab is preserved; a new blank Untitled tab is active.
+    expect(useDocumentsStore.getState().documents).toHaveLength(2)
+    const active = useDocumentsStore.getState().activeDocument()
+    expect(active?.path).toBeNull()
+    expect(setMarkdown).toHaveBeenCalledWith('')
   })
 })
 
@@ -488,30 +496,7 @@ describe('useFileOps - guardUnsaved (via open())', () => {
     expect(setMarkdown).toHaveBeenCalledWith('# Note')
   })
 
-  it('proceeds and discards when dirty and user picks "Don\'t Save"', async () => {
-    const { handle, setMarkdown } = makeMockEditor()
-    const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
-    const readFile = vi.fn((_p: string) => Promise.resolve('# Note'))
-    const confirmUnsaved = vi.fn(() => Promise.resolve('dontSave' as const))
-    const mockLekha = makeMockLekha({ openFileDialog, readFile, confirmUnsaved })
-    vi.stubGlobal('lekha', mockLekha)
-
-    useEditorStore.getState().openFile('/old.md', '# Old')
-    useEditorStore.getState().markDirty()
-
-    const editorRef = createRef<EditorPaneHandle>()
-    ;(editorRef as { current: EditorPaneHandle }).current = handle
-
-    const { result } = renderHook(() => useFileOps(editorRef))
-    await act(async () => { await result.current.open() })
-
-    expect(confirmUnsaved).toHaveBeenCalledOnce()
-    expect(readFile).toHaveBeenCalledWith('/docs/note.md')
-    expect(setMarkdown).toHaveBeenCalledWith('# Note')
-    expect(useEditorStore.getState().path).toBe('/docs/note.md')
-  })
-
-  it('aborts when dirty and user picks "Cancel"', async () => {
+  it('opening a file while dirty does NOT prompt (it opens in a new tab)', async () => {
     const { handle, setMarkdown } = makeMockEditor()
     const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
     const readFile = vi.fn((_p: string) => Promise.resolve('# Note'))
@@ -519,6 +504,8 @@ describe('useFileOps - guardUnsaved (via open())', () => {
     const mockLekha = makeMockLekha({ openFileDialog, readFile, confirmUnsaved })
     vi.stubGlobal('lekha', mockLekha)
 
+    // Seed a current dirty document tab.
+    useDocumentsStore.getState().openDocument({ path: '/old.md', markdown: '# Old' })
     useEditorStore.getState().openFile('/old.md', '# Old')
     useEditorStore.getState().markDirty()
 
@@ -528,36 +515,84 @@ describe('useFileOps - guardUnsaved (via open())', () => {
     const { result } = renderHook(() => useFileOps(editorRef))
     await act(async () => { await result.current.open() })
 
-    expect(confirmUnsaved).toHaveBeenCalledOnce()
-    // readFile must NOT be called - the operation was aborted.
-    expect(readFile).not.toHaveBeenCalled()
-    expect(setMarkdown).not.toHaveBeenCalled()
-    // Store path must remain unchanged.
-    expect(useEditorStore.getState().path).toBe('/old.md')
+    // No prompt: the dirty doc stays open in its tab; the new file is a new tab.
+    expect(confirmUnsaved).not.toHaveBeenCalled()
+    expect(readFile).toHaveBeenCalledWith('/docs/note.md')
+    expect(setMarkdown).toHaveBeenCalledWith('# Note')
+    expect(useDocumentsStore.getState().documents).toHaveLength(2)
+    expect(useEditorStore.getState().path).toBe('/docs/note.md')
   })
+})
 
-  it('saves and then proceeds when dirty and user picks "Save"', async () => {
-    const { handle, setMarkdown } = makeMockEditor('# Old')
-    const openFileDialog = vi.fn(() => Promise.resolve('/docs/note.md' as string | null))
-    const readFile = vi.fn((_p: string) => Promise.resolve('# New'))
-    const writeFile = vi.fn(() => Promise.resolve())
-    const confirmUnsaved = vi.fn(() => Promise.resolve('save' as const))
-    const mockLekha = makeMockLekha({ openFileDialog, readFile, writeFile, confirmUnsaved })
+// ---------------------------------------------------------------------------
+// closeTab - the save guard now lives here (per-tab close), not on open/new
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - closeTab', () => {
+  it('closes a clean tab without prompting and activates a neighbour', async () => {
+    const { handle } = makeMockEditor()
+    const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
+    const mockLekha = makeMockLekha({ confirmUnsaved })
     vi.stubGlobal('lekha', mockLekha)
 
-    useEditorStore.getState().openFile('/old.md', '# Old')
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: 'A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: 'B' })
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.closeTab(b) })
+
+    expect(confirmUnsaved).not.toHaveBeenCalled()
+    expect(useDocumentsStore.getState().documents.map((d) => d.id)).toEqual([a])
+    expect(useDocumentsStore.getState().activeId).toBe(a)
+  })
+
+  it('prompts and aborts the close when the tab is dirty and user cancels', async () => {
+    const { handle } = makeMockEditor()
+    const confirmUnsaved = vi.fn(() => Promise.resolve('cancel' as const))
+    const mockLekha = makeMockLekha({ confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: 'A' })
+    useEditorStore.getState().openFile('/a.md', 'A')
+    useEditorStore.getState().markDirty()
+    useDocumentsStore.getState().updateActive({ isDirty: true })
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.closeTab(a) })
+
+    expect(confirmUnsaved).toHaveBeenCalledOnce()
+    // Aborted: the tab remains open.
+    expect(useDocumentsStore.getState().documents.map((d) => d.id)).toContain(a)
+  })
+
+  it('saves then closes when dirty and user picks "Save"', async () => {
+    const { handle } = makeMockEditor('A edited')
+    const writeFile = vi.fn(() => Promise.resolve())
+    const confirmUnsaved = vi.fn(() => Promise.resolve('save' as const))
+    const mockLekha = makeMockLekha({ writeFile, confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: 'A' })
+    useEditorStore.getState().openFile('/a.md', 'A')
     useEditorStore.getState().markDirty()
 
     const editorRef = createRef<EditorPaneHandle>()
     ;(editorRef as { current: EditorPaneHandle }).current = handle
 
     const { result } = renderHook(() => useFileOps(editorRef))
-    await act(async () => { await result.current.open() })
+    await act(async () => { await result.current.closeTab(a) })
 
-    // The save must have been called (writeFile).
-    expect(writeFile).toHaveBeenCalledWith('/old.md', '# Old')
-    // And then the open proceeded.
-    expect(readFile).toHaveBeenCalledWith('/docs/note.md')
-    expect(setMarkdown).toHaveBeenCalledWith('# New')
+    expect(confirmUnsaved).toHaveBeenCalledOnce()
+    expect(writeFile).toHaveBeenCalledWith('/a.md', 'A edited')
+    // Last tab closed -> a fresh blank Untitled takes its place.
+    const docs = useDocumentsStore.getState()
+    expect(docs.documents).toHaveLength(1)
+    expect(docs.activeDocument()?.path).toBeNull()
   })
 })

@@ -14,6 +14,7 @@ import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
 import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
+import { TabBar } from '@renderer/components/TabBar'
 import { Sidebar } from '@renderer/components/Sidebar'
 import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
@@ -34,6 +35,7 @@ import type { Template } from '@shared/types'
 import { applyTemplate } from '@renderer/templates/applyTemplate'
 import { flattenFiles } from '@renderer/commands/files'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { useDocumentsStore } from '@renderer/store/documentsStore'
 import type { LinkInfo } from '@renderer/editor/EditorView'
 import { applyTheme } from '@renderer/themes/index'
 import { SIDEBAR_DEFAULT_WIDTH } from '@renderer/components/sidebarResizerUtils'
@@ -337,6 +339,12 @@ export default function App() {
   useEffect(() => {
     useEditorStore.getState().setMarkdown(WELCOME_MARKDOWN)
     recomputeDerived(WELCOME_MARKDOWN)
+    // Seed the tab session with the initial document so there is always exactly
+    // one active tab matching editorStore (the TabBar stays hidden at one tab).
+    const docs = useDocumentsStore.getState()
+    if (docs.documents.length === 0) {
+      docs.openDocument({ path: null, markdown: WELCOME_MARKDOWN })
+    }
   }, [])
 
   // Cleanup: clear any pending debounce timer on unmount.
@@ -349,6 +357,10 @@ export default function App() {
     const store = useEditorStore.getState()
     store.setMarkdown(markdown)
     store.markDirty()
+
+    // 1b. Mirror the edit into the active tab snapshot so the tab's dirty dot
+    //     and preserved content stay current without per-keystroke disk work.
+    useDocumentsStore.getState().updateActive({ markdown, isDirty: true })
 
     // 2. Sync the OS window title-bar dirty state if the bridge is available.
     if (typeof window.lekha !== 'undefined') {
@@ -523,16 +535,23 @@ export default function App() {
           onSidebarWidthChange={setSidebarWidth}
         />
 
-        <EditorPane
-          ref={editorRef}
-          initialMarkdown={WELCOME_MARKDOWN}
-          onChange={handleChange}
-          onLinkClick={openLinkFromClick}
-          onImageClick={openImageZoom}
-          onTableStateChange={setTableState}
-          onInsertImage={() => dispatch('insertImage')}
-          className="editor-pane"
-        />
+        <div className="editor-area">
+          <TabBar
+            onSelect={(id) => { void fileOps.selectTab(id) }}
+            onClose={(id) => { void fileOps.closeTab(id) }}
+            onNew={() => { void fileOps.newFile() }}
+          />
+          <EditorPane
+            ref={editorRef}
+            initialMarkdown={WELCOME_MARKDOWN}
+            onChange={handleChange}
+            onLinkClick={openLinkFromClick}
+            onImageClick={openImageZoom}
+            onTableStateChange={setTableState}
+            onInsertImage={() => dispatch('insertImage')}
+            className="editor-pane"
+          />
+        </div>
       </div>
 
       {showStatusBar && (

@@ -144,7 +144,9 @@ function makeMockFileOps(): MockFileOpsResult {
   const duplicateCurrent = vi.fn(() => Promise.resolve())
   const deleteCurrent = vi.fn(() => Promise.resolve())
   const moveCurrentTo = vi.fn(() => Promise.resolve())
-  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo }
+  const selectTab = vi.fn(() => Promise.resolve())
+  const closeTab = vi.fn(() => Promise.resolve())
+  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab }
   return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo }
 }
 

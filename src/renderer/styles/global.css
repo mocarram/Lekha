@@ -214,6 +214,16 @@ body,
 /* ---------------------------------------------------------------------------
  * Editor pane: fills the remaining workspace width
  * --------------------------------------------------------------------------- */
+/* The editor area stacks the (optional) tab bar above the scrolling editor
+ * pane and fills the remaining workspace width. */
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .editor-pane {
   flex: 1;
   overflow-y: auto;

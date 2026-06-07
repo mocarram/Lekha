@@ -669,3 +669,17 @@ Implemented (i, step 2 of 4 - presentational component, not yet mounted):
 - **global.css**: `.tab-bar`/`.tab`/`.tab--active`/`.tab--dirty`/`.tab__close`/`.tab__dirty-dot`/`.tab__close-x`/`.tab-bar__new` - all theme-token CSS (--color-*). Dirty dot at rest becomes × on hover.
 
 Tests: +9 (hidden at 0/1 docs, one tab per doc, aria-selected active, onSelect/onClose/onNew, middle-click close, dirty class). 1281 unit + 7 e2e green. Next: 23c wire into EditorPane/App.
+
+### Wave 23c - Document tabs: editor/App wiring (`feat/wysiwyg-tabs-wiring`)
+Implemented (i, step 3 of 4 - integration):
+- **useFileOps** is now tab-aware (documentsStore is the tab set; editorStore stays the active-doc source of truth):
+  - Private helpers: `snapshotActive` (mirror live editor+state into the active tab before switching), `loadTab` (load a tab snapshot into the editor without a disk read, preserving dirty/eol), `blankEditor` (reset to blank Untitled), `recompute` (outline+counts).
+  - `openPath`: already-open path -> activate that tab; active tab is a blank Untitled -> reuse it in place (welcome/blank tab replaced, not left behind); otherwise snapshot current + add a new tab. NO unsaved guard (opening never discards - the doc stays open in its tab).
+  - `open` -> openPath. `newFile` -> snapshot + newDocument + blank (no guard). `loadInto`/`persist` mirror into the active tab so Revert/Save keep the snapshot fresh.
+  - New `selectTab(id)` (snapshot then load) and `closeTab(id)` (activate -> run save guard only if dirty -> close -> load neighbour, or recreate a blank Untitled when the last tab closes). `deleteCurrent` now closes the active tab.
+- **App.tsx**: mount `<TabBar>` inside a new `.editor-area` flex column above EditorPane (onSelect/onClose/onNew -> fileOps); seed documentsStore with the initial welcome doc on mount; `handleChange` mirrors edits into the active tab (`updateActive({markdown, isDirty:true})`).
+- **global.css**: `.editor-area` flex column.
+
+Behaviour change: opening a file / New no longer prompts to save the current doc (it stays open in its own tab); the unsaved guard now runs per-tab on close and on app quit. Updated useFileOps tests accordingly (new closeTab guard suite; open/new no-prompt tests). documentsStore reset added to useFileOps test beforeEach.
+
+Tests: useFileOps 18 (rewrote 4 guard tests -> tab semantics + closeTab suite); +1 e2e (new -> 2 tabs, switch swaps content, close hides bar). 1282 unit + 8 e2e green. Next: 23d persistence + keyboard.
