@@ -15,21 +15,29 @@
  */
 import { readdir, readFile, lstat, mkdir, writeFile } from 'node:fs/promises'
 import { join, basename, extname } from 'node:path'
-import type { UserTheme } from '@shared/types'
+import { THEMES, type UserTheme } from '@shared/types'
+
+/** Lower-cased built-in theme ids - user themes may never shadow these. */
+const BUILTIN_THEME_IDS = new Set(THEMES.map((t) => t.id.toLowerCase()))
 
 /**
  * Parse the optional metadata header comment from a theme's CSS.
- * Recognizes `@name <text>` and `@type dark|light` anywhere in a leading
- * comment. Returns nulls when a field is absent.
+ * Recognizes `@name <text>` and `@type dark|light`, but ONLY inside a comment
+ * at the very TOP of the file. This prevents a `@name`/`@type` that appears in
+ * a comment lower down (e.g. inside a token value) from being picked up as the
+ * theme's metadata. Returns nulls when a field is absent.
  */
 export function parseThemeMetadata(css: string): {
   name: string | null
   type: 'dark' | 'light' | null
 } {
-  // @name runs until the next delimiter: another @tag, the comment close (*/),
-  // or end of line. Lazy capture + lookahead keeps spaces inside the name.
-  const nameMatch = /@name\s+(.+?)(?=\s*(?:@|\*\/|\r|\n|$))/.exec(css)
-  const typeMatch = /@type\s+(dark|light)\b/i.exec(css)
+  // Only the leading comment block (after optional whitespace) is metadata.
+  const leading = /^\s*\/\*([\s\S]*?)\*\//.exec(css)
+  const scope = leading ? leading[1]! : ''
+  // @name runs until the next delimiter: another @tag, end of line, or end of
+  // the comment scope. Lazy capture + lookahead keeps spaces inside the name.
+  const nameMatch = /@name\s+(.+?)(?=\s*(?:@|\r|\n|$))/.exec(scope)
+  const typeMatch = /@type\s+(dark|light)\b/i.exec(scope)
   const name = nameMatch ? nameMatch[1]!.trim() : null
   const type = typeMatch ? (typeMatch[1]!.toLowerCase() as 'dark' | 'light') : null
   return { name: name && name.length > 0 ? name : null, type }
@@ -92,9 +100,26 @@ export async function listUserThemes(dir: string): Promise<UserTheme[]> {
     const css = await readFile(filePath, 'utf8')
     themes.push(deriveUserTheme(fileName, css))
   }
+
+  // De-duplicate + drop built-in collisions so the Theme menu never shows two
+  // entries for the same id and a user theme can never shadow a built-in:
+  //   - case-insensitive id dedupe (first wins): on a case-insensitive file
+  //     system "night.css" and "night.CSS" would otherwise yield two id "night"
+  //     /"night" themes (one survives readdir, but guard anyway).
+  //   - drop any id that collides with a built-in theme (built-in wins).
+  const seen = new Set<string>()
+  const deduped: UserTheme[] = []
+  for (const t of themes) {
+    const key = t.id.toLowerCase()
+    if (BUILTIN_THEME_IDS.has(key)) continue
+    if (seen.has(key)) continue
+    seen.add(key)
+    deduped.push(t)
+  }
+
   // Stable, predictable order (by label, case-insensitive).
-  themes.sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase()))
-  return themes
+  deduped.sort((a, b) => a.label.toLowerCase().localeCompare(b.label.toLowerCase()))
+  return deduped
 }
 
 /**

@@ -34,6 +34,18 @@ describe('parseThemeMetadata', () => {
   it('ignores an invalid @type value', () => {
     expect(parseThemeMetadata('/* @type neon */').type).toBeNull()
   })
+
+  it('ignores @name/@type in a NON-leading comment (bug 14)', () => {
+    // The metadata-looking comment is inside a token value, not the header.
+    const css =
+      '[data-theme="evil"] {\n  --x: 1; /* @name Sneaky @type light */\n}'
+    expect(parseThemeMetadata(css)).toEqual({ name: null, type: null })
+  })
+
+  it('reads metadata from the leading comment after whitespace only', () => {
+    const css = '\n\n  /* @name Top @type dark */\n[data-theme="t"]{}'
+    expect(parseThemeMetadata(css)).toEqual({ name: 'Top', type: 'dark' })
+  })
 })
 
 describe('deriveUserTheme', () => {
@@ -85,6 +97,14 @@ describe('listUserThemes (fs)', () => {
     expect(themes.map((t) => t.id)).toEqual(['abyss', 'zen'])
     expect(themes[0]!.label).toBe('Abyss')
     expect(themes[1]!.type).toBe('light')
+  })
+
+  it('drops a user theme whose id collides with a built-in (bug 6)', async () => {
+    // night.css -> id "night" collides with the built-in Night theme.
+    writeFileSync(join(dir, 'night.css'), '/* @name Night 2.0 */ [data-theme="night"]{}')
+    writeFileSync(join(dir, 'custom.css'), '/* @name Custom */ [data-theme="custom"]{}')
+    const themes = await listUserThemes(dir)
+    expect(themes.map((t) => t.id)).toEqual(['custom'])
   })
 
   it('does NOT follow a *.css symlink (no arbitrary file read)', async () => {

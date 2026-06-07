@@ -152,3 +152,10 @@ WYSIWYG typing no longer re-parses the whole markdown string to derive outline +
 - (5, HIGH) FIXED: documentsStore.updatePath(oldPath, newPath) rewrites the path+title of any tab matching the renamed/moved entry (exact match) or sitting under a renamed/moved folder (prefix match). App.handleRenameEntry now calls it for ALL tabs (not just the active editorStore path). useFileOps.moveCurrentTo now updates the active tab's path IN PLACE instead of openPath(newPath) - the old code duplicated the tab and re-read from disk, discarding unsaved in-memory edits. +3 store tests.
 - (12, MEDIUM) VERIFIED no race: closeTab is async and awaits selectTab -> guardUnsaved -> save -> closeDocument sequentially; the UI triggers closes one at a time. Covered by the existing Wave-23c save-then-close test. No code change.
 - (13, MEDIUM) VERIFIED fixed (by Wave 29): openPath reads the file in a try/catch and returns BEFORE any tab mutation, so a failed read never clobbers the blank/reuse tab. +1 test confirming the seeded blank tab is untouched on read failure.
+
+### Wave 34 - FIXED: theme edge-cases (round-2 bugs 6, 14, 15) - ROUND 2 COMPLETE
+- (6, HIGH) listUserThemes drops any user theme whose (lower-cased) id collides with a built-in THEMES id, so a night.css can never produce a duplicate Theme-menu entry or shadow the built-in. +1 test.
+- (14, MEDIUM) parseThemeMetadata now reads @name/@type ONLY from a leading comment block (^\s*/* ... */), so a metadata-looking comment lower in the file (e.g. inside a token value) is ignored. +2 tests.
+- (15, MEDIUM) listUserThemes de-dupes by lower-cased id (first wins), so two files differing only in case can't yield two same-id themes. Shares the same lower-cased Set as bug 6 (covered by the collision test).
+
+Round-2 tally: 16 confirmed -> 9 fixed (1,2,4,5,6,10,11,14,15) + 2 verified-already-safe (12,13) + 5 reasoned-deferred (3 empty-links/marks, 7 ref-links/idempotent, 8 table-newline/unreachable, 16 HR-normalize/cosmetic). Suite: 1362 unit + 9 e2e green.
