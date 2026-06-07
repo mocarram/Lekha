@@ -662,3 +662,10 @@ Implemented (i, step 1 of 4 - store only, no UI yet):
 - Per-session ids via a module counter (`doc-N`), reset() resets it for test determinism.
 
 Tests: +19 (open/new/activate/updateActive/close neighbour rules + pickNeighbourId pure). 1272 unit + 7 e2e green. Next: 23b TabBar component.
+
+### Wave 23b - Document tabs: TabBar component (`feat/wysiwyg-tab-bar`)
+Implemented (i, step 2 of 4 - presentational component, not yet mounted):
+- **src/renderer/components/TabBar.tsx** (new): reads documents + activeId from documentsStore; renders a tab strip (title, dirty-dot/close affordance, active accent) plus a "+" new-tab button. Pure presentational - forwards select/close/new intent via onSelect/onClose/onNew callbacks so App owns editor integration (wave 23c). Hidden when <= 1 doc open (WYSIWYG behaviour). Middle-click (auxclick) closes; close button stops propagation so it doesn't also select.
+- **global.css**: `.tab-bar`/`.tab`/`.tab--active`/`.tab--dirty`/`.tab__close`/`.tab__dirty-dot`/`.tab__close-x`/`.tab-bar__new` - all theme-token CSS (--color-*). Dirty dot at rest becomes × on hover.
+
+Tests: +9 (hidden at 0/1 docs, one tab per doc, aria-selected active, onSelect/onClose/onNew, middle-click close, dirty class). 1281 unit + 7 e2e green. Next: 23c wire into EditorPane/App.
