@@ -35,6 +35,8 @@ export const IPC = {
   newWindow: 'window:new',
   /** Renderer -> main: open the OS print dialog for the sender's window. */
   print: 'window:print',
+  /** Renderer -> main: open the macOS share sheet for a file path. */
+  share: 'window:share',
   command: 'app:command',
   /** Main -> renderer: open a specific file path (from the Open Recent menu). */
   openPath: 'app:openPath',

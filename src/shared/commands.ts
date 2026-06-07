@@ -15,6 +15,7 @@ export type AppCommand =
   | 'deleteFile'
   | 'getInfo'
   | 'print'
+  | 'share'
   | 'toggleSource'
   | 'toggleSidebar'
   | 'find'

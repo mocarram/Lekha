@@ -72,6 +72,9 @@ export interface LekhaAPI {
   /** Open the OS print dialog for this window. */
   print(): void
 
+  /** Open the macOS share sheet for `path` (no-op on other platforms). */
+  share(path: string): void
+
   // --- Commands from main ---
   /**
    * Subscribe to app commands broadcast from the main process (menu items, etc.).

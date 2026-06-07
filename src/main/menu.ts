@@ -217,6 +217,8 @@ export function buildMenuTemplate(
         ],
       },
       sep,
+      // Share via the macOS share sheet (no-op on other platforms).
+      item('Share…', undefined, 'share', send),
       // Print uses the native dialog (page setup is inside it). No accelerator:
       // Cmd+P is Quick Open in Lekha.
       item('Print…', undefined, 'print', send),

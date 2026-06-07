@@ -579,3 +579,9 @@ Implemented (build order e):
 - **Articles/Library tab** - new `ArticleEntry` type + `listArticles` fs-helper (recursive .md walk; title = first `# ` heading else basename; ~140-char preview; sorted mtime desc) + `deriveArticleTitle`/`deriveArticlePreview` pure helpers; `fs:listArticles` IPC/preload/api. `Articles.tsx` flat recent-first list (title + source folder + relative time + 2-line preview, click opens). Added a 4th sidebar tab (Files | Outline | Articles | Search): extended `sidebarTab` type in shared/types + workspaceStore + Sidebar (tab button + render + header label). `revealInLibrary` command + File ▸ Reveal in Library + registry.
 
 Tests: +8 (deriveArticleTitle/Preview pure, listArticles IO, revealInLibrary dispatch, Articles component load/click); listArticles added to all 4 LekhaAPI mocks. 1216 unit + 7 e2e green. Verified visually (Graphite theme).
+
+### Wave 13 - Share via macOS share sheet (`feat/wysiwyg-share`)
+Implemented (build order f):
+- **Share…** - renderer command -> `window:share` IPC -> main opens Electron's `ShareMenu({ filePaths: [path] })` popup on the sender window (macOS only; no-op elsewhere). AppCommand `share`, useCommands handler (shares current doc path), File ▸ Share…, registry. share() added to all 4 LekhaAPI mocks.
+
+Tests: +2 (share dispatch with path + registry). 1217 unit + 7 e2e green.

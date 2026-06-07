@@ -144,6 +144,12 @@ export function useCommands(
         window.lekha.print()
         return
       }
+      if (cmd === 'share') {
+        // Share the current file via the macOS share sheet (main popup).
+        const path = useEditorStore.getState().path
+        if (path) window.lekha.share(path)
+        return
+      }
       if (cmd === 'newWindow') {
         // Ask main to open a fresh, independent window. The native menu opens
         // windows directly in main; this path covers the renderer-routed case.

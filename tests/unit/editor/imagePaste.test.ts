@@ -154,6 +154,7 @@ function makeMockLekha(
     setDocumentState: vi.fn(),
     newWindow: vi.fn(),
     print: vi.fn(),
+    share: vi.fn(),
     onCommand: vi.fn(() => () => undefined),
     onOpenPath: vi.fn(() => () => undefined),
     onSetTheme: vi.fn(() => () => undefined),

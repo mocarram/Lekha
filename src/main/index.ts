@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, session } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, ShareMenu, session } from 'electron'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
@@ -335,6 +335,17 @@ void app.whenReady().then(async () => {
   // Print: open the native print dialog for the window that asked. Printing the
   // sender (not the focused window) keeps the right document in multi-window use.
   ipcMain.on(IPC.print, (event) => { event.sender.print() })
+
+  // Share: open the macOS share sheet for the current file. macOS-only; a no-op
+  // on other platforms (ShareMenu is a macOS feature).
+  ipcMain.on(IPC.share, (event, filePath: unknown) => {
+    if (process.platform !== 'darwin') return
+    const path = String(filePath)
+    if (!path) return
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    new ShareMenu({ filePaths: [path] }).popup({ window: win })
+  })
 
   // Remember valid saved bounds for restoring/cascading future windows.
   savedWindowBounds = isSaneBounds(initialSettings.windowBounds)

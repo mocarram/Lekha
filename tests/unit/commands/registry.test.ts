@@ -30,6 +30,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'deleteFile',
   'getInfo',
   'print',
+  'share',
   'toggleSource',
   'toggleSidebar',
   'find',

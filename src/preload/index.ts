@@ -115,6 +115,10 @@ const api: LekhaAPI = {
     ipcRenderer.send(IPC.print)
   },
 
+  share(path: string): void {
+    ipcRenderer.send(IPC.share, path)
+  },
+
   // --- Commands from main ---
   // Subscribes to broadcast commands (e.g. menu items) and returns an unsubscribe
   // function so the renderer can clean up on unmount.

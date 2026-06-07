@@ -181,6 +181,7 @@ function stubLekha(): void {
     onOpenPath: vi.fn(() => () => undefined),
     newWindow: vi.fn(),
     print: vi.fn(),
+    share: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     writeClipboard: vi.fn(() => Promise.resolve()),
     exportHtml: vi.fn(() => Promise.resolve()),
@@ -285,6 +286,21 @@ describe('useCommands - file operation routing', () => {
 
     const { print } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
     expect(print).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "share" calls window.lekha.share() with the current path', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+
+    useEditorStore.setState({ path: '/docs/a.md' })
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('share') })
+
+    const { share } = window.lekha as unknown as Record<string, ReturnType<typeof vi.fn>>
+    expect(share).toHaveBeenCalledWith('/docs/a.md')
   })
 
   it('dispatching "open" calls fileOps.open()', () => {
