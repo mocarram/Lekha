@@ -348,6 +348,19 @@ describe('useCommands - file operation routing', () => {
     expect(onRename).toHaveBeenCalledOnce()
   })
 
+  it('dispatching "getInfo" calls the onGetInfo option', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    const onFind = vi.fn()
+    const onReplace = vi.fn()
+    const onGetInfo = vi.fn()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind, onReplace, onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn(), onGetInfo }))
+    act(() => { capturedDispatch!('getInfo') })
+
+    expect(onGetInfo).toHaveBeenCalledOnce()
+  })
+
   it('dispatching "moveFileTo" calls fileOps.moveCurrentTo()', () => {
     const { ref } = makeMockEditor()
     const { fileOps, moveCurrentTo } = makeMockFileOps()

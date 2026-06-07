@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { buildFileTree, writeFileAtomic, readTextFile } from '@main/fs-helpers'
+import { buildFileTree, writeFileAtomic, readTextFile, statFile } from '@main/fs-helpers'
 
 let tmpDir: string
 
@@ -102,5 +102,14 @@ describe('readTextFile', () => {
     writeFileSync(target, '# Round-trip test\nLine 2', 'utf8')
     const content = await readTextFile(target)
     expect(content).toBe('# Round-trip test\nLine 2')
+  })
+})
+
+describe('statFile', () => {
+  it('returns the byte size and timestamps for a file', async () => {
+    const st = await statFile(join(tmpDir, 'a.md'))
+    expect(st.sizeBytes).toBeGreaterThan(0)
+    expect(typeof st.mtimeMs).toBe('number')
+    expect(typeof st.birthtimeMs).toBe('number')
   })
 })

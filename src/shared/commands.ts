@@ -12,6 +12,7 @@ export type AppCommand =
   | 'renameFile'
   | 'moveFileTo'
   | 'deleteFile'
+  | 'getInfo'
   | 'print'
   | 'toggleSource'
   | 'toggleSidebar'

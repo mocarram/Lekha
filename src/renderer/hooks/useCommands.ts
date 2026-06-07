@@ -90,6 +90,8 @@ export interface CommandOpts {
    * callers/tests that don't wire renaming keep working.
    */
   onRename?: () => void
+  /** Open the Get Info dialog for the current document. Optional. */
+  onGetInfo?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +181,10 @@ export function useCommands(
       if (cmd === 'renameFile') {
         // App hosts the rename dialog (Electron has no window.prompt).
         o.onRename?.()
+        return
+      }
+      if (cmd === 'getInfo') {
+        o.onGetInfo?.()
         return
       }
       if (cmd === 'deleteFile') {

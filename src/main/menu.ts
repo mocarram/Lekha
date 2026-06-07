@@ -184,6 +184,7 @@ export function buildMenuTemplate(
         submenu: buildOpenRecentSubmenu(recentFiles, openPath),
       },
       sep,
+      item('Get Info',            undefined, 'getInfo',          send),
       item('Reveal in File Tree', undefined, 'revealInFileTree', send),
       item('Open File Location',  undefined, 'showInFinder',     send),
       sep,

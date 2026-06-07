@@ -567,3 +567,9 @@ Implemented:
 - **Rename…** - new App-hosted `RenameDialog` (reuses .dialog CSS + useFocusTrap; prefilled with the current basename, base selected, Enter/Esc). useCommands gains an optional `onRename` option; App opens the dialog on `renameFile` and on submit reuses the existing `handleRenameEntry` (renamePath + updates the open-doc path + refreshes the tree). AppCommand `renameFile`, File ▸ Rename…, command registry.
 
 Tests: +5 (RenameDialog render/prefill/submit/unchanged-noop; renameFile dispatch). 1203 unit + 7 e2e green.
+
+### Wave 11 - Get Info (`feat/wysiwyg-getinfo`)
+Implemented (build order d):
+- **Get Info** - new `statFile` fs-helper + `FileStat` type + `fs:statFile` IPC/preload/api; App-hosted read-only `GetInfoDialog` (focus-trapped) showing name, path, human-readable size, created/modified dates, and word/char counts (from editorStore). App resolves the stat in the command handler (not an effect) and passes a snapshot to the presentational dialog. useCommands gains an optional `onGetInfo`; AppCommand `getInfo`, File ▸ Get Info, registry.
+
+Tests: +5 (statFile IO, getInfo dispatch, GetInfoDialog render/size/counts); statFile added to 3 LekhaAPI mocks. 1208 unit + 7 e2e green.

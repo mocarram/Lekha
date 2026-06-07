@@ -1,5 +1,6 @@
 import type {
   FileNode,
+  FileStat,
   Settings,
   DocumentState,
   FolderSearchResult,
@@ -19,6 +20,8 @@ export interface LekhaAPI {
 
   // --- Filesystem ---
   readFile(path: string): Promise<string>
+  /** Stat a file: size + created/modified timestamps (for Get Info). */
+  statFile(path: string): Promise<FileStat>
   writeFile(path: string, content: string): Promise<void>
   readDir(dir: string): Promise<FileNode[]>
 

@@ -3,6 +3,7 @@ import { IPC } from '@shared/ipc-channels'
 import type { LekhaAPI } from './api'
 import type {
   FileNode,
+  FileStat,
   Settings,
   DocumentState,
   FolderSearchResult,
@@ -32,6 +33,10 @@ const api: LekhaAPI = {
   // --- Filesystem ---
   readFile(path: string): Promise<string> {
     return ipcRenderer.invoke(IPC.readFile, path) as Promise<string>
+  },
+
+  statFile(path: string): Promise<FileStat> {
+    return ipcRenderer.invoke(IPC.statFile, path) as Promise<FileStat>
   },
 
   writeFile(path: string, content: string): Promise<void> {

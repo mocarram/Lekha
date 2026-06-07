@@ -1,6 +1,6 @@
-import { readFile, writeFile, rename, unlink, readdir } from 'node:fs/promises'
+import { readFile, writeFile, rename, unlink, readdir, stat } from 'node:fs/promises'
 import { join, extname } from 'node:path'
-import type { FileNode } from '@shared/types'
+import type { FileNode, FileStat } from '@shared/types'
 
 const MD_EXTENSIONS = new Set(['.md', '.markdown'])
 
@@ -69,5 +69,11 @@ export async function writeFileAtomic(path: string, content: string): Promise<vo
 /** Reads a file as UTF-8 text. */
 export async function readTextFile(path: string): Promise<string> {
   return readFile(path, 'utf8')
+}
+
+/** Returns size + created/modified timestamps for a file (for File ▸ Get Info). */
+export async function statFile(path: string): Promise<FileStat> {
+  const s = await stat(path)
+  return { sizeBytes: s.size, birthtimeMs: s.birthtimeMs, mtimeMs: s.mtimeMs }
 }
 

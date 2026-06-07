@@ -1335,3 +1335,10 @@ select.dialog-input {
   background-position: right 10px center;
   background-size: 15px 15px;
 }
+
+/* Get Info dialog: let the long file path wrap instead of overflowing. */
+.get-info__value {
+  text-align: right;
+  word-break: break-all;
+  max-width: 280px;
+}

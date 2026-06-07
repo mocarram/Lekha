@@ -27,6 +27,7 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'renameFile',
   'moveFileTo',
   'deleteFile',
+  'getInfo',
   'print',
   'toggleSource',
   'toggleSidebar',

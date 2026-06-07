@@ -19,6 +19,7 @@ import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
 import { ImageDialog } from '@renderer/components/ImageDialog'
 import { RenameDialog } from '@renderer/components/RenameDialog'
+import { GetInfoDialog, type GetInfoData } from '@renderer/components/GetInfoDialog'
 import { Preferences } from '@renderer/components/Preferences'
 import { WordCountPanel } from '@renderer/components/WordCountPanel'
 import { TableToolbar } from '@renderer/components/TableToolbar'
@@ -125,6 +126,10 @@ export default function App() {
     seq: number
     initial: string
   }>({ open: false, seq: 0, initial: '' })
+
+  // Get Info dialog: App resolves the file stat (in the command handler, not an
+  // effect) and stores the snapshot the dialog renders.
+  const [getInfoData, setGetInfoData] = useState<GetInfoData | null>(null)
 
   // Preferences modal open/closed state.
   const [prefsOpen, setPrefsOpen] = useState(false)
@@ -240,6 +245,25 @@ export default function App() {
       if (path === null) return
       const base = path.split('/').pop() ?? ''
       setRenameState((prev) => ({ open: true, seq: prev.seq + 1, initial: base }))
+    },
+    onGetInfo: () => {
+      const { path, wordCount, charCount } = useEditorStore.getState()
+      if (path === null) return
+      void window.lekha
+        .statFile(path)
+        .then((stat) => {
+          setGetInfoData({
+            path,
+            sizeBytes: stat.sizeBytes,
+            birthtimeMs: stat.birthtimeMs,
+            mtimeMs: stat.mtimeMs,
+            words: wordCount,
+            chars: charCount,
+          })
+        })
+        .catch((err: unknown) => {
+          window.alert(err instanceof Error ? err.message : String(err))
+        })
     },
     onCommandPalette: () => {
       setPaletteState((prev) => ({ open: true, seq: prev.seq + 1, mode: 'commands' }))
@@ -534,6 +558,12 @@ export default function App() {
         }}
         onOpenUrl={(url) => { void window.lekha.openExternal(url) }}
         onClose={() => setLinkState((prev) => ({ ...prev, open: false }))}
+      />
+
+      <GetInfoDialog
+        open={getInfoData !== null}
+        data={getInfoData}
+        onClose={() => setGetInfoData(null)}
       />
 
       <RenameDialog

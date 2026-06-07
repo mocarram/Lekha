@@ -5,6 +5,13 @@ export interface FileNode {
   children?: FileNode[]
 }
 
+/** File metadata for File ▸ Get Info (sizes + timestamps in ms since epoch). */
+export interface FileStat {
+  sizeBytes: number
+  birthtimeMs: number
+  mtimeMs: number
+}
+
 /**
  * A theme descriptor: an id used in the data-theme attribute and a display
  * label shown in the native Themes menu and any future UI.

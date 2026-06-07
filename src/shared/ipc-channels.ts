@@ -6,6 +6,8 @@ export const IPC = {
    *  Returns 'save' | 'dontSave' | 'cancel'. */
   confirmUnsaved: 'dialog:confirmUnsaved',
   readFile: 'fs:readFile',
+  /** Renderer -> main: stat a file (size + created/modified) for Get Info. */
+  statFile: 'fs:statFile',
   writeFile: 'fs:writeFile',
   readDir: 'fs:readDir',
   /** Renderer -> main: create an empty file `name` in `dir`. Returns new path. */
