@@ -253,6 +253,14 @@ export function buildMenuTemplate(
       sep,
       item('Jump to Top',    undefined, 'jumpToTop',    send),
       item('Jump to Bottom', undefined, 'jumpToBottom', send),
+      sep,
+      {
+        label: 'Line Endings',
+        submenu: [
+          item('LF (Unix)',     undefined, 'eolLf',   send),
+          item('CRLF (Windows)', undefined, 'eolCrlf', send),
+        ],
+      },
       // On macOS, Preferences lives in the app (Lekha) menu (added above).
       // On other platforms there is no app menu, so surface it here in Edit.
       ...(process.platform === 'darwin'

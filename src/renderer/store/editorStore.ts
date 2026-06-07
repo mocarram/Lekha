@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { EditorMode, OutlineItem, DocCounts } from '@shared/types'
+import { type Eol, detectEol } from '@shared/eol'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,8 @@ interface EditorState {
   equationNumbering: boolean
   /** Auto-save: automatically write saved documents after a short idle period. */
   autoSave: boolean
+  /** Per-document line-ending style; detected on open, applied on save. */
+  eol: Eol
 }
 
 interface EditorActions {
@@ -53,6 +56,8 @@ interface EditorActions {
   setFocusMode(value: boolean): void
   /** Set typewriter mode to an explicit value. */
   setTypewriterMode(value: boolean): void
+  /** Set the document's line-ending style. */
+  setEol(eol: Eol): void
   /** Set equation numbering to an explicit value. */
   setEquationNumbering(value: boolean): void
   /** Set auto-save to an explicit value. */
@@ -93,6 +98,7 @@ const INITIAL_STATE: EditorState = {
   typewriterMode: false,
   equationNumbering: true,
   autoSave: true,
+  eol: 'lf',
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +115,7 @@ export const useEditorStore = create<EditorStore>()((set) => ({
       markdown,
       isDirty: false,
       mode: 'wysiwyg',
+      eol: detectEol(markdown),
     })
   },
 
@@ -174,5 +181,9 @@ export const useEditorStore = create<EditorStore>()((set) => ({
 
   setAutoSave(value) {
     set({ autoSave: value })
+  },
+
+  setEol(eol) {
+    set({ eol })
   },
 }))

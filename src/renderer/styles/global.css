@@ -1420,3 +1420,11 @@ select.dialog-input {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Status-bar line-ending indicator (LF / CRLF). */
+.status-bar__eol {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  padding: 0 6px;
+}

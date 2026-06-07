@@ -63,6 +63,8 @@ export const COMMANDS: CommandDef[] = [
   { id: 'pasteAsPlainText', label: 'Paste as Plain Text', group: 'Edit', shortcut: '⌘⇧V' },
   { id: 'jumpToTop', label: 'Jump to Top', group: 'Edit' },
   { id: 'jumpToBottom', label: 'Jump to Bottom', group: 'Edit' },
+  { id: 'eolLf', label: 'Line Endings: LF', group: 'Edit' },
+  { id: 'eolCrlf', label: 'Line Endings: CRLF', group: 'Edit' },
 
   // Format - inline
   { id: 'bold', label: 'Bold', group: 'Format', shortcut: '⌘B' },

@@ -443,6 +443,15 @@ export function useCommands(
       }
 
       // Copy as Plain Text: the document's visible text (no markdown markers).
+      if (cmd === 'eolLf') {
+        useEditorStore.getState().setEol('lf')
+        return
+      }
+      if (cmd === 'eolCrlf') {
+        useEditorStore.getState().setEol('crlf')
+        return
+      }
+
       if (cmd === 'copyAsPlainText') {
         const text = editorRef.current?.getPlainText() ?? ''
         void window.lekha.writeClipboard({ text }).catch((err: unknown) => {

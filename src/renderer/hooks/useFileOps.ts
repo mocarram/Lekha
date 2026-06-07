@@ -4,6 +4,7 @@ import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { normalizeLineEndings } from '@shared/eol'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 
 // ---------------------------------------------------------------------------
@@ -117,7 +118,10 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   const persist = useCallback(
     async (path: string): Promise<void> => {
       const md = editorRef.current?.getMarkdown() ?? ''
-      await window.lekha.writeFile(path, md)
+      // Write with the document's chosen line-ending style (LF default; CRLF
+      // when detected on open or chosen via the Line Endings menu).
+      const out = normalizeLineEndings(md, editorStore.getState().eol)
+      await window.lekha.writeFile(path, out)
 
       editorStore.getState().markClean()
 

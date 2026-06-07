@@ -80,6 +80,8 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'pasteAsPlainText',
   'jumpToTop',
   'jumpToBottom',
+  'eolLf',
+  'eolCrlf',
   'commandPalette',
   'quickOpen',
   'presentation',

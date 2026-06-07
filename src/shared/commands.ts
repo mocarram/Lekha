@@ -65,6 +65,8 @@ export type AppCommand =
   | 'copyAsPlainText'
   | 'copyWithoutStyling'
   | 'pasteAsPlainText'
+  | 'eolLf'
+  | 'eolCrlf'
   | 'commandPalette'
   | 'quickOpen'
   | 'presentation'

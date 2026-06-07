@@ -27,6 +27,7 @@ export function StatusBar({ onToggleSource, onShowStats }: StatusBarProps) {
   const selWords = useEditorStore((s) => s.selWords)
   const selChars = useEditorStore((s) => s.selChars)
   const mode = useEditorStore((s) => s.mode)
+  const eol = useEditorStore((s) => s.eol)
 
   // When there is a non-empty selection, show the SELECTED word/char count
   // (prefixed with "Selected:") instead of the whole-document counts.
@@ -50,6 +51,10 @@ export function StatusBar({ onToggleSource, onShowStats }: StatusBarProps) {
         <span className="status-bar__sep" aria-hidden="true">·</span>
         <span className="status-bar__stat">{chars} chars</span>
       </button>
+
+      <span className="status-bar__eol" aria-label="Line endings">
+        {eol === 'crlf' ? 'CRLF' : 'LF'}
+      </span>
 
       <button
         type="button"
