@@ -52,8 +52,14 @@ function serializeCell(cell: Node): string {
   // serializeCell is only ever invoked at serialize-time - i.e. when
   // renderTable is called by the MarkdownSerializer - at which point
   // serializeMarkdown has already been initialized in the module scope.
+  // serializeMarkdown already escapes Markdown special characters in the cell
+  // text (including backslashes), so we must NOT re-escape backslashes here -
+  // doing so doubled them on every round-trip, growing unbounded (a\b -> a\\b
+  // -> a\\\\b ...). We only add the table-specific pipe escape (pipes are not
+  // special outside a table, so the inner serializer leaves them raw) and
+  // collapse any stray newline so a cell stays on one line.
   const inline = serializeMarkdown(cell).trim()
-  return inline.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n/g, ' ')
+  return inline.replace(/\|/g, '\\|').replace(/\n/g, ' ')
 }
 
 /** Collect the serialized text of each cell in a table row. */
@@ -210,6 +216,12 @@ const serializer = new MarkdownSerializer(
     superscript: { open: '^', close: '^', mixable: true },
     // Underline has no Markdown syntax - emit raw <u> HTML (WYSIWYG-style).
     underline: { open: '<u>', close: '</u>', mixable: true, expelEnclosingWhitespace: true },
+  },
+  {
+    // Escape `$` in plain text so a literal "$x$" in a text node is written as
+    // "\$x\$" and does NOT round-trip into an inline-math node. Real math is a
+    // math_inline node serialized via state.write (above), so it is unaffected.
+    escapeExtraCharacters: /\$/g,
   },
 )
 

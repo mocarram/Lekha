@@ -119,3 +119,28 @@ Deferred: (14) close-last-tab leaves a blank Untitled - this is intentional WYSI
 - (6) TabBar implements the WAI-ARIA tabs keyboard pattern: roving tabindex (active tab = 0, others = -1), ArrowLeft/ArrowRight (wrap), Home/End, Enter/Space activate; .tab:focus-visible ring. +5 tests.
 
 Round-1 tally: 19 confirmed -> 15 fixed (1,2,3,4,6,7,8,9,10,11,13,15,16,18,19) + 1 root-cause-resolved (5) + 3 reasoned-deferred (12 cosmetic, 14 intentional WYSIWYG behavior, 17 negligible micro-opt). Suite: 1350 unit + 9 e2e green.
+
+## Round 2 - correctness bug-hunt (workflow wf_ad971ea7-354, 33 agents, 16 confirmed)
+
+1. **[HIGH/engine-roundtrip]** Table cell backslash escaping causes exponential growth on each round-trip (serializer.ts)
+2. **[HIGH/engine-roundtrip]** Escaped dollar signs in text lose escaping, become math delimiters (math-plugin.ts)
+3. **[HIGH/engine-roundtrip]** Empty links disappear entirely (serializer.ts)
+4. **[HIGH/perf-largedoc]** Full-document O(n) re-parse on every keystroke in WYSIWYG mode (within 150ms debounce) (App.tsx)
+5. **[HIGH/tabs-edgecases]** File renamed/moved on disk while open in tab leaves stale path (useFileOps.ts)
+6. **[HIGH/themes-edgecases]** User Theme ID Collides with Built-in Theme IDs, Creating Duplicate Menu Items (index.ts)
+7. **[MEDIUM/engine-roundtrip]** Reference links expanded to inline links, losing link definition semantics (parser.ts)
+8. **[MEDIUM/engine-roundtrip]** Table cells with newlines collapse to space (serializer.ts)
+9. **[MEDIUM/perf-largedoc]** Full decoration rebuild on every keystroke for heading folds, syntax highlighting, and find highlights (headingFold.ts)
+10. **[MEDIUM/perf-largedoc]** No re-use of parsed AST between WYSIWYG doc state and recomputeDerived outline/count (EditorPane.tsx)
+11. **[MEDIUM/perf-largedoc]** Word count and outline fully recomputed on every keystroke despite only small document deltas (wordCount.ts)
+12. **[MEDIUM/tabs-edgecases]** Save-guard race: dirty flag lost if tab closed during save (useFileOps.ts)
+13. **[MEDIUM/tabs-edgecases]** Reuse-blank-tab clobbering when openPath fails but file already partially loaded (useFileOps.ts)
+14. **[MEDIUM/themes-edgecases]** Theme Metadata Parser Matches Comments Outside Header Block (userThemes.ts)
+15. **[MEDIUM/themes-edgecases]** Duplicate User Theme IDs Possible on Case-Insensitive Filesystems (userThemes.ts)
+16. **[LOW/engine-roundtrip]** Horizontal rules normalized to em-dash form (serializer.ts)
+
+### Wave 31 - FIXED: serializer round-trip data loss (round-2 bugs 1, 2)
+- (1) Table cell backslashes were double-escaped (serializeCell re-escaped `\` on top of the inner serializer's escaping), growing unbounded on every save (a\b -> a\\b -> a\\\\b ...). Removed the redundant backslash re-escape; cells now only escape pipes + collapse newlines. Idempotent.
+- (2) A literal "$x$" arising from escaped `\$...\$` re-parsed into an inline-math node on the next load (semantic data loss). Added `escapeExtraCharacters: /\$/g` to the MarkdownSerializer so `$` in text is written `\$` (real math is a math_inline node serialized separately, so it is unaffected).
+- Removed two scratch round-trip test files the audit agents left in tests/unit/editor; added a clean tests/unit/editor/serializerRoundtrip.test.ts (+5).
+Deferred (round-2): (3) empty links `[](url)` vanish - links are MARKS so empty-text links can't carry the mark; fixing needs a schema change for a pathological/rare input (documented, low value). (7) ref-links normalize to inline - lossy but idempotent + standard WYSIWYG behavior (WYSIWYG does the same). (16) `***`/`___` HR -> `---` - cosmetic, idempotent. (8) table-cell newline collapse - not reachable (GFM cells can't contain literal newlines).
