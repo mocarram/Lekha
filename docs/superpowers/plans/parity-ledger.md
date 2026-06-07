@@ -636,3 +636,12 @@ Implemented (Edit additions, D3):
 - **StatusBar**: `.status-bar__eol` segment shows LF/CRLF.
 
 Tests: +4 (eol helper: collapse, convert, idempotent, detect). 1241 unit + 7 e2e green.
+
+### Wave 21 - Selection submenu + macOS Speech/Emoji (`feat/wysiwyg-selection-speech`)
+Implemented (Edit additions, D4):
+- **selectLine** / **selectBlock** in editorCommandMap: selectLine expands the caret to span the enclosing textblock; selectBlock selects the parent block one level up (list item / blockquote) via `TextSelection.between` so multi-textblock containers snap to valid inline endpoints.
+- **AppCommand** + registry: `selectLine`/`selectBlock` (palette group Edit). Both auto-route through `editorRef.runCommand` - no extra useCommands wiring.
+- **Edit menu**: Selection submenu (Select Line / Select Block).
+- **macOS-only**: Speech submenu (Start/Stop Speaking) + Emoji & Symbols (`showSubstitutions`) via Electron built-in roles.
+
+Tests: +4 (selectLine textblock span, selectBlock list-item span, +2 entries-present). VALID_IDS patched. Suite + 7 e2e green.
