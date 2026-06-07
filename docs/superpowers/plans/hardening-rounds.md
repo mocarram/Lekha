@@ -106,3 +106,10 @@ Added :focus-visible rules in global.css for .sidebar__tab-btn, .status-bar__cou
 
 ### Wave 28 - FIXED: perf (findings 3, 4; 5 resolved by root cause)
 handleChange no longer mirrors `markdown` into the active tab on every keystroke - it only flips `isDirty` on the clean->dirty transition. The tab's markdown snapshot is captured lazily from the live editor at switch (snapshotActive), save (persist), and close. This removes the per-keystroke `documents` array identity churn that re-rendered the TabBar on every key press (findings 3+4). Finding 5 (Sidebar/FileTree re-render on keystroke) is resolved by the same root cause: with no per-keystroke documents mutation and App not subscribing to markdown, nothing re-renders per keystroke. Verified safe: no code reads the active tab's markdown expecting per-keystroke freshness (loadTab uses the snapshot set at switch-away; reuseBlank no longer checks markdown). Suite + e2e (edit/switch/dirty) green.
+
+### Wave 29 - FIXED: UX robustness (findings 13, 15, 18, 19)
+- (13) useFileOps.openPath wraps readFile in try/catch -> window.alert with the path + error; no tab is added on failure. +1 test.
+- (18) useCommands reloadThemes gained a .catch -> alert so a failed re-scan is surfaced.
+- (15) reloadThemes: if the active theme's file was removed (id no longer built-in or in the reloaded list), fall back to applyTheme('github') + persist, so the UI is never stuck on a dead theme.
+- (19) Dirty tabs now italicize their title (.tab--dirty .tab__title) so the unsaved state stays visible even while hovered (when the dot is swapped for the close x). +1 CSS test.
+Deferred: (14) close-last-tab leaves a blank Untitled - this is intentional WYSIWYG-like behavior (wontfix). (12) combobox aria-expanded - cosmetic, low value (wontfix). (17) MarkdownIt escape micro-opt - negligible (deferred). (6 tab arrow-key nav, 11 dialog focus-return) -> next wave.

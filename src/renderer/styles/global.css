@@ -335,6 +335,12 @@ body,
   text-overflow: ellipsis;
 }
 
+/* Dirty tabs italicize their title so the unsaved state stays visible even
+ * while hovered (when the dirty dot is swapped for the close ×). */
+.tab--dirty .tab__title {
+  font-style: italic;
+}
+
 /* The close control doubles as the dirty indicator: a dot at rest that
  * becomes an × on hover. */
 .tab__close {

@@ -244,6 +244,24 @@ describe('useFileOps - openPath()', () => {
       expect.objectContaining({ path: '/docs/note.md', dirty: false }),
     )
   })
+
+  it('shows an error and adds no tab when the file cannot be read', async () => {
+    const { handle } = makeMockEditor()
+    const readFile = vi.fn(() => Promise.reject(new Error('ENOENT')))
+    const mockLekha = makeMockLekha({ readFile })
+    vi.stubGlobal('lekha', mockLekha)
+    const alertSpy = vi.fn()
+    vi.stubGlobal('alert', alertSpy)
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.openPath('/missing.md') })
+
+    expect(alertSpy).toHaveBeenCalledOnce()
+    expect(useDocumentsStore.getState().documents).toEqual([])
+  })
 })
 
 // ---------------------------------------------------------------------------

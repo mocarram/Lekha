@@ -302,7 +302,17 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       const active = documentsStore.getState().activeDocument()
       const reuseBlank = active !== null && active.path === null && !active.isDirty
 
-      const md = await window.lekha.readFile(path)
+      // Read the file, surfacing a readable error instead of failing silently
+      // (e.g. the file was deleted/moved, or permission denied).
+      let md: string
+      try {
+        md = await window.lekha.readFile(path)
+      } catch (err) {
+        window.alert(
+          `Could not open "${path}":\n${err instanceof Error ? err.message : String(err)}`,
+        )
+        return
+      }
       if (reuseBlank) {
         documentsStore.getState().updateActive({
           path,

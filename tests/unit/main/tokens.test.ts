@@ -92,6 +92,10 @@ describe('global.css - keyboard focus indicators (WCAG 2.4.7)', () => {
       expect(global).toContain(sel)
     })
   }
+
+  it('dirty tabs italicize their title (always-visible unsaved indicator)', () => {
+    expect(global).toContain('.tab--dirty .tab__title')
+  })
 })
 
 describe('DEFAULT_TEMPLATE_CSS - custom-theme starter (seeded into userData)', () => {

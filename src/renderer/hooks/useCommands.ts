@@ -20,7 +20,7 @@ import type { PandocFormat } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useDocumentsStore, nextTabId } from '@renderer/store/documentsStore'
-import { injectUserThemes } from '@renderer/themes/index'
+import { injectUserThemes, applyTheme, THEMES } from '@renderer/themes/index'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
 // Type-only import: erased at build time, so it does NOT pull the export
@@ -217,7 +217,27 @@ export function useCommands(
       if (cmd === 'reloadThemes') {
         // Re-scan the user themes folder and re-inject the CSS so newly edited
         // or added themes take effect without a restart.
-        void window.lekha.reloadThemes().then((themes) => { injectUserThemes(themes) })
+        void window.lekha
+          .reloadThemes()
+          .then((themes) => {
+            injectUserThemes(themes)
+            // If the active theme's file was removed, it no longer resolves -
+            // fall back to the default so the UI is not left on a dead theme.
+            const current = document.documentElement.dataset['theme'] ?? 'github'
+            const isBuiltin = THEMES.some((t) => t.id === current)
+            const isUser = themes.some((t) => t.id === current)
+            if (!isBuiltin && !isUser) {
+              applyTheme('github')
+              if (typeof window.lekha !== 'undefined') {
+                void window.lekha.setSettings({ theme: 'github' })
+              }
+            }
+          })
+          .catch((err: unknown) => {
+            window.alert(
+              `Failed to reload themes:\n${err instanceof Error ? err.message : String(err)}`,
+            )
+          })
         return
       }
       if (cmd === 'showInFinder') {
