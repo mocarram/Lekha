@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { EditorMode, OutlineItem, DocCounts } from '@shared/types'
 import { type Eol, detectEol } from '@shared/eol'
+import { deriveTitle } from '@shared/pathTitle'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,14 +71,7 @@ export type EditorStore = EditorState & EditorActions
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Extract the filename from a path that uses `/` or `\` separators. */
-function basename(p: string): string {
-  return p.replace(/[/\\]+$/, '').split(/[/\\]/).at(-1) ?? p
-}
-
-function deriveTitle(path: string | null): string {
-  return path !== null ? basename(path) : 'Untitled'
-}
+// Title derivation lives in @shared/pathTitle (shared with documentsStore).
 
 // ---------------------------------------------------------------------------
 // Initial state

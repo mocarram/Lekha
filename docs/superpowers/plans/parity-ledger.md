@@ -654,3 +654,11 @@ Implemented (h):
 - AppCommand + palette registry (group 'Paragraph') + keymap bindings.
 
 Tests: +8 (increase from paragraph->H6, H3->H2, declines at H1; decrease H1->H2, H6->paragraph; indent declines outside list, sinks 2nd item; entries-present). menu.test split into Format (inline) + Paragraph (block) assertions. 1253 unit + 7 e2e green.
+
+### Wave 23a - Document tabs: store foundation (`feat/wysiwyg-document-tabs-store`)
+Implemented (i, step 1 of 4 - store only, no UI yet):
+- **src/shared/pathTitle.ts** (new): extracted `basename`/`deriveTitle` (DRY); editorStore now imports it instead of private copies.
+- **src/renderer/store/documentsStore.ts** (new): the open-tabs collection. `DocumentTab` {id, path, title, markdown, isDirty, eol, mode}; state {documents[], activeId}. Actions: openDocument (re-activates an already-open path instead of duplicating; detects eol), newDocument (blank Untitled), closeDocument (activates left neighbour, falls back right, null when empty), activateDocument, updateActive (patch active tab), activeDocument, reset (clears tabs + deterministic id counter). Exported pure `pickNeighbourId` for neighbour selection.
+- Per-session ids via a module counter (`doc-N`), reset() resets it for test determinism.
+
+Tests: +19 (open/new/activate/updateActive/close neighbour rules + pickNeighbourId pure). 1272 unit + 7 e2e green. Next: 23b TabBar component.
