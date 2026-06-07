@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import type { AppCommand } from '@shared/commands'
 import type { PandocFormat } from '@shared/types'
+import { pandocExtension } from '@shared/pandocFormats'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useDocumentsStore, nextTabId } from '@renderer/store/documentsStore'
@@ -57,15 +58,17 @@ export interface LinkDialogRequest {
 }
 
 /**
- * Maps each pandoc export AppCommand to its target format and output file
- * extension. Single source of truth so adding a format is a one-line change.
+ * Maps each pandoc export AppCommand to its target PandocFormat. The output file
+ * extension is derived from the shared PANDOC_EXTENSIONS map (@shared/pandocFormats)
+ * at dispatch time, so the format -> extension table has a single definition
+ * shared with the main process.
  */
-const PANDOC_COMMAND_MAP: Record<string, { format: PandocFormat; ext: string }> = {
-  exportDocx: { format: 'docx', ext: 'docx' },
-  exportEpub: { format: 'epub', ext: 'epub' },
-  exportRtf: { format: 'rtf', ext: 'rtf' },
-  exportLatex: { format: 'latex', ext: 'tex' },
-  exportOpml: { format: 'opml', ext: 'opml' },
+const PANDOC_COMMAND_MAP: Record<string, { format: PandocFormat }> = {
+  exportDocx: { format: 'docx' },
+  exportEpub: { format: 'epub' },
+  exportRtf: { format: 'rtf' },
+  exportLatex: { format: 'latex' },
+  exportOpml: { format: 'opml' },
 }
 
 export interface CommandOpts {
@@ -176,6 +179,12 @@ export function useCommands(
       }
       if (cmd === 'revertToSaved') {
         void fo.revertToSaved()
+        return
+      }
+      if (cmd === 'discardAndClose') {
+        // Main's window-close guard chose "Don't Save": drop the active doc's
+        // crash backup and report clean so the close completes without saving.
+        void fo.discardActiveBackup()
         return
       }
       if (cmd === 'duplicateFile') {
@@ -448,7 +457,7 @@ export function useCommands(
       if (pandocCmd !== undefined) {
         const markdown = editorRef.current?.getMarkdown() ?? ''
         const { title } = useEditorStore.getState()
-        const dotExt = `.${pandocCmd.ext}`
+        const dotExt = `.${pandocExtension(pandocCmd.format)}`
         const suggestedName = title.endsWith(dotExt) ? title : title + dotExt
         void window.lekha
           .exportPandoc({ markdown, suggestedName, format: pandocCmd.format })

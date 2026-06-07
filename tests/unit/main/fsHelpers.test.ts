@@ -94,6 +94,21 @@ describe('writeFileAtomic', () => {
     await writeFileAtomic(target, 'data')
     expect(existsSync(`${target}.tmp`)).toBe(false)
   })
+
+  it('survives concurrent writes to the SAME path without ENOENT (unique tmp per write)', async () => {
+    // Regression: a fixed `${path}.tmp` name made concurrent writes to one path
+    // (e.g. rapid crash-backup writes for a single tab) race - the first rename
+    // consumed the shared tmp, the rest failed with ENOENT on rename.
+    const target = join(tmpDir, 'concurrent.json')
+    const writes = Array.from({ length: 12 }, (_v, i) =>
+      writeFileAtomic(target, `content-${i}`),
+    )
+    // None of the concurrent writes should reject.
+    await expect(Promise.all(writes)).resolves.toBeDefined()
+    // The final file exists and holds one of the written payloads (last wins).
+    const content = await readTextFile(target)
+    expect(/^content-\d+$/.test(content)).toBe(true)
+  })
 })
 
 describe('readTextFile', () => {
@@ -144,6 +159,7 @@ describe('listArticles (IO)', () => {
       expect(list[i - 1]!.mtimeMs).toBeGreaterThanOrEqual(list[i]!.mtimeMs)
     }
   })
+
 })
 
 // ---------------------------------------------------------------------------

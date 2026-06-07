@@ -19,12 +19,25 @@ import './styles/themes/solarized-light.css'
 import './styles/themes/solarized-dark.css'
 import './styles/themes/nord.css'
 import App from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
+
+// Surface otherwise-silent async failures. A rejected promise with no .catch or
+// an error thrown outside React's render path would vanish without these; log
+// them so they are visible in the console / devtools.
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason)
+})
+window.addEventListener('error', (event) => {
+  console.error('Uncaught error:', event.error ?? event.message)
+})
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Root element not found')
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

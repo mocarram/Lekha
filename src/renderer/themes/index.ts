@@ -25,6 +25,26 @@ import { THEMES, type ThemeDef, type UserTheme } from '@shared/types'
 const THEME_IDS = new Set(THEMES.map((t) => t.id))
 
 /**
+ * Map of theme id -> light/dark nature, covering built-in THEMES and any
+ * currently-injected user themes. Built-in entries are seeded once; user
+ * entries are (re)populated by injectUserThemes. Exposed via themeTypeFor so
+ * non-CSS consumers (e.g. the mermaid wrapper) can resolve a theme's nature
+ * from the live registry instead of duplicating the dark/light list.
+ */
+const themeTypes = new Map<string, 'dark' | 'light'>(
+  THEMES.map((t) => [t.id, t.type ?? 'light'] as const),
+)
+
+/**
+ * Resolve a theme id's light/dark nature from the registry (built-in THEMES +
+ * injected user themes). Returns undefined for unknown ids so callers can
+ * decide their own fallback.
+ */
+export function themeTypeFor(id: string | undefined): 'dark' | 'light' | undefined {
+  return id === undefined ? undefined : themeTypes.get(id)
+}
+
+/**
  * Ids of user-authored themes currently injected. Maintained by
  * injectUserThemes so applyTheme accepts them too. Switching to a user id that
  * is later removed falls back to 'github' (see applyTheme).
@@ -49,8 +69,15 @@ export function escapeStyleCss(css: string): string {
  * again replaces the previous content (used by Reload Themes).
  */
 export function injectUserThemes(themes: UserTheme[]): void {
+  // Drop the previous user-theme type registrations, then re-seed from the
+  // incoming set. Built-in entries are never removed (they are not in
+  // userThemeIds), so this only prunes stale user themes.
+  for (const id of userThemeIds) themeTypes.delete(id)
   userThemeIds.clear()
-  for (const t of themes) userThemeIds.add(t.id)
+  for (const t of themes) {
+    userThemeIds.add(t.id)
+    themeTypes.set(t.id, t.type)
+  }
 
   const blob = themes
     .map((t) => `/* user theme: ${t.id} */\n${escapeStyleCss(t.css)}`)

@@ -142,6 +142,13 @@ function buildOpenRecentSubmenu(
  * @param onCheckForUpdates - Called when the user picks "Check for Updates…".
  *   In production this runs the manual updater check directly in main (no
  *   renderer round-trip; safe no-op in dev). Defaults to a no-op.
+ * @param autoSave    - Current autosave setting. Drives the check mark on the
+ *   File ▸ Auto Save checkbox item so it reflects the persisted value, the same
+ *   way themeMenu.current drives the Theme radio. Defaults to false (the new
+ *   opt-in default).
+ * @param setAutoSave - Called with the toggled boolean when the user clicks the
+ *   File ▸ Auto Save item. In production this sends IPC.setAutoSave to the
+ *   focused renderer (mirroring setTheme). Defaults to a no-op.
  */
 export function buildMenuTemplate(
   send: (cmd: AppCommand) => void,
@@ -153,6 +160,8 @@ export function buildMenuTemplate(
   onCheckForUpdates: () => void = () => { /* no-op - no updater caller */ },
   onSaveAll: () => void = () => { /* no-op - no save-all caller */ },
   onReloadThemes: () => void = () => { /* no-op - no theme-reload caller */ },
+  autoSave = false,
+  setAutoSave: (value: boolean) => void = () => { /* no-op - no autosave caller */ },
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -210,6 +219,12 @@ export function buildMenuTemplate(
       // Save All saves every open window; runs directly in main (no renderer
       // round-trip) so it reaches all windows, not just the focused one.
       { label: 'Save All', click: () => { onSaveAll() } },
+      // Auto Save is a checkable toggle whose check mark is driven by the
+      // persisted `autoSave` setting (the same way the Theme radio reads
+      // themeMenu.current). Clicking it sends the toggled value to the renderer
+      // via setAutoSave (IPC.setAutoSave), which persists it and triggers a menu
+      // rebuild so the check mark stays current. Mirrors the setTheme pattern.
+      { label: 'Auto Save', type: 'checkbox', checked: autoSave, click: () => { setAutoSave(!autoSave) } },
       item('Duplicate',       undefined,         'duplicateFile', send),
       item('Rename…',         undefined,         'renameFile',    send),
       item('Move To…',        undefined,         'moveFileTo',    send),

@@ -1,4 +1,4 @@
-import { type RefObject, useCallback } from 'react'
+import { type RefObject, useCallback, useRef } from 'react'
 import { parseMarkdown } from '@renderer/editor/parser'
 import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
@@ -74,6 +74,74 @@ export interface FileOps {
    * fresh blank Untitled document takes its place.
    */
   closeTab(id: string): Promise<void>
+  /**
+   * Handle the main-process window-close guard's "Don't Save" choice: delete the
+   * active document's crash backup and report the document clean so the close
+   * completes WITHOUT writing the file. Leaves the buffer untouched.
+   */
+  discardActiveBackup(): Promise<void>
+  /**
+   * Re-point the active document at `newPath` atomically: update the editor
+   * store path (re-deriving the title), the documents-store tab path, and the OS
+   * window title/dirty indicator. Used by rename/move/detach so the three stay
+   * consistent. Options:
+   *   remapFrom - old path to remap across ALL open tabs (rename/move); omit to
+   *               update only the active tab via updateActive.
+   *   dirty     - force the OS-title dirty flag (detach passes true); defaults to
+   *               the editor store's current isDirty.
+   */
+  syncActivePath(newPath: string | null, opts?: SyncActivePathOptions): void
+  /**
+   * Create a new "Untitled.md" in `dir` (or the workspace root when null),
+   * refresh the tree, and open the new file. Surfaces read/write errors via
+   * window.alert. No-op when no target directory can be resolved.
+   */
+  createFileEntry(dir: string | null): Promise<void>
+  /**
+   * Create a new "Untitled Folder" in `dir` (or the workspace root when null)
+   * and refresh the tree. Surfaces errors via window.alert. No-op when no target
+   * directory can be resolved.
+   */
+  createFolderEntry(dir: string | null): Promise<void>
+  /**
+   * Rename/move a file-tree entry on disk, remap every open tab whose path sits
+   * under it, keep the active editor + OS title in sync, and refresh the tree.
+   * Surfaces errors via window.alert.
+   */
+  renameEntry(oldPath: string, newName: string): Promise<void>
+  /**
+   * Trash a file-tree entry (after a confirm), detach the open document when it
+   * (or a containing folder) was deleted, and refresh the tree. Surfaces errors
+   * via window.alert.
+   */
+  deleteEntry(path: string): Promise<void>
+  /** Reveal a file-tree entry in the OS file manager. */
+  revealEntry(path: string): void
+  /**
+   * Lazy, watcher-free external-change check for the active document. Stats the
+   * active doc's path and: silently recovers a same-folder rename (matched by
+   * inode); detaches a moved/deleted file (keeps the buffer) and reports a quiet
+   * notice via onNotice. Throttled and single-flight internally so rapid focus
+   * toggles do not stack. No-op for unsaved docs or when the bridge is absent.
+   *
+   * @param onNotice - Called with a notice string when the file was lost, or
+   *   null to clear the notice (silent rename recovery). App owns the banner UI.
+   */
+  verifyActiveDoc(onNotice: (notice: string | null) => void): Promise<void>
+  /**
+   * Reset the editor to a fresh blank Untitled document WITHOUT the unsaved
+   * guard or tab bookkeeping that newFile() performs. Used by the template
+   * picker, which runs its own guard then injects the template content.
+   */
+  resetToBlank(): void
+}
+
+/** Options for {@link FileOps.syncActivePath}. */
+export interface SyncActivePathOptions {
+  /** Old path to remap across all open tabs (rename/move). */
+  remapFrom?: string
+  /** Force the OS-title dirty flag; defaults to the editor store's isDirty. */
+  dirty?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +162,43 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   const editorStore = useEditorStore
   const workspaceStore = useWorkspaceStore
   const documentsStore = useDocumentsStore
+
+  // External-change check coordination (single-flight + throttle). Refs so the
+  // values survive re-renders without re-triggering the verifyActiveDoc callback.
+  const extCheckInFlight = useRef(false)
+  const extCheckLast = useRef(0)
+
+  // -------------------------------------------------------------------------
+  // Document-path sync
+  // -------------------------------------------------------------------------
+
+  /**
+   * Re-point the active document at `newPath`, keeping the editor store, the
+   * documents-store tab(s), and the OS window title/dirty indicator consistent.
+   * Consolidates the rename/move/detach trio that was previously hand-rolled in
+   * several call sites.
+   */
+  const syncActivePath = useCallback(
+    (newPath: string | null, opts?: SyncActivePathOptions): void => {
+      // 1. Documents store: remap across tabs (rename/move) or patch the active.
+      if (opts?.remapFrom !== undefined && newPath !== null) {
+        documentsStore.getState().updatePath(opts.remapFrom, newPath)
+      } else {
+        documentsStore.getState().updateActive({ path: newPath })
+      }
+      // 2. Editor store: update the live save target + re-derive the title.
+      editorStore.getState().setPath(newPath)
+      // 3. OS window title / dirty indicator (re-derived title; caller may force
+      //    the dirty value for the detach case).
+      const { title, isDirty } = editorStore.getState()
+      window.lekha.setDocumentState({
+        title,
+        dirty: opts?.dirty ?? isDirty,
+        path: newPath,
+      })
+    },
+    [editorStore, documentsStore],
+  )
 
   // -------------------------------------------------------------------------
   // Private helpers
@@ -168,8 +273,29 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       const { title } = editorStore.getState()
       window.lekha.setDocumentState({ title, dirty: false, path })
 
-      // Mirror the saved state into the active tab snapshot.
-      documentsStore.getState().updateActive({ markdown: md, isDirty: false, path, title })
+      // Crash recovery: work is now safely on disk, so drop the linked backup
+      // and clear the tab's backup state. Wrapped so a delete failure can never
+      // break the save itself.
+      const active = documentsStore.getState().activeDocument()
+      const backupId = active?.backupId ?? null
+      if (backupId !== null) {
+        try {
+          await window.lekha.deleteBackup(backupId)
+        } catch {
+          // ignore - a stale backup is harmless; recovery dedupes/cleans it up.
+        }
+      }
+
+      // Mirror the saved state into the active tab snapshot (and clear backup
+      // state regardless of whether a delete was needed).
+      documentsStore.getState().updateActive({
+        markdown: md,
+        isDirty: false,
+        path,
+        title,
+        backupId: null,
+        recovered: false,
+      })
 
       // Refresh the inode (Save As writes a new file with a new inode).
       try {
@@ -205,6 +331,24 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     const md = editorRef.current?.getMarkdown() ?? active.markdown
     const { isDirty, eol, path, title, inode } = editorStore.getState()
     documentsStore.getState().updateActive({ markdown: md, isDirty, eol, path, title, inode })
+    // Crash recovery: if the outgoing tab is dirty, capture its backup now so a
+    // tab edited then switched away is protected immediately (independent of the
+    // debounced useCrashBackup timer). Assigns a backupId when missing.
+    if (isDirty) {
+      const backupId = documentsStore.getState().ensureBackupId(active.id)
+      if (backupId !== null) {
+        // savedAt is authoritative-stamped in main at write time; the value we
+        // pass here is a placeholder to satisfy the BackupRecord shape.
+        void window.lekha.writeBackup({
+          backupId,
+          path,
+          title,
+          content: md,
+          eol,
+          savedAt: Date.now(),
+        })
+      }
+    }
   }, [editorRef, editorStore, documentsStore])
 
   /**
@@ -385,7 +529,33 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       await selectTab(id)
     }
     if (editorStore.getState().isDirty) {
-      if (!(await guardUnsaved())) return // user cancelled -> abort close
+      // The guard awaits a native dialog the user can sit on. While it is open
+      // another path (e.g. selectTab from a click, openPath) can change the
+      // active document; if it does, the dialog's answer no longer applies to
+      // THIS tab. Snapshot the active id before awaiting and bail if it changed
+      // when the dialog resolves, so we never close/save against a stale doc.
+      const activeBeforeGuard = documentsStore.getState().activeId
+      const proceed = await guardUnsaved()
+      if (!proceed) return // user cancelled -> abort close
+      if (documentsStore.getState().activeId !== activeBeforeGuard) {
+        // The active document changed while the dialog was open; the guard acted
+        // on a now-inactive tab. Abort rather than act on a stale active doc.
+        return
+      }
+    }
+    // Crash recovery: clear this tab's backup before removing it. On the "Save"
+    // path persist already deleted it (backupId is null); on the discard
+    // ("Don't Save") path the backupId is still set and must be cleaned up so a
+    // discarded tab leaves no backup behind. Wrapped so a delete failure cannot
+    // block the close.
+    const closing = documentsStore.getState().documents.find((d) => d.id === id)
+    const closingBackupId = closing?.backupId ?? null
+    if (closingBackupId !== null) {
+      try {
+        await window.lekha.deleteBackup(closingBackupId)
+      } catch {
+        // ignore - a leftover backup is harmless; recovery cleans it up.
+      }
     }
     documentsStore.getState().closeDocument(id)
     const next = documentsStore.getState().activeDocument()
@@ -397,6 +567,27 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       blankEditor()
     }
   }, [documentsStore, selectTab, editorStore, guardUnsaved, loadTab, blankEditor])
+
+  // "Don't Save" from the main-process window-close guard: discard the active
+  // doc's crash backup (so it is not falsely recovered next launch), then report
+  // the document clean so the guard's pendingClose handshake completes the close
+  // WITHOUT writing the file. The buffer is intentionally left untouched - the
+  // window is about to be destroyed.
+  const discardActiveBackup = useCallback(async (): Promise<void> => {
+    const active = documentsStore.getState().activeDocument()
+    const backupId = active?.backupId ?? null
+    if (backupId !== null) {
+      try {
+        await window.lekha.deleteBackup(backupId)
+      } catch {
+        // ignore - a leftover backup is harmless; recovery cleans it up.
+      }
+    }
+    documentsStore.getState().updateActive({ backupId: null, recovered: false })
+    editorStore.getState().markClean()
+    const { title, path } = editorStore.getState()
+    window.lekha.setDocumentState({ title, dirty: false, path })
+  }, [documentsStore, editorStore])
 
   // openFolder does NOT replace the current document, so it does not need
   // the unsaved-changes guard.
@@ -480,13 +671,147 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     await refreshTree()
     // Update the path IN PLACE rather than re-opening: the document is the same
     // (only its location changed), so re-reading from disk would duplicate the
-    // tab and discard any unsaved in-memory edits. updatePath rewrites the tab;
-    // editorStore.setPath keeps the live save target correct.
-    documentsStore.getState().updatePath(path, newPath)
-    editorStore.getState().setPath(newPath)
-    const { title, isDirty } = editorStore.getState()
-    window.lekha.setDocumentState({ title, dirty: isDirty, path: newPath })
-  }, [editorStore, documentsStore, refreshTree])
+    // tab and discard any unsaved in-memory edits. syncActivePath rewrites the
+    // tab(s), keeps the live save target correct, and re-syncs the OS title.
+    syncActivePath(newPath, { remapFrom: path })
+  }, [editorStore, refreshTree, syncActivePath])
+
+  // -------------------------------------------------------------------------
+  // File-tree operations (create / rename / delete / reveal)
+  //
+  // Each mutating op goes through window.lekha then refreshes the tree so the
+  // sidebar reflects the on-disk state. New entries get a default name (the
+  // user renames via the context menu). Delete uses the main-process
+  // shell.trashItem (recoverable) and is gated behind a light confirm.
+  // -------------------------------------------------------------------------
+
+  // Resolve the directory a new entry is created in: the passed (right-clicked)
+  // folder, or the workspace root when invoked from the empty/root area.
+  const resolveDir = useCallback((dir: string | null): string | null => {
+    return dir ?? workspaceStore.getState().rootFolder
+  }, [workspaceStore])
+
+  const createFileEntry = useCallback(async (dir: string | null): Promise<void> => {
+    const target = resolveDir(dir)
+    if (target === null) return
+    try {
+      const path = await window.lekha.createFile(target, 'Untitled.md')
+      await refreshTree()
+      // Open the freshly created (empty) file so the user can start typing.
+      await openPath(path)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [resolveDir, refreshTree, openPath])
+
+  const createFolderEntry = useCallback(async (dir: string | null): Promise<void> => {
+    const target = resolveDir(dir)
+    if (target === null) return
+    try {
+      await window.lekha.createFolder(target, 'Untitled Folder')
+      await refreshTree()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [resolveDir, refreshTree])
+
+  const renameEntry = useCallback(async (oldPath: string, newName: string): Promise<void> => {
+    try {
+      const newPath = await window.lekha.renamePath(oldPath, newName)
+      // Update EVERY open tab whose path matches (or sits under) the renamed
+      // entry so no tab keeps a stale on-disk path.
+      documentsStore.getState().updatePath(oldPath, newPath)
+      // If the renamed entry is the active document, also update the editor's
+      // live path + OS title so saves keep targeting the right file. updatePath
+      // already ran above, so syncActivePath only needs setPath + setDocumentState.
+      if (editorStore.getState().path === oldPath) {
+        syncActivePath(newPath)
+      }
+      await refreshTree()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [documentsStore, editorStore, syncActivePath, refreshTree])
+
+  const deleteEntry = useCallback(async (path: string): Promise<void> => {
+    // Confirm before trashing. trashItem is recoverable (OS trash), but a
+    // confirm avoids accidental one-click deletes.
+    if (!window.confirm('Move this item to the Trash?')) return
+    try {
+      await window.lekha.deletePath(path)
+      // If the open document was deleted - directly, or because a folder
+      // containing it was trashed - clear its path so a later save uses Save As
+      // rather than rewriting the trashed location. The buffer is kept.
+      const openPathValue = editorStore.getState().path
+      if (
+        openPathValue !== null &&
+        (openPathValue === path || openPathValue.startsWith(path + '/'))
+      ) {
+        syncActivePath(null)
+      }
+      await refreshTree()
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err))
+    }
+  }, [editorStore, syncActivePath, refreshTree])
+
+  const revealEntry = useCallback((path: string): void => {
+    void window.lekha.revealPath(path)
+  }, [])
+
+  // -------------------------------------------------------------------------
+  // External-change detection (lazy, watcher-free).
+  //
+  // When the window regains focus (i.e. the user returns from Finder), do ONE
+  // cheap stat of the active document's path. A same-folder rename is recovered
+  // silently (the tab follows the new name via its inode); a move-elsewhere or
+  // delete keeps the buffer but detaches the doc from disk and reports a quiet,
+  // non-blocking notice via onNotice. No fs watchers, no polling, nothing on the
+  // typing path.
+  // -------------------------------------------------------------------------
+  const verifyActiveDoc = useCallback(
+    async (onNotice: (notice: string | null) => void): Promise<void> => {
+      if (typeof window.lekha === 'undefined') return
+      const { path, inode } = editorStore.getState()
+      if (path === null || inode === null) return // unsaved / no inode to match
+      if (extCheckInFlight.current) return
+      const now = Date.now()
+      if (now - extCheckLast.current < 1000) return // throttle rapid focus toggles
+      extCheckLast.current = now
+      extCheckInFlight.current = true
+      try {
+        const res = await window.lekha.verifyOpenFile({ path, inode })
+        // The active doc may have changed while the check was in flight - bail.
+        if (editorStore.getState().path !== path) return
+        if (res.status === 'renamed') {
+          syncActivePath(res.newPath, { remapFrom: path })
+          onNotice(null)
+        } else if (res.status === 'missing') {
+          // Keep the buffer (no data loss); detach so the next Save is Save As.
+          editorStore.getState().markDirty()
+          // Mirror the forced-dirty state into the active tab snapshot too, so a
+          // later tab switch does not resurrect a clean flag for a detached doc.
+          documentsStore.getState().updateActive({ isDirty: true })
+          syncActivePath(null, { dirty: true })
+          onNotice(
+            'This file was moved or deleted outside Lekha. Your changes are kept - use Save to write it again.',
+          )
+        }
+      } catch {
+        // Verification failed (e.g. bridge unavailable) - leave state untouched.
+      } finally {
+        extCheckInFlight.current = false
+      }
+    },
+    [editorStore, documentsStore, syncActivePath],
+  )
+
+  // Reset the editor to a fresh blank Untitled document WITHOUT the unsaved
+  // guard or tab bookkeeping newFile() performs. The template picker runs its
+  // own guard, then injects template content after this clears the editor.
+  const resetToBlank = useCallback((): void => {
+    blankEditor()
+  }, [blankEditor])
 
   return {
     open,
@@ -503,5 +828,14 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     moveCurrentTo,
     selectTab,
     closeTab,
+    discardActiveBackup,
+    syncActivePath,
+    createFileEntry,
+    createFolderEntry,
+    renameEntry,
+    deleteEntry,
+    revealEntry,
+    verifyActiveDoc,
+    resetToBlank,
   }
 }

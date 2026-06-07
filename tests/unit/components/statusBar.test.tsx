@@ -60,14 +60,14 @@ describe('StatusBar', () => {
   it('shows "WYSIWYG" label when mode is wysiwyg', () => {
     useEditorStore.getState().setMode('wysiwyg')
     const { getByRole } = render(<StatusBar onToggleSource={() => {}} />)
-    const btn = getByRole('button', { name: 'WYSIWYG' })
+    const btn = getByRole('button', { name: 'Switch to source editing' })
     expect(btn.textContent).toContain('WYSIWYG')
   })
 
   it('shows "Source" label when mode is source', () => {
     useEditorStore.getState().setMode('source')
     const { getByRole } = render(<StatusBar onToggleSource={() => {}} />)
-    const btn = getByRole('button', { name: 'Source' })
+    const btn = getByRole('button', { name: 'Switch to WYSIWYG editing' })
     expect(btn.textContent).toContain('Source')
   })
 
@@ -75,7 +75,7 @@ describe('StatusBar', () => {
     const onToggle = vi.fn()
     useEditorStore.getState().setMode('wysiwyg')
     const { getByRole } = render(<StatusBar onToggleSource={onToggle} />)
-    fireEvent.click(getByRole('button', { name: 'WYSIWYG' }))
+    fireEvent.click(getByRole('button', { name: 'Switch to source editing' }))
     expect(onToggle).toHaveBeenCalledOnce()
   })
 

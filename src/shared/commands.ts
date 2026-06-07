@@ -6,6 +6,11 @@ export type AppCommand =
   | 'save'
   | 'saveAs'
   | 'revertToSaved'
+  // Internal (main -> renderer): the user chose "Don't Save" in the window-close
+  // guard. The renderer discards the active doc's crash backup and reports the
+  // document clean, letting the main close-guard complete the close WITHOUT
+  // writing the file. Not shown in any menu.
+  | 'discardAndClose'
   | 'showInFinder'
   | 'revealInFileTree'
   | 'revealInLibrary'

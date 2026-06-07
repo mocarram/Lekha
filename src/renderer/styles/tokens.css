@@ -179,6 +179,21 @@
    * from --accent so every theme gets a coherent glow. */
   --focus-ring:          0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 
+  /* Presentation mode (full-screen slide overlay). These are deliberately dark
+   * regardless of the active theme: a presentation reads as a dark stage so it
+   * looks the same projected anywhere. Component CSS (.pres-*) consumes these
+   * instead of hardcoding colors; override here to retheme the slide stage. */
+  --pres-bg:      #1a1a1a;   /* slide overlay background */
+  --pres-text:    #f0f0f0;   /* slide body text */
+  --pres-heading: #ffffff;   /* slide headings */
+  --pres-rule:    rgba(255, 255, 255, 0.15);  /* heading underline / hr */
+  --pres-border:  rgba(255, 255, 255, 0.2);   /* table cell borders */
+  --pres-code-bg: rgba(255, 255, 255, 0.08);  /* code block / inline code bg */
+  --pres-code-text: #e0e0e0;                  /* code text */
+  --pres-quote:   #c0c0c0;                     /* blockquote text */
+  --pres-quote-border: rgba(255, 255, 255, 0.3); /* blockquote left border */
+  --pres-counter: rgba(255, 255, 255, 0.5);   /* slide counter text */
+
   /* Component-scoped tokens (theme-overridable):
    *   --list-indent  Outer + per-level indent for editor lists (WYSIWYG-tight). */
   --list-indent: 1.6em;

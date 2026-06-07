@@ -4,7 +4,7 @@
  * State is reset in beforeEach (which also resets the id counter) so tab ids
  * are deterministic (`doc-1`, `doc-2`, ...) within each test.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import {
   useDocumentsStore,
   pickNeighbourId,
@@ -38,6 +38,8 @@ describe('documentsStore - openDocument', () => {
     expect(doc.markdown).toBe('# Hi')
     expect(doc.isDirty).toBe(false)
     expect(doc.mode).toBe('wysiwyg')
+    expect(doc.backupId).toBeNull()
+    expect(doc.recovered).toBe(false)
     expect(store().activeId).toBe('doc-1')
   })
 
@@ -75,6 +77,8 @@ describe('documentsStore - newDocument', () => {
     expect(doc.markdown).toBe('')
     expect(doc.isDirty).toBe(false)
     expect(doc.eol).toBe('lf')
+    expect(doc.backupId).toBeNull()
+    expect(doc.recovered).toBe(false)
   })
 })
 
@@ -114,6 +118,37 @@ describe('documentsStore - updateActive', () => {
   it('is a no-op when there is no active tab', () => {
     store().updateActive({ markdown: 'x' })
     expect(store().documents).toEqual([])
+  })
+})
+
+describe('documentsStore - ensureBackupId', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('assigns a fresh uuid to a tab that lacks a backupId and returns it', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('uuid-1' as `${string}-${string}-${string}-${string}-${string}`)
+    const id = store().openDocument({ path: '/a.md', markdown: 'A' })
+    expect(store().activeDocument()!.backupId).toBeNull()
+    const backupId = store().ensureBackupId(id)
+    expect(backupId).toBe('uuid-1')
+    expect(store().activeDocument()!.backupId).toBe('uuid-1')
+  })
+
+  it('returns the existing backupId without re-generating one', () => {
+    const spy = vi
+      .spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce('uuid-1' as `${string}-${string}-${string}-${string}-${string}`)
+    const id = store().openDocument({ path: '/a.md', markdown: 'A' })
+    const first = store().ensureBackupId(id)
+    const second = store().ensureBackupId(id)
+    expect(first).toBe('uuid-1')
+    expect(second).toBe('uuid-1')
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns null for an unknown id', () => {
+    expect(store().ensureBackupId('nope')).toBeNull()
   })
 })
 
@@ -194,6 +229,8 @@ describe('pickNeighbourId (pure)', () => {
     eol: 'lf',
     mode: 'wysiwyg',
     inode: null,
+    backupId: null,
+    recovered: false,
   })
 
   it('returns the left neighbour for a middle tab', () => {
@@ -221,6 +258,8 @@ describe('nextTabId (pure)', () => {
     eol: 'lf',
     mode: 'wysiwyg',
     inode: null,
+    backupId: null,
+    recovered: false,
   })
 
   it('cycles forward (+1) to the right neighbour', () => {

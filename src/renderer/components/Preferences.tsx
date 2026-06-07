@@ -38,6 +38,14 @@ import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
 export interface PreferencesProps {
   open: boolean
   onClose: () => void
+  /**
+   * Shared auto-save toggle behaviour (lifted to App so it can reach
+   * fileOps.save). Routing the checkbox through this keeps the
+   * immediate-flush-on-enable rule identical to the native menu toggle. It
+   * already mirrors the value into editorStore and persists via setSettings, so
+   * the checkbox handler only needs to keep its own form state in sync.
+   */
+  onApplyAutoSave: (next: boolean) => void
 }
 
 /** The subset of Settings the Preferences form edits. */
@@ -84,7 +92,7 @@ const SPELL_CHECK_LANGUAGES: { value: string; label: string }[] = [
 // Component
 // ---------------------------------------------------------------------------
 
-export function Preferences({ open, onClose }: PreferencesProps) {
+export function Preferences({ open, onClose, onApplyAutoSave }: PreferencesProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const dialogRef = useRef<HTMLDivElement>(null)
 
@@ -161,8 +169,10 @@ export function Preferences({ open, onClose }: PreferencesProps) {
 
   const handleAutoSave = (autoSave: boolean): void => {
     setForm((f) => ({ ...f, autoSave }))
-    useEditorStore.getState().setAutoSave(autoSave)
-    persist({ autoSave })
+    // Route through the shared App-level behaviour so the store update, the
+    // setSettings persist, and the immediate-flush-on-enable rule are identical
+    // to the native File > Auto Save menu toggle.
+    onApplyAutoSave(autoSave)
   }
 
   const handleSpellCheck = (spellCheck: boolean): void => {

@@ -30,6 +30,17 @@ export interface DocumentTab {
   mode: EditorMode
   /** Inode of the file (rename-recovery); null for unsaved docs. */
   inode: number | null
+  /**
+   * Id of the crash-recovery backup file linked to this tab's unsaved buffer.
+   * Assigned (via crypto.randomUUID) when the tab first writes a backup; null
+   * while clean / never-edited. Cleared when the backup is removed (save/discard).
+   */
+  backupId: string | null
+  /**
+   * True for tabs restored from a backup after a crash; drives the inline
+   * recovery banner. Defaults false for normally-opened/new tabs.
+   */
+  recovered: boolean
 }
 
 interface DocumentsState {
@@ -57,6 +68,12 @@ interface DocumentsActions {
   activateDocument(id: string): void
   /** Patch the active tab in place (id cannot be changed). */
   updateActive(patch: Partial<Omit<DocumentTab, 'id'>>): void
+  /**
+   * Ensure the tab with `id` has a backupId, assigning a fresh
+   * crypto.randomUUID() when missing. Returns the tab's backupId (existing or
+   * newly assigned), or null when the id is unknown.
+   */
+  ensureBackupId(id: string): string | null
   /**
    * Rewrite the path (+ derived title) of any tab whose file was renamed/moved:
    * an exact path match, or a path under a renamed/moved containing folder.
@@ -151,6 +168,8 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       eol: detectEol(markdown),
       mode: 'wysiwyg',
       inode: null,
+      backupId: null,
+      recovered: false,
     }
     set((s) => ({ documents: [...s.documents, tab], activeId: tab.id }))
     return tab.id
@@ -166,6 +185,8 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       eol: 'lf',
       mode: 'wysiwyg',
       inode: null,
+      backupId: null,
+      recovered: false,
     }
     set((s) => ({ documents: [...s.documents, tab], activeId: tab.id }))
     return tab.id
@@ -194,6 +215,19 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
         d.id === activeId ? { ...d, ...patch } : d,
       ),
     }))
+  },
+
+  ensureBackupId(id) {
+    const tab = get().documents.find((d) => d.id === id)
+    if (tab === undefined) return null
+    if (tab.backupId !== null) return tab.backupId
+    const backupId = crypto.randomUUID()
+    set((s) => ({
+      documents: s.documents.map((d) =>
+        d.id === id ? { ...d, backupId } : d,
+      ),
+    }))
+    return backupId
   },
 
   updatePath(oldPath, newPath) {

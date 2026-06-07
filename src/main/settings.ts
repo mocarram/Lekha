@@ -22,7 +22,7 @@ const DEFAULTS: Settings = {
   typewriterMode: false,
   equationNumbering: true,
   fontSize: DEFAULT_FONT_SIZE,
-  autoSave: true,
+  autoSave: false,
   spellCheck: true,
   spellCheckLanguage: 'en-US',
   smartPunctuation: true,

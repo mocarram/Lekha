@@ -83,8 +83,13 @@ afterEach(() => {
 })
 
 /** Render the modal open and wait for the initial getSettings() to resolve. */
-async function renderOpen(onClose = vi.fn()): Promise<void> {
-  render(<Preferences open onClose={onClose} />)
+async function renderOpen(
+  onClose = vi.fn(),
+  onApplyAutoSave = vi.fn(),
+): Promise<void> {
+  render(
+    <Preferences open onClose={onClose} onApplyAutoSave={onApplyAutoSave} />,
+  )
   await waitFor(() => expect(getSettingsMock).toHaveBeenCalled())
 }
 
@@ -94,7 +99,9 @@ async function renderOpen(onClose = vi.fn()): Promise<void> {
 
 describe('Preferences - rendering', () => {
   it('renders nothing when closed', () => {
-    const { container } = render(<Preferences open={false} onClose={vi.fn()} />)
+    const { container } = render(
+      <Preferences open={false} onClose={vi.fn()} onApplyAutoSave={vi.fn()} />,
+    )
     expect(container.firstChild).toBeNull()
   })
 
@@ -190,12 +197,14 @@ describe('Preferences - auto-save', () => {
     expect(screen.getByLabelText('Auto-save')).toBeTruthy()
   })
 
-  it('toggling auto-save off persists it and updates the editor store', async () => {
-    // Default is autoSave=true; clicking unchecks it.
-    await renderOpen()
+  it('toggling auto-save routes through the shared onApplyAutoSave callback', async () => {
+    // Default is autoSave=true; clicking unchecks it. The checkbox no longer
+    // persists / updates the store inline - it delegates to the App-level
+    // applyAutoSave helper (so the immediate-flush-on-enable rule is shared).
+    const onApplyAutoSave = vi.fn()
+    await renderOpen(vi.fn(), onApplyAutoSave)
     fireEvent.click(screen.getByLabelText('Auto-save'))
-    expect(setSettingsMock).toHaveBeenCalledWith({ autoSave: false })
-    expect(useEditorStore.getState().autoSave).toBe(false)
+    expect(onApplyAutoSave).toHaveBeenCalledWith(false)
   })
 
   it('reflects autoSave=false when seeded from settings', async () => {

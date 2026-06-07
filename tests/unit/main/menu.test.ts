@@ -640,3 +640,50 @@ describe('buildMenuTemplate - Check for Updates', () => {
     expect(send).not.toHaveBeenCalled()
   })
 })
+
+describe('buildMenuTemplate - Auto Save checkable item', () => {
+  // autoSave is the 10th positional arg; setAutoSave the 11th. The earlier
+  // optional args keep their defaults.
+  function buildWith(autoSave: boolean, setAutoSave: (v: boolean) => void) {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    return buildMenuTemplate(
+      send,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      autoSave,
+      setAutoSave,
+    )
+  }
+
+  it('renders a File-menu "Auto Save" checkbox item', () => {
+    const template = buildWith(false, vi.fn())
+    const item = findItem(template, (i) => i.label === 'Auto Save')
+    expect(item).toBeDefined()
+    expect(item!.type).toBe('checkbox')
+  })
+
+  it('checked reflects the passed autoSave value (true and false)', () => {
+    const on = findItem(buildWith(true, vi.fn()), (i) => i.label === 'Auto Save')
+    const off = findItem(buildWith(false, vi.fn()), (i) => i.label === 'Auto Save')
+    expect(on!.checked).toBe(true)
+    expect(off!.checked).toBe(false)
+  })
+
+  it('clicking it calls setAutoSave with the negated value', () => {
+    const setAutoSaveOff = vi.fn<(v: boolean) => void>()
+    const offItem = findItem(buildWith(false, setAutoSaveOff), (i) => i.label === 'Auto Save')
+    clickItem(offItem!)
+    expect(setAutoSaveOff).toHaveBeenCalledWith(true)
+
+    const setAutoSaveOn = vi.fn<(v: boolean) => void>()
+    const onItem = findItem(buildWith(true, setAutoSaveOn), (i) => i.label === 'Auto Save')
+    clickItem(onItem!)
+    expect(setAutoSaveOn).toHaveBeenCalledWith(false)
+  })
+})

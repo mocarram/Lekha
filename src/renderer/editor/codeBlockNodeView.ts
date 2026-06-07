@@ -105,6 +105,7 @@ function makeCodeBlockNodeView(
   // 'plaintext' is the visual label for an empty language attr (no highlighting).
   const langSelect = document.createElement('select')
   langSelect.className = 'lang-selector'
+  langSelect.setAttribute('aria-label', 'Code block language')
 
   // Populate options from the deduplicated, sorted language list.
   const langs = availableLanguages()

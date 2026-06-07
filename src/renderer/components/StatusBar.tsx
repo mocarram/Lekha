@@ -60,6 +60,8 @@ export function StatusBar({ onToggleSource, onShowStats }: StatusBarProps) {
         type="button"
         className="status-bar__mode-btn no-drag"
         onClick={onToggleSource}
+        aria-label={mode === 'wysiwyg' ? 'Switch to source editing' : 'Switch to WYSIWYG editing'}
+        title={mode === 'wysiwyg' ? 'Switch to source editing' : 'Switch to WYSIWYG editing'}
       >
         {mode === 'wysiwyg' ? 'WYSIWYG' : 'Source'}
       </button>

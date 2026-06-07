@@ -27,7 +27,7 @@
 
   /* --- Text --- */
   --text:       #d8dee9;
-  --text-muted: #616e88;
+  --text-muted: #8d97ad;
   --text-sub:   #81a1c1;
   --text-dark:  #eceff4;
   --text-file:  #d8dee9;
@@ -36,6 +36,12 @@
   /* --- Accent / link --- */
   --link:   #88c0d0;
   --accent: #88c0d0;
+
+  /* Text/badges painted ON the accent surface. The default white from
+     tokens.css only clears ~2:1 against this Frost accent, so override to the
+     Polar Night ink (~6.2:1 against #88c0d0). */
+  --on-accent:       #2e3440;
+  --on-accent-muted: rgba(46, 52, 64, 0.82);
 
   /* --- Editor content --- */
   --selection:         #4c566a;

@@ -1,5 +1,6 @@
 import { readFile, writeFile, rename, unlink, readdir, stat } from 'node:fs/promises'
 import { basename, join, extname, dirname } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import type { FileNode, FileStat, ArticleEntry, OpenFileStatus } from '@shared/types'
 
 const MD_EXTENSIONS = new Set(['.md', '.markdown'])
@@ -45,12 +46,19 @@ export async function buildFileTree(dir: string): Promise<FileNode[]> {
 }
 
 /**
- * Atomically writes content to a file by writing to a temporary ".tmp" sibling
- * first, then renaming it into place.  This prevents partial writes from
- * leaving a corrupt file if the process is killed mid-write.
+ * Atomically writes content to a file by writing to a UNIQUE temporary sibling
+ * first, then renaming it into place. This prevents partial writes from leaving
+ * a corrupt file if the process is killed mid-write.
+ *
+ * The tmp name carries a per-write random suffix so that two concurrent writes
+ * to the SAME destination do not share one tmp file. (Crash backups for a single
+ * tab can be triggered near-simultaneously by the idle-debounce, the window-blur
+ * flush, and a tab-switch snapshot; with a fixed `${path}.tmp` name the first
+ * rename consumed the shared tmp and the others failed with ENOENT.) Each write
+ * now renames its own tmp; for an atomic replace, last-writer-wins is correct.
  */
 export async function writeFileAtomic(path: string, content: string): Promise<void> {
-  const tmp = `${path}.tmp`
+  const tmp = `${path}.${randomUUID()}.tmp`
   await writeFile(tmp, content, 'utf8')
   // If rename fails (e.g. cross-device), clean up the orphaned .tmp file
   // best-effort (swallow unlink errors) and rethrow the original error.
@@ -169,21 +177,30 @@ export function deriveArticlePreview(content: string): string {
  */
 export async function listArticles(root: string): Promise<ArticleEntry[]> {
   const paths = await collectMarkdownFiles(root)
-  const entries = await Promise.all(
-    paths.map(async (path): Promise<ArticleEntry> => {
-      const [content, s] = await Promise.all([
-        readFile(path, 'utf8').catch(() => ''),
-        stat(path),
-      ])
-      return {
-        path,
-        title: deriveArticleTitle(content, path),
-        mtimeMs: s.mtimeMs,
-        sizeBytes: s.size,
-        preview: deriveArticlePreview(content),
+  const settled = await Promise.all(
+    paths.map(async (path): Promise<ArticleEntry | null> => {
+      // Guard each entry: a file enumerated above may be deleted before we stat
+      // it (TOCTOU). Returning null drops that one entry rather than rejecting
+      // Promise.all and blanking the entire list. readFile failures still
+      // degrade to an empty title/preview via its own .catch.
+      try {
+        const [content, s] = await Promise.all([
+          readFile(path, 'utf8').catch(() => ''),
+          stat(path),
+        ])
+        return {
+          path,
+          title: deriveArticleTitle(content, path),
+          mtimeMs: s.mtimeMs,
+          sizeBytes: s.size,
+          preview: deriveArticlePreview(content),
+        }
+      } catch {
+        return null
       }
     }),
   )
+  const entries = settled.filter((e): e is ArticleEntry => e !== null)
   entries.sort((a, b) => b.mtimeMs - a.mtimeMs)
   return entries
 }

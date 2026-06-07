@@ -46,6 +46,12 @@
   --link:   #4fc3f7;
   --accent: #4fc3f7;
 
+  /* Text/badges painted ON the accent surface. The default white from
+     tokens.css only clears ~2:1 against this light blue accent, so override to
+     a near-black ink derived from the dark bg (~7.9:1 against #4fc3f7). */
+  --on-accent:       #102530;
+  --on-accent-muted: rgba(16, 37, 48, 0.82);
+
   /* --- Editor content --- */
   --selection:       #264f78;
   --code-bg:         #2d2d2d;

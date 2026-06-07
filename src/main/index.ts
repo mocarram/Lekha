@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, ShareMenu, session } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, ShareMenu, session, screen, dialog } from 'electron'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
@@ -23,7 +23,7 @@ import {
   runCloseGuard,
   nextWindowBounds,
   isSaneBounds,
-  DEFAULT_WINDOW_SIZE,
+  defaultWindowBounds,
   type WindowBounds,
   type OpenBounds,
 } from '@main/window'
@@ -31,6 +31,8 @@ import { IPC } from '@shared/ipc-channels'
 import { THEMES } from '@shared/types'
 import type { Settings } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
+import { dirname } from 'node:path'
+import { grantRoot } from '@main/permittedRoots'
 
 // Last-resort handlers so a stray rejection or throw in the main process is
 // logged instead of taking the app down silently.
@@ -79,8 +81,14 @@ const registry = new WindowRegistry()
  *
  * @param recentFiles - Current recent-files list for the Open Recent submenu.
  * @param currentTheme - The currently active theme id for the radio check.
+ * @param autoSave - The current autosave setting for the File ▸ Auto Save check
+ *   mark (read from settings, the same way currentTheme drives the Theme radio).
  */
-async function applyMenu(recentFiles: string[], currentTheme: string = 'github'): Promise<void> {
+async function applyMenu(
+  recentFiles: string[],
+  currentTheme: string = 'github',
+  autoSave: boolean = false,
+): Promise<void> {
   const send = (cmd: AppCommand): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, cmd)
   }
@@ -93,6 +101,13 @@ async function applyMenu(recentFiles: string[], currentTheme: string = 'github')
   // stays current.
   const setTheme = (id: string): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.setTheme, id)
+  }
+  // Forward the toggled autosave value to the focused renderer via the
+  // value-carrying IPC.setAutoSave channel (mirrors setTheme). The renderer
+  // applies + persists it and the next setSettings call triggers an applyMenu
+  // rebuild so the check mark stays current.
+  const setAutoSave = (value: boolean): void => {
+    BrowserWindow.getFocusedWindow()?.webContents.send(IPC.setAutoSave, value)
   }
 
   // Include user-authored themes (userData/themes) in the Theme submenu, after
@@ -107,7 +122,7 @@ async function applyMenu(recentFiles: string[], currentTheme: string = 'github')
   // AND tell the focused renderer to re-scan + re-inject the user CSS.
   const onReloadThemes = (): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, 'reloadThemes')
-    void applyMenu(recentFiles, currentTheme)
+    void applyMenu(recentFiles, currentTheme, autoSave)
   }
 
   Menu.setApplicationMenu(
@@ -130,6 +145,8 @@ async function applyMenu(recentFiles: string[], currentTheme: string = 'github')
           }
         },
         onReloadThemes,
+        autoSave,
+        setAutoSave,
       ),
     ),
   )
@@ -149,21 +166,50 @@ function saveBounds(bounds: WindowBounds): void {
   void settingsStore?.set({ windowBounds: bounds })
 }
 
-let boundsDebounceTimer: ReturnType<typeof setTimeout> | null = null
+/**
+ * Bounds for opening a fresh window: honor valid saved bounds exactly, otherwise
+ * open big and centered relative to the primary display's work area. Reading the
+ * work area at call time (not startup) picks up display/resolution changes.
+ */
+function firstWindowBounds(): OpenBounds {
+  return savedWindowBounds ?? defaultWindowBounds(screen.getPrimaryDisplay().workAreaSize)
+}
+
+// Per-window debounce timers. A single module-global timer would let one window
+// cancel another's pending save (resize A then B within 300ms drops A), so each
+// window gets its own timer keyed by the BrowserWindow instance. Entries are
+// cleared on the window's 'closed' event so a stray timer can't fire after the
+// window is destroyed.
+const boundsDebounceTimers = new WeakMap<BrowserWindow, ReturnType<typeof setTimeout>>()
 
 /**
  * Schedule a debounced save of a window's bounds. Only saves when the window is
  * in a "normal" state (not minimized/fullscreen/destroyed) to avoid storing
- * useless positions.
+ * useless positions. The debounce is per-window so concurrent moves/resizes of
+ * different windows do not cancel each other.
  */
 function scheduleBoundsSave(win: BrowserWindow): void {
-  if (boundsDebounceTimer !== null) clearTimeout(boundsDebounceTimer)
-  boundsDebounceTimer = setTimeout(() => {
-    boundsDebounceTimer = null
+  const existing = boundsDebounceTimers.get(win)
+  if (existing !== undefined) clearTimeout(existing)
+  const timer = setTimeout(() => {
+    boundsDebounceTimers.delete(win)
     if (win.isMinimized() || win.isFullScreen() || win.isDestroyed()) return
     const b = win.getBounds()
     saveBounds({ x: b.x, y: b.y, width: b.width, height: b.height })
   }, 300)
+  boundsDebounceTimers.set(win, timer)
+}
+
+/**
+ * Cancel and drop a window's pending bounds-save timer. Called on the window's
+ * 'closed' event so a queued save cannot fire against a destroyed window.
+ */
+function cancelBoundsSave(win: BrowserWindow): void {
+  const existing = boundsDebounceTimers.get(win)
+  if (existing !== undefined) {
+    clearTimeout(existing)
+    boundsDebounceTimers.delete(win)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +227,10 @@ function openWindowAt(bounds: OpenBounds): BrowserWindow {
 
   win.on('resize', () => { scheduleBoundsSave(win) })
   win.on('move', () => { scheduleBoundsSave(win) })
+
+  // Drop this window's pending bounds-save timer once it is gone so a queued
+  // save can never fire against a destroyed window.
+  win.on('closed', () => { cancelBoundsSave(win) })
 
   // Per-window close guard. Persist bounds first (before any preventDefault),
   // then run the unsaved-changes guard for THIS window only.
@@ -304,6 +354,23 @@ void app.whenReady().then(async () => {
   // window bounds and build the initial menu with saved recents.
   const initialSettings = await settings.get()
 
+  // --- Seed the filesystem path allowlist (security trust boundary) ---
+  // Every path-taking IPC handler is gated by permittedRoots.isPathAllowed.
+  // Grant the roots that legitimate startup flows need so tab-restore, Open
+  // Recent, and folder search work without a single false rejection:
+  //   - userData + the app install dir (always-permitted infrastructure paths).
+  //   - lastFolder (the restored open folder -> readDir/listArticles/search).
+  //   - the containing dir of every recent file (Open Recent re-opens).
+  //   - the containing dir of every restored tab path + the active tab path
+  //     (tab restore reads each file on launch).
+  // Dialog results and addRecentFile grant additional roots at runtime.
+  grantRoot(app.getPath('userData'))
+  grantRoot(app.getAppPath())
+  if (initialSettings.lastFolder) grantRoot(initialSettings.lastFolder)
+  for (const recent of initialSettings.recentFiles) grantRoot(dirname(recent))
+  for (const tabPath of initialSettings.openTabPaths) grantRoot(dirname(tabPath))
+  if (initialSettings.activeTabPath) grantRoot(dirname(initialSettings.activeTabPath))
+
   // Register IPC handlers before creating any window so they are ready the
   // moment a renderer sends its first message. Handlers derive their target
   // window from the IPC event sender (multi-window safe) rather than a shared
@@ -321,19 +388,23 @@ void app.whenReady().then(async () => {
         settings.getRecentFiles(),
         settings.get(),
       ])
-      void applyMenu(recents, allSettings.theme)
+      void applyMenu(recents, allSettings.theme, allSettings.autoSave)
     },
     async (updated) => {
-      // Rebuild menu after any settings change so the native Theme radio
-      // reflects the newly chosen theme without an extra IPC round-trip.
+      // Rebuild menu after any settings change so the native Theme radio and the
+      // Auto Save check mark reflect the newly persisted values without an extra
+      // IPC round-trip (covers Preferences toggling autoSave too).
       const recents = await settings.getRecentFiles()
-      void applyMenu(recents, updated.theme)
+      void applyMenu(recents, updated.theme, updated.autoSave)
       // Re-apply spell-check settings whenever the user changes them in Preferences.
       applySpellCheck(session.defaultSession, {
         spellCheck: updated.spellCheck,
         language: updated.spellCheckLanguage,
       })
     },
+    // Supply the userData path so the backup IPC handlers can resolve
+    // <userData>/backups (resolved at call time, like the image/template handlers).
+    () => app.getPath('userData'),
   )
 
   registerExportHandlers()
@@ -397,11 +468,12 @@ void app.whenReady().then(async () => {
   })
 
   // First window: honor saved bounds exactly (no cascade). When none are saved,
-  // open at the default size with x/y omitted so Electron centers it on screen.
-  openWindowAt(savedWindowBounds ?? { ...DEFAULT_WINDOW_SIZE })
+  // open big and centered relative to the display work area.
+  openWindowAt(firstWindowBounds())
 
-  // Set up the native application menu with the persisted recent files and theme.
-  void applyMenu(initialSettings.recentFiles, initialSettings.theme)
+  // Set up the native application menu with the persisted recent files, theme,
+  // and autosave setting (so the File ▸ Auto Save check mark renders correctly).
+  void applyMenu(initialSettings.recentFiles, initialSettings.theme, initialSettings.autoSave)
 
   // Configure auto-update and kick off a background check. NO-OP in dev
   // (!app.isPackaged) and never throws, so this is safe to always call.
@@ -410,9 +482,16 @@ void app.whenReady().then(async () => {
   app.on('activate', () => {
     // macOS: re-open a window when the dock icon is clicked and none are open.
     if (registry.size === 0) {
-      openWindowAt(savedWindowBounds ?? { ...DEFAULT_WINDOW_SIZE })
+      openWindowAt(firstWindowBounds())
     }
   })
+}).catch((err: unknown) => {
+  // A throw here (e.g. settings load failure) would otherwise leave the app
+  // running with no window and no menu and only a console.error to show for it.
+  // Surface a native error box so a wedged launch is diagnosable, then log it.
+  const message = err instanceof Error ? (err.stack ?? err.message) : String(err)
+  console.error('Fatal error during app startup:', err)
+  dialog.showErrorBox('Lekha failed to start', message)
 })
 
 app.on('window-all-closed', () => {

@@ -46,7 +46,37 @@ import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { IPC } from '@shared/ipc-channels'
 import type { PandocFormat } from '@shared/types'
+import { PANDOC_EXTENSIONS } from '@shared/pandocFormats'
 import { hardenWebContents } from '@main/window'
+import { senderWindow } from '@main/senderWindow'
+
+// ---------------------------------------------------------------------------
+// Exported-HTML Content-Security-Policy
+// ---------------------------------------------------------------------------
+
+/**
+ * CSP meta tag injected into the <head> of every exported / printed HTML
+ * document. The export pipeline pre-renders math (KaTeX) and mermaid diagrams to
+ * static SVG/HTML, so neither the printed PDF nor an exported .html file needs to
+ * execute script. `script-src 'none'` guarantees the offscreen print window (and
+ * any program later opening the exported file) can never run embedded JS, even if
+ * a script somehow slipped past the renderer's sanitizer. This is independent of
+ * the app's own renderer CSP (index.ts) and changes no sandbox settings.
+ */
+const EXPORT_CSP_META =
+  `<meta http-equiv="Content-Security-Policy" content="script-src 'none'">`
+
+/**
+ * Insert the export CSP meta tag immediately after the document's <head> open
+ * tag. If no <head> is present (defensive - the renderer always emits one), the
+ * HTML is returned unchanged rather than producing a malformed document.
+ */
+export function injectExportCsp(html: string): string {
+  const headMatch = /<head[^>]*>/i.exec(html)
+  if (!headMatch) return html
+  const insertAt = headMatch.index + headMatch[0].length
+  return html.slice(0, insertAt) + '\n  ' + EXPORT_CSP_META + html.slice(insertAt)
+}
 
 // ---------------------------------------------------------------------------
 // Pandoc detection (cached)
@@ -112,17 +142,15 @@ interface PandocFormatMeta {
   standalone: boolean
 }
 
+// The output extension for each format comes from the shared PANDOC_EXTENSIONS
+// map (@shared/pandocFormats) so main and the renderer never drift; only the
+// pandoc-specific writer/filter/standalone metadata is defined here.
 const PANDOC_META: Record<PandocFormat, PandocFormatMeta> = {
-  docx: { writer: 'docx', extension: 'docx', filterName: 'Word Documents', standalone: false },
-  epub: { writer: 'epub', extension: 'epub', filterName: 'EPUB Books', standalone: false },
-  rtf: { writer: 'rtf', extension: 'rtf', filterName: 'Rich Text Format', standalone: true },
-  latex: { writer: 'latex', extension: 'tex', filterName: 'LaTeX Source', standalone: true },
-  opml: { writer: 'opml', extension: 'opml', filterName: 'OPML Outlines', standalone: false },
-}
-
-/** Output file extension (no leading dot) for a pandoc format. */
-export function pandocExtension(format: PandocFormat): string {
-  return PANDOC_META[format].extension
+  docx: { writer: 'docx', extension: PANDOC_EXTENSIONS.docx, filterName: 'Word Documents', standalone: false },
+  epub: { writer: 'epub', extension: PANDOC_EXTENSIONS.epub, filterName: 'EPUB Books', standalone: false },
+  rtf: { writer: 'rtf', extension: PANDOC_EXTENSIONS.rtf, filterName: 'Rich Text Format', standalone: true },
+  latex: { writer: 'latex', extension: PANDOC_EXTENSIONS.latex, filterName: 'LaTeX Source', standalone: true },
+  opml: { writer: 'opml', extension: PANDOC_EXTENSIONS.opml, filterName: 'OPML Outlines', standalone: false },
 }
 
 /**
@@ -148,15 +176,6 @@ export function buildPandocArgs(outPath: string, format: PandocFormat): string[]
 // IPC handler registration
 // ---------------------------------------------------------------------------
 
-/**
- * Resolve the window that sent an IPC request so save dialogs attach (as sheets
- * on macOS) to the calling window. Multi-window safe: an export started in one
- * window shows its dialog over that same window.
- */
-function senderWindow(event: Electron.IpcMainInvokeEvent): BrowserWindow | undefined {
-  return BrowserWindow.fromWebContents(event.sender) ?? undefined
-}
-
 /** Register all export IPC handlers. Save dialogs and the offscreen PDF parent
  *  are derived from the IPC event sender (the calling window). */
 export function registerExportHandlers(): void {
@@ -175,7 +194,8 @@ export function registerExportHandlers(): void {
 
       if (result.canceled || !result.filePath) return
 
-      await writeFile(result.filePath, args.html, 'utf-8')
+      // Inject a script-blocking CSP so the exported file can never run JS.
+      await writeFile(result.filePath, injectExportCsp(args.html), 'utf-8')
     },
   )
 
@@ -199,7 +219,9 @@ export function registerExportHandlers(): void {
       // Write HTML to a temp file so loadFile() can read it (data: URLs have
       // length limits that cause problems with large, CSS-inlined documents).
       const tmpPath = join(tmpdir(), `lekha-export-${Date.now()}.html`)
-      await writeFile(tmpPath, args.html, 'utf-8')
+      // Inject a script-blocking CSP so the offscreen print window can never
+      // execute embedded JS (printed output never needs script).
+      await writeFile(tmpPath, injectExportCsp(args.html), 'utf-8')
 
       // Create the offscreen window. sandbox:false is required for printToPDF
       // to work - with sandbox:true Electron cannot access the printer backend.
@@ -304,6 +326,14 @@ export function registerExportHandlers(): void {
 
         proc.on('error', (err) => {
           reject(new Error(`Failed to spawn pandoc: ${err.message}`))
+        })
+
+        // If pandoc exits early (e.g. bad input), writing to its stdin emits an
+        // EPIPE 'error' on the stream. Without a listener that becomes an
+        // unhandled stream error; mirror the spawn-error rejection so a broken
+        // pipe rejects the promise cleanly instead.
+        proc.stdin?.on('error', (err) => {
+          reject(new Error(`Failed to write to pandoc stdin: ${err.message}`))
         })
 
         proc.on('exit', (code) => {

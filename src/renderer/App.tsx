@@ -8,6 +8,8 @@ import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
 import { useStartup } from '@renderer/hooks/useStartup'
 import { useAutoSave } from '@renderer/hooks/useAutoSave'
+import { useCrashBackup } from '@renderer/hooks/useCrashBackup'
+import { applyAutoSave } from '@renderer/hooks/applyAutoSave'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { parseMarkdown } from '@renderer/editor/parser'
 import type { Node as ProseMirrorNode } from 'prosemirror-model'
@@ -23,6 +25,7 @@ import { ImageDialog } from '@renderer/components/ImageDialog'
 import { RenameDialog } from '@renderer/components/RenameDialog'
 import { GetInfoDialog, type GetInfoData } from '@renderer/components/GetInfoDialog'
 import { Preferences } from '@renderer/components/Preferences'
+import { RecoveryNotice } from '@renderer/components/RecoveryNotice'
 import { WordCountPanel } from '@renderer/components/WordCountPanel'
 import { TableToolbar } from '@renderer/components/TableToolbar'
 import { ImageZoom } from '@renderer/components/ImageZoom'
@@ -87,7 +90,7 @@ export default function App() {
   // Restore persisted settings on mount and persist sidebar/folder changes.
   // The second argument receives the restored sidebarWidth so the React state
   // is kept in sync with the CSS variable applied by useStartup.
-  useStartup(fileOps, setSidebarWidth)
+  useStartup(fileOps, editorRef, setSidebarWidth)
 
   // Auto-save: debounced write for saved (has-path) dirty documents.
   const autoSave = useEditorStore((s) => s.autoSave)
@@ -97,6 +100,18 @@ export default function App() {
   // plain async function (no `this` access), but the linter can't infer that.
   const autoSaveFn = useCallback(() => fileOps.save(), [fileOps])
   useAutoSave({ enabled: autoSave, isDirty, hasPath: editorPath !== null, save: autoSaveFn })
+
+  // Shared auto-save toggle behaviour: the same path for the native menu item
+  // and the Preferences checkbox (immediate flush on enable lives in the helper).
+  // fileOps.save is wrapped in an arrow to dodge the unbound-method lint rule.
+  const handleApplyAutoSave = useCallback(
+    (next: boolean) => { applyAutoSave(next, () => fileOps.save()) },
+    [fileOps],
+  )
+
+  // Crash recovery: always-on debounced backup of unsaved buffers (independent
+  // of the auto-save setting). Covers Untitled docs too.
+  useCrashBackup(editorRef)
 
   // Find/Replace overlay state
   const [findState, setFindState] = useState<{
@@ -328,6 +343,21 @@ export default function App() {
     return unsubscribe
   }, [])
 
+  // Subscribe to set-auto-save messages from the main process (File menu).
+  //
+  // Flow: user toggles "Auto Save" in the native menu -> main sends
+  // IPC.setAutoSave with the new value -> this handler routes through the same
+  // applyAutoSave behaviour as the Preferences checkbox (store + persist +
+  // immediate flush on enable). Persisting via setSettings triggers a menu
+  // rebuild in main so the check mark stays current.
+  useEffect(() => {
+    if (typeof window.lekha === 'undefined') return undefined
+    const unsubscribe = window.lekha.onSetAutoSave((next: boolean) => {
+      handleApplyAutoSave(next)
+    })
+    return unsubscribe
+  }, [handleApplyAutoSave])
+
   // Debounce timer ref - used to delay outline/count recomputation so we
   // don't parse on every keystroke. Cleared on unmount to avoid a setState
   // call on an already-unmounted component.
@@ -343,54 +373,16 @@ export default function App() {
   // non-blocking notice. No fs watchers, no polling, nothing on the typing path.
   // -------------------------------------------------------------------------
   const [externalNotice, setExternalNotice] = useState<string | null>(null)
-  const extCheckInFlight = useRef(false)
-  const extCheckLast = useRef(0)
 
-  const verifyActiveDoc = useCallback(async (): Promise<void> => {
-    if (typeof window.lekha === 'undefined') return
-    const { path, inode } = useEditorStore.getState()
-    if (path === null || inode === null) return // unsaved / no inode to match
-    if (extCheckInFlight.current) return
-    const now = Date.now()
-    if (now - extCheckLast.current < 1000) return // throttle rapid focus toggles
-    extCheckLast.current = now
-    extCheckInFlight.current = true
-    try {
-      const res = await window.lekha.verifyOpenFile({ path, inode })
-      // The active doc may have changed while the check was in flight - bail.
-      if (useEditorStore.getState().path !== path) return
-      if (res.status === 'renamed') {
-        useEditorStore.getState().setPath(res.newPath)
-        useDocumentsStore.getState().updatePath(path, res.newPath)
-        const { title, isDirty } = useEditorStore.getState()
-        window.lekha.setDocumentState({ title, dirty: isDirty, path: res.newPath })
-        setExternalNotice(null)
-      } else if (res.status === 'missing') {
-        // Keep the buffer (no data loss); detach so the next Save is Save As.
-        useEditorStore.getState().setPath(null)
-        useEditorStore.getState().markDirty()
-        useDocumentsStore.getState().updateActive({ path: null, isDirty: true })
-        window.lekha.setDocumentState({
-          title: useEditorStore.getState().title,
-          dirty: true,
-          path: null,
-        })
-        setExternalNotice(
-          'This file was moved or deleted outside Lekha. Your changes are kept - use Save to write it again.',
-        )
-      }
-    } catch {
-      // Verification failed (e.g. bridge unavailable) - leave state untouched.
-    } finally {
-      extCheckInFlight.current = false
-    }
-  }, [])
-
+  // The file-system side of the external-change check lives in useFileOps
+  // (verifyActiveDoc); App only owns the banner UI. Passing setExternalNotice as
+  // the notice callback keeps the banner behaviour identical while the stat /
+  // detach / rename-recovery logic stays in the file-ops hook.
   useEffect(() => {
-    const onFocus = (): void => { void verifyActiveDoc() }
+    const onFocus = (): void => { void fileOps.verifyActiveDoc(setExternalNotice) }
     window.addEventListener('focus', onFocus)
     return () => { window.removeEventListener('focus', onFocus) }
-  }, [verifyActiveDoc])
+  }, [fileOps])
 
   // Seed store from the initial document on mount (runs once).
   // Without this the status bar shows "0 words · 0 chars" until the user edits,
@@ -446,96 +438,22 @@ export default function App() {
     if (debounceTimer.current !== null) {
       clearTimeout(debounceTimer.current)
     }
+    // Stamp the schedule with the tab that is active right now. A pending
+    // recompute from the OLD tab must NOT overwrite the NEW tab's outline/counts
+    // after a tab switch (selectTab/closeTab -> loadTab recomputes synchronously
+    // for the new tab). When the timer fires we drop its result if the active
+    // tab has since changed, so stale derived data never clobbers the new tab.
+    const scheduledForId = useDocumentsStore.getState().activeId
     debounceTimer.current = setTimeout(() => {
       debounceTimer.current = null
+      if (useDocumentsStore.getState().activeId !== scheduledForId) return
       recomputeDerived(doc ?? parseMarkdown(markdown))
     }, 150)
   }, [])
 
-  // -------------------------------------------------------------------------
-  // File-tree operations (create / rename / delete / reveal)
-  //
-  // Each mutating op goes through window.lekha then refreshes the tree so the
-  // sidebar reflects the on-disk state. New entries get a default name (the
-  // user renames via the context menu). Delete uses the main-process
-  // shell.trashItem (recoverable) and is gated behind a light confirm.
-  // -------------------------------------------------------------------------
-
-  // Resolve the directory a new entry is created in: the right-clicked folder,
-  // or the workspace root when invoked from the empty/root area.
-  const resolveDir = useCallback((dir: string | null): string | null => {
-    return dir ?? useWorkspaceStore.getState().rootFolder
-  }, [])
-
-  const handleNewFile = useCallback(async (dir: string | null) => {
-    const target = resolveDir(dir)
-    if (target === null) return
-    try {
-      const path = await window.lekha.createFile(target, 'Untitled.md')
-      await fileOps.refreshTree()
-      // Open the freshly created (empty) file so the user can start typing.
-      await fileOps.openPath(path)
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : String(err))
-    }
-  }, [fileOps, resolveDir])
-
-  const handleNewFolder = useCallback(async (dir: string | null) => {
-    const target = resolveDir(dir)
-    if (target === null) return
-    try {
-      await window.lekha.createFolder(target, 'Untitled Folder')
-      await fileOps.refreshTree()
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : String(err))
-    }
-  }, [fileOps, resolveDir])
-
-  const handleRenameEntry = useCallback(async (oldPath: string, newName: string) => {
-    try {
-      const newPath = await window.lekha.renamePath(oldPath, newName)
-      // Update EVERY open tab whose path matches (or sits under) the renamed
-      // entry so no tab keeps a stale on-disk path.
-      useDocumentsStore.getState().updatePath(oldPath, newPath)
-      // If the renamed entry is the active document, also update the editor's
-      // live path so saves keep targeting the right file.
-      if (useEditorStore.getState().path === oldPath) {
-        useEditorStore.getState().setPath(newPath)
-        const { title } = useEditorStore.getState()
-        window.lekha.setDocumentState({
-          title,
-          dirty: useEditorStore.getState().isDirty,
-          path: newPath,
-        })
-      }
-      await fileOps.refreshTree()
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : String(err))
-    }
-  }, [fileOps])
-
-  const handleDeleteEntry = useCallback(async (path: string) => {
-    // Confirm before trashing. trashItem is recoverable (OS trash), but a
-    // confirm avoids accidental one-click deletes.
-    if (!window.confirm('Move this item to the Trash?')) return
-    try {
-      await window.lekha.deletePath(path)
-      // If the open document was deleted - directly, or because a folder
-      // containing it was trashed - clear its path so a later save uses Save As
-      // rather than rewriting the trashed location. The buffer is kept.
-      const openPath = useEditorStore.getState().path
-      if (openPath !== null && (openPath === path || openPath.startsWith(path + '/'))) {
-        useEditorStore.getState().setPath(null)
-      }
-      await fileOps.refreshTree()
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : String(err))
-    }
-  }, [fileOps])
-
-  const handleRevealEntry = useCallback((path: string) => {
-    void window.lekha.revealPath(path)
-  }, [])
+  // File-tree operations (create / rename / delete / reveal) and the external-
+  // change check now live in useFileOps; App just routes the Sidebar callbacks
+  // and the RenameDialog submit through the fileOps object.
 
   // Handle template selection from the TemplatePicker.
   // guardUnsaved runs here (not in the picker) so the document is never
@@ -543,21 +461,18 @@ export default function App() {
   // set the template content (with {{date}} substituted), then close the picker.
   const handleTemplateSelect = useCallback(async (template: Template) => {
     // guardUnsaved is embedded in newFile(); however, we need the content
-    // injected AFTER newFile clears the editor. We call guardUnsaved directly
-    // so we can inject markdown before newFile clears it, and avoid a double prompt.
+    // injected AFTER the editor is cleared. We call guardUnsaved directly so we
+    // can inject markdown before clearing it, and avoid a double prompt.
     //
     // Flow:
     //   1. guardUnsaved() - abort if user cancels
-    //   2. Clear + new-file state (mirroring newFile() internals)
+    //   2. resetToBlank() - clear + new-file state (guard-less, no tab churn)
     //   3. Set the template content with date substitution
     if (!(await fileOps.guardUnsaved())) return
 
-    // Clear editor and reset store (same as newFile() but without its own guard).
-    editorRef.current?.setMarkdown('')
-    useEditorStore.getState().newFile()
-    if (typeof window.lekha !== 'undefined') {
-      window.lekha.setDocumentState({ title: 'Untitled', dirty: false, path: null })
-    }
+    // Clear editor and reset store (newFile()'s internals without its guard or
+    // tab bookkeeping), via the shared file-ops helper.
+    fileOps.resetToBlank()
 
     // Inject template content (date substituted at insertion time).
     const content = applyTemplate(template.content, new Date())
@@ -603,6 +518,8 @@ export default function App() {
         </div>
       )}
 
+      <RecoveryNotice onSave={() => { void fileOps.save() }} />
+
       <div className="workspace">
         <Sidebar
           onSelectFile={(path) => { void fileOps.openPath(path) }}
@@ -616,11 +533,11 @@ export default function App() {
               editorRef.current?.findNext()
             })
           }}
-          onNewFile={handleNewFile}
-          onNewFolder={handleNewFolder}
-          onRenameEntry={handleRenameEntry}
-          onDeleteEntry={handleDeleteEntry}
-          onRevealEntry={handleRevealEntry}
+          onNewFile={(dir) => { void fileOps.createFileEntry(dir) }}
+          onNewFolder={(dir) => { void fileOps.createFolderEntry(dir) }}
+          onRenameEntry={(oldPath, newName) => { void fileOps.renameEntry(oldPath, newName) }}
+          onDeleteEntry={(path) => { void fileOps.deleteEntry(path) }}
+          onRevealEntry={(path) => { fileOps.revealEntry(path) }}
           sidebarWidth={sidebarWidth}
           onSidebarWidthChange={setSidebarWidth}
         />
@@ -686,7 +603,7 @@ export default function App() {
         onSubmit={(newName) => {
           setRenameState((prev) => ({ ...prev, open: false }))
           const path = useEditorStore.getState().path
-          if (path !== null) void handleRenameEntry(path, newName)
+          if (path !== null) void fileOps.renameEntry(path, newName)
         }}
       />
 
@@ -701,7 +618,11 @@ export default function App() {
         onClose={() => setImageState((prev) => ({ ...prev, open: false }))}
       />
 
-      <Preferences open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+      <Preferences
+        open={prefsOpen}
+        onClose={() => setPrefsOpen(false)}
+        onApplyAutoSave={handleApplyAutoSave}
+      />
 
       <WordCountPanel
         open={statsState.open}

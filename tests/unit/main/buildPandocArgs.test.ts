@@ -3,9 +3,11 @@ import { describe, it, expect } from 'vitest'
 import {
   buildPandocArgs,
   PANDOC_FORMATS,
-  pandocExtension,
   type PandocFormat,
 } from '@main/ipc/export'
+// pandocExtension moved to the shared single-source-of-truth module; main's
+// PANDOC_META now derives its extensions from PANDOC_EXTENSIONS there.
+import { pandocExtension } from '@shared/pandocFormats'
 
 describe('buildPandocArgs', () => {
   it('builds docx args with -t docx', () => {

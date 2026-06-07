@@ -14,17 +14,83 @@
  * applied to the workspace store. A missing or deleted folder is silently
  * ignored (the error is caught and discarded).
  */
-import { useEffect, useRef } from 'react'
+import { type RefObject, useEffect, useRef } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
 import { applyTheme, applyFontSize, injectUserThemes } from '@renderer/themes/index'
 import { setSmartPunctuation } from '@renderer/editor/createState'
 import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
+import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
+import type { BackupRecord } from '@shared/types'
+import { normalizeLineEndings } from '@shared/eol'
 import type { FileOps } from './useFileOps'
 
 // Debounce interval (ms) for persisting sidebar state changes.
 const PERSIST_DEBOUNCE_MS = 300
+
+/**
+ * Restore one crash backup into the document session + the live editor.
+ *
+ * - Dedupe by path: when a tab for the backup's (non-null) path is already open
+ *   (restored from openTabPaths), reuse it and overwrite its buffer with the
+ *   recovered content - the dirty recovered version wins over the on-disk one.
+ * - Otherwise open a fresh tab seeded with the backup's content/path/title.
+ *
+ * In both cases the tab is made active, its buffer is pushed into the editor
+ * view, and it is marked dirty + recovered with the backup's id so a later Save
+ * clears the correct backup file and the recovery banner shows for it.
+ */
+function recoverBackup(
+  backup: BackupRecord,
+  editorRef: RefObject<EditorPaneHandle | null> | null,
+): void {
+  const docs = useDocumentsStore.getState()
+
+  // Dedupe by path against already-restored tabs (only meaningful for saved
+  // docs; Untitled backups always open a fresh tab).
+  const existing =
+    backup.path !== null
+      ? docs.documents.find((d) => d.path === backup.path)
+      : undefined
+
+  if (existing) {
+    docs.activateDocument(existing.id)
+  } else {
+    docs.openDocument({ path: backup.path, markdown: backup.content })
+  }
+
+  // Push the recovered buffer into the live ProseMirror view (the store update
+  // below mirrors it, but the view must be told explicitly to render it).
+  editorRef?.current?.setMarkdown(backup.content)
+
+  // Drive the editor store like a normal load, then layer on the recovered
+  // (dirty) state and the document's persisted line-ending style.
+  const editor = useEditorStore.getState()
+  editor.openFile(backup.path, backup.content)
+  editor.setEol(backup.eol)
+  editor.markDirty()
+
+  // Mirror everything into the active tab snapshot + the recovery flags.
+  docs.updateActive({
+    markdown: backup.content,
+    isDirty: true,
+    path: backup.path,
+    title: backup.title,
+    eol: backup.eol,
+    recovered: true,
+    backupId: backup.backupId,
+  })
+
+  // Sync the OS window title-bar dirty state. Use the backup's title (not the
+  // editor store's derived title) so the title bar matches the tab label for a
+  // recovered document, including Untitled docs.
+  window.lekha.setDocumentState({
+    title: backup.title,
+    dirty: true,
+    path: backup.path,
+  })
+}
 
 /**
  * Apply persisted settings to the workspace store and set up persistence
@@ -32,10 +98,17 @@ const PERSIST_DEBOUNCE_MS = 300
  *
  * @param fileOps - Used to restore previously open document tabs (openPath
  *   de-dupes + adds tabs; selectTab activates the last-active one).
+ * @param editorRef - The live editor handle, used by crash recovery to seed a
+ *   recovered backup's buffer into the editor view (the store alone is not
+ *   enough; the ProseMirror view must be told to render the recovered content).
  * @param onSidebarWidth - Called with the restored sidebar width (px) so App
  *   can update its sidebarWidth state and apply the CSS variable.
  */
-export function useStartup(fileOps: FileOps, onSidebarWidth?: (px: number) => void): void {
+export function useStartup(
+  fileOps: FileOps,
+  editorRef: RefObject<EditorPaneHandle | null>,
+  onSidebarWidth?: (px: number) => void,
+): void {
   // Tracks whether we are currently in the initial restore phase.
   // Using a plain ref (not state) so changes to it never cause re-renders.
   const restoringRef = useRef(false)
@@ -52,6 +125,13 @@ export function useStartup(fileOps: FileOps, onSidebarWidth?: (px: number) => vo
   const fileOpsRef = useRef(fileOps)
   useEffect(() => {
     fileOpsRef.current = fileOps
+  })
+
+  // Hold the editor handle in a ref so the mount-only effect's recovery step can
+  // seed recovered content into the live view without re-subscribing.
+  const editorElemRef = useRef(editorRef)
+  useEffect(() => {
+    editorElemRef.current = editorRef
   })
 
   useEffect(() => {
@@ -132,6 +212,55 @@ export function useStartup(fileOps: FileOps, onSidebarWidth?: (px: number) => vo
             .documents.find((d) => d.path === s.activeTabPath)
           if (tab) await fileOpsRef.current.selectTab(tab.id)
         }
+      }
+
+      // -----------------------------------------------------------------
+      // Crash recovery: restore unsaved buffers left behind by a crash.
+      // -----------------------------------------------------------------
+      // Runs AFTER the openTabPaths restore so dedupe-by-path can compare
+      // against already-restored tabs. A clean exit leaves no backups (saved or
+      // discarded docs delete theirs), so this is usually a no-op. Each backup
+      // is handled in its own try/catch: a single bad backup never breaks
+      // startup.
+      try {
+        const backups = await window.lekha.listBackups()
+        for (const backup of backups) {
+          try {
+            // Stale check: if the backup has a path and the on-disk file's
+            // current content already equals the backup, the work was saved
+            // before the crash -> drop the backup, no false-positive recovery.
+            // If the read throws (file gone), treat it as NOT stale and restore.
+            // Compare with line endings normalized to LF on both sides: the
+            // on-disk file is read raw (CRLF preserved) while backup.content is
+            // always LF (from getMarkdown), so a CRLF document would otherwise
+            // never match its own saved file and be falsely "recovered".
+            if (backup.path !== null) {
+              let onDisk: string | null = null
+              try {
+                onDisk = await window.lekha.readFile(backup.path)
+              } catch {
+                onDisk = null // file is gone -> the backup is the only copy
+              }
+              if (
+                onDisk !== null &&
+                normalizeLineEndings(onDisk, 'lf') ===
+                  normalizeLineEndings(backup.content, 'lf')
+              ) {
+                await window.lekha.deleteBackup(backup.backupId)
+                continue
+              }
+            }
+
+            // Seed the recovered content into a tab + the editor view, mark it
+            // dirty + recovered, and link the backup id so a later Save clears
+            // the right backup file.
+            recoverBackup(backup, editorElemRef.current)
+          } catch {
+            // A single malformed/unreadable backup must not abort recovery.
+          }
+        }
+      } catch {
+        // listBackups failed (bridge unavailable / read error) - skip recovery.
       }
 
       // Restore phase is complete. Future store changes should be persisted.

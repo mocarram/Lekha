@@ -27,6 +27,9 @@ describe('editorStore', () => {
     expect(s.outline).toEqual([])
     expect(s.wordCount).toBe(0)
     expect(s.charCount).toBe(0)
+    // Auto-save is opt-in: it must default OFF so manual Cmd-S is the primary
+    // save path and a file is never silently overwritten.
+    expect(s.autoSave).toBe(false)
   })
 
   describe('openFile', () => {

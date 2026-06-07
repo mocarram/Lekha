@@ -9,6 +9,7 @@ import type {
   PandocFormat,
   Template,
   UserTheme,
+  BackupRecord,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -105,6 +106,24 @@ export interface LekhaAPI {
    * Returns an unsubscribe function that removes the listener.
    */
   onSetTheme(cb: (id: string) => void): () => void
+
+  /**
+   * Subscribe to set-auto-save messages from the main process (File ▸ Auto Save
+   * menu item). The callback receives the new boolean value.
+   * Returns an unsubscribe function that removes the listener.
+   */
+  onSetAutoSave(cb: (value: boolean) => void): () => void
+
+  // --- Crash-recovery backups ---
+  /**
+   * Write a crash-recovery backup of an unsaved buffer to app data (never the
+   * user's real file). The main process stamps `savedAt` at write time.
+   */
+  writeBackup(record: BackupRecord): Promise<void>
+  /** Delete a crash-recovery backup by its backupId (no-op if already gone). */
+  deleteBackup(backupId: string): Promise<void>
+  /** List all crash-recovery backup records found in app data (best-effort). */
+  listBackups(): Promise<BackupRecord[]>
 
   // --- Export ---
   /** Save an HTML string to a .html file chosen by a save dialog. */

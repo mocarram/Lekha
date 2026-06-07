@@ -62,6 +62,7 @@ export function ImageZoom({ open, src, alt = '', onClose }: ImageZoomProps) {
     <div
       ref={backdropRef}
       className="image-zoom-backdrop"
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Image preview"

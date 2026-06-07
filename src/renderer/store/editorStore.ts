@@ -99,7 +99,7 @@ const INITIAL_STATE: EditorState = {
   focusMode: false,
   typewriterMode: false,
   equationNumbering: true,
-  autoSave: true,
+  autoSave: false,
   eol: 'lf',
   inode: null,
 }

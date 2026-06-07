@@ -62,6 +62,10 @@ function makeMockLekha(
     onCommand: vi.fn(() => unsubscribe),
     onOpenPath: vi.fn(() => unsubscribe),
     onSetTheme: vi.fn(() => unsubscribe),
+    onSetAutoSave: vi.fn(() => unsubscribe),
+    writeBackup: vi.fn(() => Promise.resolve()),
+    deleteBackup: vi.fn(() => Promise.resolve()),
+    listBackups: vi.fn(() => Promise.resolve([])),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
     exportPandoc: vi.fn(() => Promise.resolve()),
@@ -170,8 +174,8 @@ describe('FolderSearch', () => {
 
     render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />)
 
-    // Toggle case-sensitive on (button label is "Aa").
-    const caseBtn = screen.getByRole('button', { name: /^Aa$/i })
+    // Toggle case-sensitive on (button has aria-label "Match case").
+    const caseBtn = screen.getByRole('button', { name: 'Match case' })
     fireEvent.click(caseBtn)
 
     // Type a query.

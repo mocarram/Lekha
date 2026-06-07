@@ -12,6 +12,7 @@ import type {
   PandocFormat,
   Template,
   UserTheme,
+  BackupRecord,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
 
@@ -151,6 +152,27 @@ const api: LekhaAPI = {
     const listener = (_event: Electron.IpcRendererEvent, id: string) => cb(id)
     ipcRenderer.on(IPC.setTheme, listener)
     return () => ipcRenderer.removeListener(IPC.setTheme, listener)
+  },
+
+  // Subscribes to set-auto-save messages from main (File ▸ Auto Save menu item).
+  // Returns an unsubscribe function for cleanup on unmount.
+  onSetAutoSave(cb: (value: boolean) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, value: boolean) => cb(value)
+    ipcRenderer.on(IPC.setAutoSave, listener)
+    return () => ipcRenderer.removeListener(IPC.setAutoSave, listener)
+  },
+
+  // --- Crash-recovery backups ---
+  writeBackup(record: BackupRecord): Promise<void> {
+    return ipcRenderer.invoke(IPC.backupWrite, record) as Promise<void>
+  },
+
+  deleteBackup(backupId: string): Promise<void> {
+    return ipcRenderer.invoke(IPC.backupDelete, backupId) as Promise<void>
+  },
+
+  listBackups(): Promise<BackupRecord[]> {
+    return ipcRenderer.invoke(IPC.backupList) as Promise<BackupRecord[]>
   },
 
   // --- Export ---

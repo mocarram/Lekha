@@ -11,14 +11,24 @@
  *   6. Highlight plugin still decorates code_block source without throwing
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 import { EditorState } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
 import type { DecorationSet } from 'prosemirror-view'
 import { schema } from '../../../src/renderer/editor/schema'
 import { parseMarkdown } from '../../../src/renderer/editor/parser'
 import { serializeMarkdown } from '../../../src/renderer/editor/serializer'
-import { highlightPlugin } from '../../../src/renderer/editor/plugins/highlight'
+import {
+  highlightPlugin,
+  whenLanguagesReady,
+} from '../../../src/renderer/editor/plugins/highlight'
+
+// The lowlight grammar set is lazy-loaded (dynamic import). Resolve it up front
+// so the synchronous highlightPlugin assertions below see decorations exactly as
+// they did when grammars were loaded eagerly at module scope.
+beforeAll(async () => {
+  await whenLanguagesReady()
+})
 
 // ---------------------------------------------------------------------------
 // Mock mermaid BEFORE importing renderMermaid so the module sees the mock.

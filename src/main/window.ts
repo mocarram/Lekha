@@ -69,8 +69,14 @@ export type WindowBounds = NonNullable<Settings['windowBounds']>
  *  them and let Electron center it on screen. */
 export type OpenBounds = { x?: number; y?: number; width: number; height: number }
 
-/** Default size for the first window when no saved bounds exist. */
+/** Fallback size used when the display work area is unavailable/too small. */
 export const DEFAULT_WINDOW_SIZE = { width: 1100, height: 720 } as const
+
+/** Fraction of the display work area the first window fills (no saved bounds). */
+export const DEFAULT_FILL_RATIO = 0.9
+
+/** Cap on the computed default so it stays comfortable on very large displays. */
+export const DEFAULT_MAX_SIZE = { width: 1600, height: 1040 } as const
 
 /** Pixel offset applied when cascading each additional window. */
 export const CASCADE_OFFSET = 28
@@ -124,6 +130,32 @@ export function nextWindowBounds(base: Settings['windowBounds']): WindowBounds {
   }
 }
 
+/**
+ * Compute centered "open big" bounds for the first window when no saved bounds
+ * exist. Sized to DEFAULT_FILL_RATIO of the display work area and capped to
+ * DEFAULT_MAX_SIZE so it stays comfortable on large monitors. x/y are omitted
+ * so Electron centers the window. Falls back to DEFAULT_WINDOW_SIZE when the
+ * work area is non-finite or smaller than the minimum sane size.
+ *
+ * Pure (no Electron) so the sizing maths can be unit-tested; the caller passes
+ * screen.getPrimaryDisplay().workAreaSize.
+ */
+export function defaultWindowBounds(workArea: { width: number; height: number }): OpenBounds {
+  const { width: aw, height: ah } = workArea
+  if (
+    !Number.isFinite(aw) ||
+    !Number.isFinite(ah) ||
+    aw < MIN_WIDTH ||
+    ah < MIN_HEIGHT
+  ) {
+    return { ...DEFAULT_WINDOW_SIZE }
+  }
+  return {
+    width: Math.min(Math.round(aw * DEFAULT_FILL_RATIO), DEFAULT_MAX_SIZE.width),
+    height: Math.min(Math.round(ah * DEFAULT_FILL_RATIO), DEFAULT_MAX_SIZE.height),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Per-window close-guard state machine
 // ---------------------------------------------------------------------------
@@ -138,16 +170,17 @@ export function nextWindowBounds(base: Settings['windowBounds']): WindowBounds {
  *                  setDocumentState message so the close handler always sees the
  *                  current state without an extra IPC round-trip.
  *
- *   forceClose   - set true when the user picks "Don't Save". The close handler
- *                  sees this and lets the next win.close() through unprompted.
+ *   forceClose   - flipped true (by setDirty) once a pending Save/Discard
+ *                  handshake reports the document clean, so the win.close() it
+ *                  triggers passes the guard unprompted.
  *
- *   pendingClose - set true when the user picks "Save". We send a 'save' command
- *                  to this window's renderer and wait. When that renderer later
- *                  reports dirty:false while pendingClose is true, we flip
- *                  forceClose=true and call win.close() to complete the close. If
- *                  the user cancels the Save As dialog the doc stays dirty, the
- *                  window stays open, and pendingClose resets so a later close
- *                  re-prompts.
+ *   pendingClose - set true when the user picks "Save" or "Don't Save". We send
+ *                  the matching command ('save' or 'discardAndClose') to this
+ *                  window's renderer and wait. When that renderer later reports
+ *                  dirty:false while pendingClose is true, we flip forceClose=true
+ *                  and call win.close() to complete the close. If the user cancels
+ *                  a Save As dialog the doc stays dirty, the window stays open, and
+ *                  pendingClose resets so a later close re-prompts.
  *
  * Cmd+Q coverage: Electron fires each window's 'close' after 'before-quit', so
  * the SAME per-window guard protects the red-button close AND Cmd+Q.
@@ -159,15 +192,22 @@ export class WindowController {
 
   constructor(readonly win: BrowserWindow) {}
 
-  /** Mark "Don't Save": the next close goes through without prompting. */
-  allowClose(): void {
-    this.forceClose = true
-  }
-
   /** Begin a save-then-close: ask the renderer to save; close when it goes clean. */
   beginSaveAndClose(): void {
     this.pendingClose = true
     this.win.webContents.send(IPC.command, 'save')
+  }
+
+  /**
+   * Begin a discard-then-close ("Don't Save"): ask the renderer to delete the
+   * active document's crash backup and report the document clean. The same
+   * pendingClose handshake then completes the close (setDirty(false) below),
+   * but NO file is written. This keeps the crash-recovery invariant intact - a
+   * clean exit, whether via Save or Don't Save, leaves no backup behind.
+   */
+  beginDiscardAndClose(): void {
+    this.pendingClose = true
+    this.win.webContents.send(IPC.command, 'discardAndClose')
   }
 
   /** True if a close should be allowed without prompting (clean or forced). */
@@ -324,9 +364,11 @@ export function runCloseGuard(
   })
 
   if (response === 1) {
-    // "Don't Save": mark forceClose so the next win.close() goes through.
-    controller.allowClose()
-    controller.win.close()
+    // "Don't Save": ask the renderer to discard the active doc's crash backup
+    // first, then close (so a discarded doc leaves no backup to be falsely
+    // recovered on next launch). The window stays open (e.preventDefault above)
+    // until the renderer reports the doc clean, mirroring the Save handshake.
+    controller.beginDiscardAndClose()
   } else if (response === 0) {
     // "Save": ask the renderer to save, then close when dirty goes false.
     controller.beginSaveAndClose()

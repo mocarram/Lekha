@@ -54,6 +54,19 @@ export const IPC = {
    * the menu with the updated radio check.
    */
   setTheme: 'app:setTheme',
+  /**
+   * Main -> renderer: the user toggled Auto Save from the native File menu.
+   * Value-carrying (like setTheme): the IPC message carries the new boolean.
+   * The renderer applies + persists the setting and the menu rebuilds with the
+   * updated check mark.
+   */
+  setAutoSave: 'app:setAutoSave',
+  /** Renderer -> main: write a crash-recovery backup record to app data. */
+  backupWrite: 'backup:write',
+  /** Renderer -> main: delete a crash-recovery backup by its backupId. */
+  backupDelete: 'backup:delete',
+  /** Renderer -> main: list all crash-recovery backup records from app data. */
+  backupList: 'backup:list',
   // Export channels
   exportHtml: 'export:html',
   exportPdf: 'export:pdf',

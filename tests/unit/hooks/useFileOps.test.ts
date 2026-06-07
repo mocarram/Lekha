@@ -138,6 +138,10 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     onCommand: vi.fn(() => () => undefined),
     onOpenPath: vi.fn(() => () => undefined),
     onSetTheme: vi.fn(() => () => undefined),
+    onSetAutoSave: vi.fn(() => () => undefined),
+    writeBackup: vi.fn(() => Promise.resolve()),
+    deleteBackup: vi.fn(() => Promise.resolve()),
+    listBackups: vi.fn(() => Promise.resolve([])),
     exportHtml: vi.fn(() => Promise.resolve()),
     exportPdf: vi.fn(() => Promise.resolve()),
     exportPandoc: vi.fn(() => Promise.resolve()),
@@ -645,5 +649,399 @@ describe('useFileOps - closeTab', () => {
     const docs = useDocumentsStore.getState()
     expect(docs.documents).toHaveLength(1)
     expect(docs.activeDocument()?.path).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Crash-backup integration (snapshotActive / persist / closeTab)
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - crash backup', () => {
+  it('persist() deletes the linked backup and clears backupId/recovered after save', async () => {
+    const { handle } = makeMockEditor('# Saved')
+    const deleteBackup = vi.fn(() => Promise.resolve())
+    const mockLekha = makeMockLekha({ deleteBackup })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    useDocumentsStore.getState().updateActive({ backupId: 'bk-1', recovered: true, isDirty: true })
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.save() })
+
+    expect(deleteBackup).toHaveBeenCalledWith('bk-1')
+    const active = useDocumentsStore.getState().activeDocument()!
+    expect(active.backupId).toBeNull()
+    expect(active.recovered).toBe(false)
+    expect(active.isDirty).toBe(false)
+  })
+
+  it('persist() does not delete a backup when the tab has none', async () => {
+    const { handle } = makeMockEditor('# Saved')
+    const deleteBackup = vi.fn(() => Promise.resolve())
+    const mockLekha = makeMockLekha({ deleteBackup })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.save() })
+
+    expect(deleteBackup).not.toHaveBeenCalled()
+  })
+
+  it('save still succeeds when deleteBackup throws', async () => {
+    const { handle } = makeMockEditor('# Saved')
+    const writeFile = vi.fn(() => Promise.resolve())
+    const deleteBackup = vi.fn(() => Promise.reject(new Error('EIO')))
+    const mockLekha = makeMockLekha({ writeFile, deleteBackup })
+    vi.stubGlobal('lekha', mockLekha)
+
+    useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    useDocumentsStore.getState().updateActive({ backupId: 'bk-1', isDirty: true })
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.save() })
+
+    expect(writeFile).toHaveBeenCalledWith('/a.md', '# Saved')
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
+
+  it('selectTab snapshots the outgoing dirty tab as a backup (assigns a backupId)', async () => {
+    const { handle } = makeMockEditor('# A edited')
+    const writeBackup = vi.fn(() => Promise.resolve())
+    const mockLekha = makeMockLekha({ writeBackup })
+    vi.stubGlobal('lekha', mockLekha)
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+      'uuid-1' as `${string}-${string}-${string}-${string}-${string}`,
+    )
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B' })
+    // Active tab is b; switch to a, dirty it, then switch back to b.
+    useDocumentsStore.getState().activateDocument(a)
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.selectTab(b) })
+
+    expect(writeBackup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backupId: 'uuid-1',
+        path: '/a.md',
+        title: 'a.md',
+        content: '# A edited',
+        eol: 'lf',
+      }),
+    )
+    const tabA = useDocumentsStore.getState().documents.find((d) => d.id === a)!
+    expect(tabA.backupId).toBe('uuid-1')
+
+    vi.restoreAllMocks()
+  })
+
+  it('closeTab deletes the backup of a discarded ("Don\'t Save") dirty tab', async () => {
+    const { handle } = makeMockEditor('# A edited')
+    const confirmUnsaved = vi.fn(() => Promise.resolve('dontSave' as const))
+    const deleteBackup = vi.fn(() => Promise.resolve())
+    const mockLekha = makeMockLekha({ confirmUnsaved, deleteBackup })
+    vi.stubGlobal('lekha', mockLekha)
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B' })
+    useDocumentsStore.getState().activateDocument(a)
+    useDocumentsStore.getState().updateActive({ backupId: 'bk-1', isDirty: true })
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.closeTab(a) })
+
+    expect(confirmUnsaved).toHaveBeenCalledOnce()
+    expect(deleteBackup).toHaveBeenCalledWith('bk-1')
+    expect(useDocumentsStore.getState().documents.map((d) => d.id)).not.toContain(a)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// syncActivePath - consolidated rename/move/detach path sync
+// ---------------------------------------------------------------------------
+
+/** Mount the hook with a mock editor + lekha and return the live FileOps. */
+function mountFileOps(overrides: Partial<LekhaAPI> = {}, markdown = '# X') {
+  const { handle } = makeMockEditor(markdown)
+  const mockLekha = makeMockLekha(overrides)
+  vi.stubGlobal('lekha', mockLekha)
+  const editorRef = createRef<EditorPaneHandle>()
+  ;(editorRef as { current: EditorPaneHandle }).current = handle
+  const { result } = renderHook(() => useFileOps(editorRef))
+  return { result, mockLekha, handle }
+}
+
+describe('useFileOps - syncActivePath', () => {
+  it('remaps tab path, updates editor path/title, and re-syncs the OS title (remapFrom)', () => {
+    const setDocumentState = vi.fn()
+    const { result } = mountFileOps({ setDocumentState })
+
+    const id = useDocumentsStore.getState().openDocument({ path: '/old/a.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/old/a.md', '# A')
+
+    act(() => { result.current.syncActivePath('/new/b.md', { remapFrom: '/old/a.md' }) })
+
+    expect(useEditorStore.getState().path).toBe('/new/b.md')
+    expect(useEditorStore.getState().title).toBe('b.md')
+    const tab = useDocumentsStore.getState().documents.find((d) => d.id === id)!
+    expect(tab.path).toBe('/new/b.md')
+    expect(setDocumentState).toHaveBeenLastCalledWith({
+      title: 'b.md',
+      dirty: false,
+      path: '/new/b.md',
+    })
+  })
+
+  it('uses the current isDirty for the OS title by default', () => {
+    const setDocumentState = vi.fn()
+    const { result } = mountFileOps({ setDocumentState })
+
+    useDocumentsStore.getState().openDocument({ path: '/old/a.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/old/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    act(() => { result.current.syncActivePath('/new/b.md', { remapFrom: '/old/a.md' }) })
+
+    expect(setDocumentState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ dirty: true, path: '/new/b.md' }),
+    )
+  })
+
+  it('detaches to null path and forces dirty when requested (detach case)', () => {
+    const setDocumentState = vi.fn()
+    const { result } = mountFileOps({ setDocumentState })
+
+    useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/a.md', '# A')
+
+    act(() => { result.current.syncActivePath(null, { dirty: true }) })
+
+    expect(useEditorStore.getState().path).toBeNull()
+    expect(useEditorStore.getState().title).toBe('Untitled')
+    expect(useDocumentsStore.getState().activeDocument()?.path).toBeNull()
+    expect(setDocumentState).toHaveBeenLastCalledWith({
+      title: 'Untitled',
+      dirty: true,
+      path: null,
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// File-tree ops moved from App (createFileEntry / createFolderEntry /
+// renameEntry / deleteEntry / revealEntry)
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - file-tree ops', () => {
+  it('createFileEntry creates in the resolved dir, refreshes the tree, and opens the file', async () => {
+    const createFile = vi.fn(() => Promise.resolve('/proj/Untitled.md'))
+    const readFile = vi.fn(() => Promise.resolve(''))
+    const readDir = vi.fn(() => Promise.resolve([] as FileNode[]))
+    const { result } = mountFileOps({ createFile, readFile, readDir })
+    useWorkspaceStore.setState({ rootFolder: '/proj' })
+
+    await act(async () => { await result.current.createFileEntry(null) })
+
+    expect(createFile).toHaveBeenCalledWith('/proj', 'Untitled.md')
+    expect(readDir).toHaveBeenCalledWith('/proj')
+    expect(useEditorStore.getState().path).toBe('/proj/Untitled.md')
+  })
+
+  it('createFileEntry no-ops when no directory can be resolved', async () => {
+    const createFile = vi.fn(() => Promise.resolve(''))
+    const { result } = mountFileOps({ createFile })
+    // rootFolder is null (beforeEach), dir arg null -> nothing to create.
+
+    await act(async () => { await result.current.createFileEntry(null) })
+
+    expect(createFile).not.toHaveBeenCalled()
+  })
+
+  it('createFolderEntry creates the folder and refreshes the tree', async () => {
+    const createFolder = vi.fn(() => Promise.resolve('/proj/Untitled Folder'))
+    const readDir = vi.fn(() => Promise.resolve([] as FileNode[]))
+    const { result } = mountFileOps({ createFolder, readDir })
+
+    await act(async () => { await result.current.createFolderEntry('/proj/sub') })
+
+    expect(createFolder).toHaveBeenCalledWith('/proj/sub', 'Untitled Folder')
+    expect(readDir).not.toHaveBeenCalled() // no root open -> refreshTree no-ops
+  })
+
+  it('renameEntry remaps the active doc and refreshes the tree', async () => {
+    const renamePath = vi.fn(() => Promise.resolve('/proj/renamed.md'))
+    const readDir = vi.fn(() => Promise.resolve([] as FileNode[]))
+    const setDocumentState = vi.fn()
+    const { result } = mountFileOps({ renamePath, readDir, setDocumentState })
+    useWorkspaceStore.setState({ rootFolder: '/proj' })
+
+    const id = useDocumentsStore.getState().openDocument({ path: '/proj/old.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/proj/old.md', '# A')
+
+    await act(async () => { await result.current.renameEntry('/proj/old.md', 'renamed.md') })
+
+    expect(renamePath).toHaveBeenCalledWith('/proj/old.md', 'renamed.md')
+    expect(useEditorStore.getState().path).toBe('/proj/renamed.md')
+    const tab = useDocumentsStore.getState().documents.find((d) => d.id === id)!
+    expect(tab.path).toBe('/proj/renamed.md')
+    expect(readDir).toHaveBeenCalledWith('/proj')
+  })
+
+  it('renameEntry leaves the active doc untouched when a different entry is renamed', async () => {
+    const renamePath = vi.fn(() => Promise.resolve('/proj/other-renamed.md'))
+    const { result } = mountFileOps({ renamePath })
+
+    useDocumentsStore.getState().openDocument({ path: '/proj/active.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/proj/active.md', '# A')
+
+    await act(async () => { await result.current.renameEntry('/proj/other.md', 'other-renamed.md') })
+
+    // The active editor path is unchanged (the renamed entry was not active).
+    expect(useEditorStore.getState().path).toBe('/proj/active.md')
+  })
+
+  it('deleteEntry detaches the open doc when it (or its folder) is trashed', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true))
+    const deletePath = vi.fn(() => Promise.resolve())
+    const setDocumentState = vi.fn()
+    const { result } = mountFileOps({ deletePath, setDocumentState })
+
+    useDocumentsStore.getState().openDocument({ path: '/proj/folder/note.md', markdown: '# A' })
+    useEditorStore.getState().openFile('/proj/folder/note.md', '# A')
+
+    // Trash the containing folder; the open doc sits under it -> detach.
+    await act(async () => { await result.current.deleteEntry('/proj/folder') })
+
+    expect(deletePath).toHaveBeenCalledWith('/proj/folder')
+    expect(useEditorStore.getState().path).toBeNull()
+  })
+
+  it('deleteEntry does nothing when the confirm is declined', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => false))
+    const deletePath = vi.fn(() => Promise.resolve())
+    const { result } = mountFileOps({ deletePath })
+
+    await act(async () => { await result.current.deleteEntry('/proj/x.md') })
+
+    expect(deletePath).not.toHaveBeenCalled()
+  })
+
+  it('revealEntry forwards to the bridge', () => {
+    const revealPath = vi.fn(() => Promise.resolve())
+    const { result } = mountFileOps({ revealPath })
+
+    act(() => { result.current.revealEntry('/proj/x.md') })
+
+    expect(revealPath).toHaveBeenCalledWith('/proj/x.md')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// closeTab race guard (item 3): an active-doc change during the unsaved dialog
+// must abort the close so it never acts on a stale active doc.
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - closeTab race guard', () => {
+  it('aborts the close when the active doc changes while the unsaved dialog is open', async () => {
+    const { handle } = makeMockEditor('A edited')
+    // The confirm dialog resolves only after we have switched the active tab,
+    // simulating the user sitting on the dialog while another path activates a
+    // different document.
+    let resolveConfirm: ((c: 'save' | 'dontSave' | 'cancel') => void) | null = null
+    const confirmUnsaved = vi.fn(
+      () =>
+        new Promise<'save' | 'dontSave' | 'cancel'>((res) => {
+          resolveConfirm = res
+        }),
+    )
+    const mockLekha = makeMockLekha({ confirmUnsaved })
+    vi.stubGlobal('lekha', mockLekha)
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: 'A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: 'B' })
+    // Make tab a the active, dirty target of the close.
+    useDocumentsStore.getState().activateDocument(a)
+    useEditorStore.getState().openFile('/a.md', 'A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    // Kick off the close (dialog opens and blocks on resolveConfirm).
+    let closePromise: Promise<void>
+    await act(async () => {
+      closePromise = result.current.closeTab(a)
+      // Wait a tick so closeTab reaches the awaited confirm dialog.
+      await Promise.resolve()
+    })
+
+    // Interleave: another path switches the active document to b while the
+    // dialog is open. Answer the dialog with "dontSave" so the guard returns
+    // true (it would otherwise proceed straight to closing the stale target).
+    await act(async () => {
+      useDocumentsStore.getState().activateDocument(b)
+      resolveConfirm?.('dontSave')
+      await closePromise
+    })
+
+    // The close was aborted because the active doc changed mid-dialog: tab a is
+    // still open and the active selection (b) is left intact - the guard's
+    // answer applied to a no-longer-active tab, so closeTab does not act on it.
+    expect(useDocumentsStore.getState().documents.map((d) => d.id)).toContain(a)
+    expect(useDocumentsStore.getState().activeId).toBe(b)
+  })
+
+  it('still closes normally when no interleaving occurs', async () => {
+    const { handle } = makeMockEditor('A edited')
+    const confirmUnsaved = vi.fn(() => Promise.resolve('save' as const))
+    const writeFile = vi.fn(() => Promise.resolve())
+    const mockLekha = makeMockLekha({ confirmUnsaved, writeFile })
+    vi.stubGlobal('lekha', mockLekha)
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: 'A' })
+    useDocumentsStore.getState().activateDocument(a)
+    useEditorStore.getState().openFile('/a.md', 'A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.closeTab(a) })
+
+    // Normal path: dirty tab saved and closed (last tab -> blank Untitled).
+    expect(writeFile).toHaveBeenCalledWith('/a.md', 'A edited')
+    expect(useDocumentsStore.getState().documents.map((d) => d.id)).not.toContain(a)
   })
 })

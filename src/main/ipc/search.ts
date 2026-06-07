@@ -3,6 +3,7 @@ import { basename } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult, FolderSearchMatch } from '@shared/types'
 import { buildFileTree, readTextFile } from '@main/fs-helpers'
+import { isPathAllowed } from '@main/permittedRoots'
 
 // ---------------------------------------------------------------------------
 // Safety caps
@@ -119,7 +120,23 @@ export function registerSearchHandlers(): void {
     // Guard: empty query returns nothing.
     if (!query || query.length < 1) return []
 
-    const filePaths = await collectMarkdownPaths(root)
+    // Confinement: only search inside a granted root. The root is normally the
+    // opened folder (granted via openFolderDialog / settings.lastFolder restore),
+    // so legitimate folder search is unaffected; an un-granted root is rejected.
+    if (!isPathAllowed(root)) {
+      throw new Error(`Access to path is not permitted: ${root}`)
+    }
+
+    // Enumerate the vault. A missing/unreadable root makes readdir reject with a
+    // raw Node error; treat that as "no files" (an empty result) the same way
+    // listBackups/listUserThemes treat an unreadable directory as empty, rather
+    // than surfacing a raw error to the renderer.
+    let filePaths: string[]
+    try {
+      filePaths = await collectMarkdownPaths(root)
+    } catch {
+      return []
+    }
     const results: FolderSearchResult[] = []
 
     for (const filePath of filePaths) {

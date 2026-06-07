@@ -2,6 +2,7 @@ import {
   useState,
   useRef,
   useCallback,
+  useEffect,
   forwardRef,
   useImperativeHandle,
   lazy,
@@ -188,15 +189,67 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
     // Update the ref on every render so it always points to the latest prop
     onChangeRef.current = onChange
 
-    // Called when the ProseMirror doc changes; receives a ProseMirror Node.
-    // We pass the live `doc` up alongside the serialized markdown so the parent
-    // can derive outline/word-count WITHOUT re-parsing the markdown string
-    // (which is O(document) per keystroke on large docs).
-    const handleWysiwygChange = useCallback((doc: Node) => {
+    // Ref mirror of the bridge `markdown` value, updated on every render. The
+    // imperative handle reads this instead of closing over `markdown`, so the
+    // handle no longer has to be rebuilt on every keystroke (see below).
+    const markdownRef = useRef(markdown)
+    markdownRef.current = markdown
+
+    // Debounce handle + the latest live doc for the trailing serialize.
+    const wysiwygDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const latestDocRef = useRef<Node | null>(null)
+
+    // Serialize the latest live doc and push it to the bridge state + onChange.
+    // serializeMarkdown is O(document), so we avoid running it on EVERY keystroke.
+    const flushWysiwygChange = useCallback((): void => {
+      const doc = latestDocRef.current
+      if (doc === null) return
       const md = serializeMarkdown(doc)
       setMarkdownState(md)
       onChangeRef.current?.(md, doc)
     }, [])
+
+    // Called when the ProseMirror doc changes; receives a ProseMirror Node.
+    //
+    // serializeMarkdown(doc) is a full O(document) walk, so running it on every
+    // keystroke is wasteful (the live doc is the source of truth - getMarkdown()
+    // serializes on demand from it). We use a leading+trailing debounce:
+    //   - the FIRST change of a burst flushes immediately, so the dirty flag,
+    //     title-bar state and crash-backup re-arm fire without latency;
+    //   - subsequent rapid changes are coalesced into one trailing flush ~150ms
+    //     after typing pauses (matching the outline/word-count debounce).
+    // We pass the live `doc` up alongside the serialized markdown so the parent
+    // can derive outline/word-count WITHOUT re-parsing the markdown string.
+    const handleWysiwygChange = useCallback((doc: Node) => {
+      // PM nodes are immutable, so stashing the latest doc for the trailing
+      // flush is safe even though more edits may arrive before the timer fires.
+      latestDocRef.current = doc
+      if (wysiwygDebounce.current === null) {
+        // Leading edge: flush now so change notifications are not delayed.
+        flushWysiwygChange()
+        wysiwygDebounce.current = setTimeout(() => {
+          wysiwygDebounce.current = null
+        }, 150)
+      } else {
+        // Within the burst window: re-arm the trailing flush.
+        clearTimeout(wysiwygDebounce.current)
+        wysiwygDebounce.current = setTimeout(() => {
+          wysiwygDebounce.current = null
+          flushWysiwygChange()
+        }, 150)
+      }
+    }, [flushWysiwygChange])
+
+    // Flush any pending serialize on unmount so the final edit is not lost.
+    useEffect(() => {
+      return () => {
+        if (wysiwygDebounce.current !== null) {
+          clearTimeout(wysiwygDebounce.current)
+          wysiwygDebounce.current = null
+          flushWysiwygChange()
+        }
+      }
+    }, [flushWysiwygChange])
 
     // Called when the CodeMirror doc changes; receives raw markdown text. No PM
     // doc is available in source mode, so the parent re-parses the string.
@@ -241,9 +294,9 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
         },
         getMarkdown() {
           if (mode === 'wysiwyg') {
-            return wysiwygRef.current?.getMarkdown() ?? markdown
+            return wysiwygRef.current?.getMarkdown() ?? markdownRef.current
           }
-          return sourceRef.current?.getValue() ?? markdown
+          return sourceRef.current?.getValue() ?? markdownRef.current
         },
         setMarkdown(md: string) {
           setMarkdownState(md)
@@ -340,7 +393,11 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           wysiwygRef.current?.insertImage(args)
         },
       }),
-      [mode, markdown, toggleMode],
+      // `markdown` is intentionally NOT a dependency: the handle reads the latest
+      // bridge value through markdownRef, so it no longer has to be rebuilt on
+      // every keystroke. No consumer depends on the handle's identity (only
+      // editorRef.current is used). Rebuild only when mode/toggleMode change.
+      [mode, toggleMode],
     )
 
     // Compose the container class. `focus-mode` enables the dimming rules and

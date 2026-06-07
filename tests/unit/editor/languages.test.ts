@@ -7,8 +7,16 @@
  *   - 'mermaid' and 'plaintext' are always included
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { COMMON_LANGUAGES, availableLanguages } from '../../../src/renderer/editor/languages'
+import { whenLanguagesReady } from '../../../src/renderer/editor/plugins/highlight'
+
+// availableLanguages() now sources its lowlight-registered languages from the
+// shared, lazily-loaded lowlight instance. Resolve it before the assertions
+// that expect the full merged list (typescript/go/rust from lowlight/common).
+beforeAll(async () => {
+  await whenLanguagesReady()
+})
 
 describe('COMMON_LANGUAGES', () => {
   it('includes core languages', () => {

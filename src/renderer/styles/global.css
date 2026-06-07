@@ -319,6 +319,72 @@ body,
 }
 
 /* ---------------------------------------------------------------------------
+ * Recovery notice - non-blocking bar shown when the active tab was restored
+ * from a crash backup. Mirrors .external-notice; adds an inline Save action so
+ * the user can commit the recovered work, plus a dismiss that only hides the
+ * banner (keeps the recovered content + backup).
+ * --------------------------------------------------------------------------- */
+.recovered-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  color: var(--on-accent);
+  background-color: var(--accent);
+}
+
+.recovered-notice__text {
+  flex: 1 1 auto;
+}
+
+.recovered-notice__save {
+  flex-shrink: 0;
+  padding: 2px 12px;
+  border: 1px solid color-mix(in srgb, var(--on-accent) 60%, transparent);
+  background: transparent;
+  color: var(--on-accent);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  line-height: 1.4;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.recovered-notice__save:hover {
+  background-color: color-mix(in srgb, var(--on-accent) 22%, transparent);
+}
+
+.recovered-notice__save:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--on-accent) 60%, transparent);
+}
+
+.recovered-notice__dismiss {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--on-accent);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.recovered-notice__dismiss:hover {
+  background-color: color-mix(in srgb, var(--on-accent) 22%, transparent);
+}
+
+.recovered-notice__dismiss:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--on-accent) 60%, transparent);
+}
+
+/* ---------------------------------------------------------------------------
  * TabBar - open-document tab strip above the editor
  * --------------------------------------------------------------------------- */
 .tab-bar {
@@ -1297,8 +1363,8 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #1a1a1a;
-  color: #f0f0f0;
+  background-color: var(--pres-bg);
+  color: var(--pres-text);
   overflow: hidden;
   user-select: none;
 }
@@ -1345,44 +1411,43 @@ body,
   width: 100%;
   font-size: clamp(18px, 2.5vw, 28px);
   line-height: 1.7;
-  color: #f0f0f0;
+  color: var(--pres-text);
   background: transparent;
-  /* Override github.css / export styles that assume a white background */
-  --gh-text: #f0f0f0;
-  --gh-font-body: var(--font-editor, Georgia, serif);
+  /* Use the editor font for slide body text. */
+  font-family: var(--font-editor);
 }
 
 /* Headings: slightly accent-colored for slide clarity */
 .pres__slide.markdown-body h1,
 .pres__slide.markdown-body h2,
 .pres__slide.markdown-body h3 {
-  color: #ffffff;
-  border-bottom-color: rgba(255, 255, 255, 0.15);
+  color: var(--pres-heading);
+  border-bottom-color: var(--pres-rule);
 }
 
 /* Code blocks in slides */
 .pres__slide.markdown-body pre,
 .pres__slide.markdown-body code {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #e0e0e0;
+  background-color: var(--pres-code-bg);
+  color: var(--pres-code-text);
   border-radius: 4px;
   font-size: 0.85em;
 }
 
 /* Blockquotes in slides */
 .pres__slide.markdown-body blockquote {
-  border-left-color: rgba(255, 255, 255, 0.3);
-  color: #c0c0c0;
+  border-left-color: var(--pres-quote-border);
+  color: var(--pres-quote);
 }
 
 /* Tables in slides */
 .pres__slide.markdown-body table {
-  color: #f0f0f0;
+  color: var(--pres-text);
 }
 
 .pres__slide.markdown-body th,
 .pres__slide.markdown-body td {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--pres-border);
 }
 
 /* Slide counter: fixed at the bottom center, above click zones */
@@ -1394,7 +1459,7 @@ body,
   z-index: 30;
   font-family: var(--font-ui, system-ui, sans-serif);
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--pres-counter);
   letter-spacing: 0.06em;
   pointer-events: none;
   user-select: none;
@@ -1651,4 +1716,25 @@ select.dialog-input {
 .file-tree__row:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
+}
+
+/* Find & Replace controls (toggle, nav/replace buttons, close). */
+.find-replace-btn:focus-visible,
+.find-replace-btn-toggle:focus-visible,
+.find-replace-close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Table toolbar buttons (insert/delete row & column, etc.). */
+.table-toolbar-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Tab bar: new-tab button and per-tab close button. */
+.tab-bar__new:focus-visible,
+.tab__close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }

@@ -1,3 +1,5 @@
+import type { Eol } from './eol'
+
 export interface FileNode {
   name: string
   path: string
@@ -50,6 +52,13 @@ export interface ArticleEntry {
 export interface ThemeDef {
   id: string
   label: string
+  /**
+   * Whether the theme renders on a dark or light background. Optional so the
+   * many ThemeDef construction sites (e.g. the menu builder mapping UserTheme
+   * to ThemeDef) need not always supply it. Consumers that care about the
+   * light/dark nature (e.g. mermaidThemeFor) treat undefined as 'light'.
+   */
+  type?: 'dark' | 'light'
 }
 
 /**
@@ -71,13 +80,13 @@ export interface UserTheme {
  * The renderer's src/renderer/themes/index.ts re-exports this for convenience.
  */
 export const THEMES: ThemeDef[] = [
-  { id: 'github',          label: 'GitHub'         },
-  { id: 'night',           label: 'Night'          },
-  { id: 'graphite',          label: 'Graphite'         },
-  { id: 'sepia',           label: 'Sepia'          },
-  { id: 'solarized-light', label: 'Solarized Light' },
-  { id: 'solarized-dark',  label: 'Solarized Dark'  },
-  { id: 'nord',            label: 'Nord'            },
+  { id: 'github',          label: 'GitHub',          type: 'light' },
+  { id: 'night',           label: 'Night',           type: 'dark'  },
+  { id: 'graphite',          label: 'Graphite',          type: 'dark'  },
+  { id: 'sepia',           label: 'Sepia',           type: 'light' },
+  { id: 'solarized-light', label: 'Solarized Light', type: 'light' },
+  { id: 'solarized-dark',  label: 'Solarized Dark',  type: 'dark'  },
+  { id: 'nord',            label: 'Nord',            type: 'dark'  },
 ]
 
 /** A single line match inside a file during folder-wide search. */
@@ -186,4 +195,23 @@ export interface Template {
   name: string
   description?: string
   content: string
+}
+
+/**
+ * A crash-recovery backup of an unsaved document buffer. Written to app data
+ * (never the user's real file) so unsaved work survives an app/OS crash.
+ * Defined here (shared) so the main-process backup store and the preload bridge
+ * both reference the same shape without cross-boundary imports.
+ */
+export interface BackupRecord {
+  /** Stable id for this backup file (`<backupId>.json`), assigned per dirty tab. */
+  backupId: string
+  /** Original file path, or null for an Untitled (never-saved) document. */
+  path: string | null
+  title: string
+  /** The unsaved markdown buffer. */
+  content: string
+  eol: Eol
+  /** ms since epoch, stamped in the main process at write time. */
+  savedAt: number
 }

@@ -104,10 +104,10 @@ describe('createSettingsStore', () => {
     expect(persisted.equationNumbering).toBe(false)
   })
 
-  it('autoSave defaults to true', async () => {
+  it('autoSave defaults to false (opt-in)', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()
-    expect(settings.autoSave).toBe(true)
+    expect(settings.autoSave).toBe(false)
   })
 
   it('round-trips autoSave=false', async () => {

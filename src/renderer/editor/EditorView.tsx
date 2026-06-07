@@ -95,6 +95,19 @@ function computeTableState(view: ProseMirrorView): TableState {
 }
 
 /**
+ * Cheap identity for the enclosing table at the current selection, used to skip
+ * redundant table-state work. Returns the table node's start position when the
+ * selection is inside a table, or null when it is not. Crucially this reads NO
+ * DOM (no getBoundingClientRect), so it can run on every transaction without
+ * forcing a layout reflow; the expensive rect read only happens when this
+ * identity (or the document) actually changes.
+ */
+function tableIdentity(view: ProseMirrorView): number | null {
+  if (!isInTable(view.state)) return null
+  return selectedRect(view.state).tableStart
+}
+
+/**
  * Scroll the footnote_definition matching `label` into view (best-effort).
  *
  * Finds the first footnote_definition block with the same label, reads its
@@ -308,6 +321,14 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
         () => useEditorStore.getState().path,
       )
 
+      // Cache the last reported table identity so we only recompute the table
+      // state (which forces a getBoundingClientRect reflow when in a table) and
+      // fire onTableStateChange when the in-table identity actually changes - or
+      // when the document changed (the table may have moved/resized in place).
+      // `undefined` means "nothing reported yet" so the first selection always
+      // reports; thereafter null=outside-any-table, number=that table's start.
+      let lastTableId: number | null | undefined = undefined
+
       const view = new ProseMirrorView(mountRef.current, {
         state: createEditorState(markdown),
         nodeViews: {
@@ -370,8 +391,16 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
               useEditorStore.getState().setSelectionCounts(countSelection(text))
             }
             // Notify the host of the current table state so the floating
-            // TableToolbar can show/hide and reposition on each cursor move.
-            onTableStateChangeRef.current?.(computeTableState(view))
+            // TableToolbar can show/hide and reposition. We avoid the
+            // synchronous rect read (forced reflow) on plain cursor moves that
+            // stay within the same table: only recompute + fire when the
+            // in-table identity changes, or when the doc changed (the table may
+            // have moved/resized so the rect must be refreshed).
+            const tableId = tableIdentity(view)
+            if (tableId !== lastTableId || tr.docChanged) {
+              lastTableId = tableId
+              onTableStateChangeRef.current?.(computeTableState(view))
+            }
           }
           // Keep the slash menu popup in sync with the plugin (open/query/pos).
           // Runs on every tx since activation also depends on selection moves.

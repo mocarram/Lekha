@@ -43,6 +43,7 @@ import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
 import { fileURLToPath } from 'url'
 
 // ---------------------------------------------------------------------------
@@ -72,8 +73,15 @@ function ensureScreenshotsDir(): void {
 
 /** Launch the built Electron app and return the app + first window. */
 async function launchApp(): Promise<{ app: ElectronApplication; win: Page }> {
+  // Isolate userData per run with a throwaway dir. Without this the app uses the
+  // real OS userData, so persisted state (settings, recents) AND - critically -
+  // crash-recovery backups would leak across runs: e2e closes the app via
+  // LEKHA_DISABLE_QUIT_GUARD (which bypasses the close guard, like a crash), so
+  // any unsaved buffer left behind would be "recovered" on the next run and
+  // clobber the welcome document the first tests assert on.
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lekha-e2e-'))
   const app = await electron.launch({
-    args: ['.'],
+    args: ['.', `--user-data-dir=${userDataDir}`],
     cwd: PROJECT_ROOT,
     // Keep NODE_ENV as 'production' so the app loads out/renderer/index.html
     // rather than attempting to connect to a dev server.

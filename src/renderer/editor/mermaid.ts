@@ -19,6 +19,7 @@
  */
 
 import type mermaid from 'mermaid'
+import { themeTypeFor } from '@renderer/themes/index'
 
 // ---------------------------------------------------------------------------
 // Lazy module loader
@@ -49,9 +50,11 @@ function loadMermaid(): Promise<Mermaid> {
 // Theme sync
 //
 // Mermaid's built-in themes are independent of the app theme, so we map the
-// app's data-theme attribute to a mermaid theme: the dark app theme ('night')
-// uses mermaid's 'dark' theme; every other app theme uses 'default'. The
-// mapping is a pure function so it is unit-testable.
+// app's data-theme attribute to a mermaid theme: dark app themes use mermaid's
+// 'dark' theme; every light (or unknown) app theme uses 'default'. The theme's
+// dark/light nature is resolved from the theme registry (built-in THEMES +
+// injected user themes, which carry `type`) rather than a hardcoded list, so
+// user dark themes get the dark mermaid theme too.
 //
 // LIVE re-render: applyTheme (themes/index.ts) dispatches a 'lekha-theme-change'
 // event after switching. We listen for it here, re-initialize mermaid with the
@@ -63,18 +66,19 @@ function loadMermaid(): Promise<Mermaid> {
 /** Mermaid theme name. Kept narrow - we only use these two. */
 export type MermaidTheme = 'default' | 'dark'
 
-/** App theme ids that render on a dark background and want mermaid's dark theme. */
-const DARK_THEMES = new Set(['night', 'graphite', 'nord', 'solarized-dark'])
-
 /**
  * Map an app `data-theme` attribute value to the matching mermaid theme.
- * Dark app themes -> 'dark'; anything else -> 'default'.
+ * Dark app themes -> 'dark'; light, unknown, or unset themes -> 'default'.
  *
- * Pure: takes the raw attribute (which may be undefined when unset) and returns
- * the mermaid theme name. Unit-tested in mermaid theme tests.
+ * The dark/light nature is resolved from the live theme registry (built-in
+ * THEMES + injected user themes) via themeTypeFor, so it stays correct for
+ * user-authored dark themes without duplicating any theme metadata here.
+ *
+ * Pure-ish: takes the raw attribute (which may be undefined when unset) and
+ * returns the mermaid theme name. Unit-tested in mermaid theme tests.
  */
 export function mermaidThemeFor(dataTheme: string | undefined): MermaidTheme {
-  return dataTheme !== undefined && DARK_THEMES.has(dataTheme) ? 'dark' : 'default'
+  return themeTypeFor(dataTheme) === 'dark' ? 'dark' : 'default'
 }
 
 /** Read the live app theme from the document, defaulting to mermaid 'default'. */
