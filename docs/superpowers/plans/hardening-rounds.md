@@ -103,3 +103,6 @@ Added :focus-visible rules in global.css for .sidebar__tab-btn, .status-bar__cou
 ### Wave 27 - FIXED: security (findings 2, 16)
 - (2) userThemes.listUserThemes now uses lstat (not stat) so a *.css SYMLINK is rejected (isFile() false) before readFile - prevents arbitrary file read via the themes folder. +1 test (symlink to a secret is skipped, content never surfaces).
 - (16) Added X-Content-Type-Options: nosniff + X-Frame-Options: DENY response headers alongside the CSP (defense-in-depth).
+
+### Wave 28 - FIXED: perf (findings 3, 4; 5 resolved by root cause)
+handleChange no longer mirrors `markdown` into the active tab on every keystroke - it only flips `isDirty` on the clean->dirty transition. The tab's markdown snapshot is captured lazily from the live editor at switch (snapshotActive), save (persist), and close. This removes the per-keystroke `documents` array identity churn that re-rendered the TabBar on every key press (findings 3+4). Finding 5 (Sidebar/FileTree re-render on keystroke) is resolved by the same root cause: with no per-keystroke documents mutation and App not subscribing to markdown, nothing re-renders per keystroke. Verified safe: no code reads the active tab's markdown expecting per-keystroke freshness (loadTab uses the snapshot set at switch-away; reuseBlank no longer checks markdown). Suite + e2e (edit/switch/dirty) green.

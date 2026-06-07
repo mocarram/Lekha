@@ -358,9 +358,18 @@ export default function App() {
     store.setMarkdown(markdown)
     store.markDirty()
 
-    // 1b. Mirror the edit into the active tab snapshot so the tab's dirty dot
-    //     and preserved content stay current without per-keystroke disk work.
-    useDocumentsStore.getState().updateActive({ markdown, isDirty: true })
+    // 1b. Flip the active tab's dirty flag ONLY on the clean->dirty transition.
+    //     We intentionally do NOT mirror `markdown` into the tab on every
+    //     keystroke: that churns the documents array identity and re-renders the
+    //     TabBar on every key press. The tab's markdown snapshot is captured
+    //     lazily from the live editor at the moments it matters - switching tabs
+    //     (snapshotActive), saving (persist), and closing - so it stays correct
+    //     without per-keystroke array mutations.
+    const docs = useDocumentsStore.getState()
+    const active = docs.activeDocument()
+    if (active !== null && !active.isDirty) {
+      docs.updateActive({ isDirty: true })
+    }
 
     // 2. Sync the OS window title-bar dirty state if the bridge is available.
     if (typeof window.lekha !== 'undefined') {
