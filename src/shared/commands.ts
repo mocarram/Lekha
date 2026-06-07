@@ -29,6 +29,8 @@ export type AppCommand =
   | 'superscript'
   | 'subscript'
   | 'clearFormatting'
+  | 'jumpToTop'
+  | 'jumpToBottom'
   | 'link'
   | 'insertImage'
   | 'heading1'

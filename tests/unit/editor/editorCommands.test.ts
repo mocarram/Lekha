@@ -69,6 +69,7 @@ describe('editorCommandMap - entries present', () => {
   const expectedCommands: AppCommand[] = [
     'bold', 'italic', 'strikethrough', 'inlineCode', 'underline',
     'highlight', 'superscript', 'subscript', 'clearFormatting',
+    'jumpToTop', 'jumpToBottom',
     'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6',
     'paragraph',
     'bulletList', 'orderedList', 'blockquote', 'codeBlock',
@@ -158,6 +159,37 @@ describe('editorCommandMap - mark toggles', () => {
   it('clearFormatting declines on an empty selection', () => {
     const fired = cmdMap['clearFormatting']!(stateWithText('text'), undefined)
     expect(fired).toBe(false)
+  })
+
+  it('jumpToTop moves the selection to the document start', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('paragraph', null, [schema.text('first')]),
+      schema.node('paragraph', null, [schema.text('last')]),
+    ])
+    // Cursor at the very end.
+    const state = EditorState.create({
+      schema,
+      doc,
+      selection: TextSelection.atEnd(doc),
+    })
+    const next = applyCmd(state, cmdMap['jumpToTop']!)
+    expect(next).not.toBeNull()
+    expect(next!.selection.from).toBe(1)
+  })
+
+  it('jumpToBottom moves the selection to the document end', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('paragraph', null, [schema.text('first')]),
+      schema.node('paragraph', null, [schema.text('last')]),
+    ])
+    const state = EditorState.create({
+      schema,
+      doc,
+      selection: TextSelection.atStart(doc),
+    })
+    const next = applyCmd(state, cmdMap['jumpToBottom']!)
+    expect(next).not.toBeNull()
+    expect(next!.selection.from).toBe(TextSelection.atEnd(next!.doc).from)
   })
 })
 

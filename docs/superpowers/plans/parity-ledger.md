@@ -585,3 +585,9 @@ Implemented (build order f):
 - **Share…** - renderer command -> `window:share` IPC -> main opens Electron's `ShareMenu({ filePaths: [path] })` popup on the sender window (macOS only; no-op elsewhere). AppCommand `share`, useCommands handler (shares current doc path), File ▸ Share…, registry. share() added to all 4 LekhaAPI mocks.
 
 Tests: +2 (share dispatch with path + registry). 1217 unit + 7 e2e green.
+
+### Wave 14 - Jump to Top / Bottom (`feat/wysiwyg-jump`)
+Implemented (Edit/View additions, sub-wave A):
+- **Jump to Top** / **Jump to Bottom** - editorCommandMap commands (TextSelection.atStart/atEnd + scrollIntoView). Edit menu, command registry. No accelerators (avoid clobbering native caret nav).
+
+Tests: +2 (jump selection to start/end). 1221 unit + 7 e2e green.

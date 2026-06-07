@@ -7,7 +7,7 @@
  * to add, change, or remove a command.
  */
 import { type Schema, type NodeType, type Node as ProseMirrorNode } from 'prosemirror-model'
-import { type Command, type Transaction } from 'prosemirror-state'
+import { type Command, type Transaction, TextSelection } from 'prosemirror-state'
 import { toggleMark, setBlockType, wrapIn } from 'prosemirror-commands'
 import { undo, redo } from 'prosemirror-history'
 import { wrapInList } from 'prosemirror-schema-list'
@@ -125,6 +125,20 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   const superscript = toggleMark(schema.marks['superscript']!)
   const subscript = toggleMark(schema.marks['subscript']!)
 
+  // Jump the caret to the very start / end of the document and scroll there.
+  const jumpToTop: Command = (state, dispatch) => {
+    if (dispatch) {
+      dispatch(state.tr.setSelection(TextSelection.atStart(state.doc)).scrollIntoView())
+    }
+    return true
+  }
+  const jumpToBottom: Command = (state, dispatch) => {
+    if (dispatch) {
+      dispatch(state.tr.setSelection(TextSelection.atEnd(state.doc)).scrollIntoView())
+    }
+    return true
+  }
+
   // Clear inline formatting: strip ALL marks from the (non-empty) selection.
   const clearFormatting: Command = (state, dispatch) => {
     const { from, to, empty } = state.selection
@@ -171,6 +185,8 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     superscript,
     subscript,
     clearFormatting,
+    jumpToTop,
+    jumpToBottom,
 
     // Block types
     paragraph,

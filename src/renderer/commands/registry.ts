@@ -56,6 +56,8 @@ export const COMMANDS: CommandDef[] = [
   { id: 'replace', label: 'Replace', group: 'Edit', shortcut: '⌘⌥F' },
   { id: 'copyAsHtml', label: 'Copy as HTML', group: 'Edit', shortcut: '⌘⇧C' },
   { id: 'copyAsMarkdown', label: 'Copy as Markdown', group: 'Edit' },
+  { id: 'jumpToTop', label: 'Jump to Top', group: 'Edit' },
+  { id: 'jumpToBottom', label: 'Jump to Bottom', group: 'Edit' },
 
   // Format - inline
   { id: 'bold', label: 'Bold', group: 'Format', shortcut: '⌘B' },

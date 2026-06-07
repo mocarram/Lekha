@@ -247,6 +247,9 @@ export function buildMenuTemplate(
       sep,
       item('Find',    'CmdOrCtrl+F',       'find',    send),
       item('Replace', 'CmdOrCtrl+Alt+F',   'replace', send),
+      sep,
+      item('Jump to Top',    undefined, 'jumpToTop',    send),
+      item('Jump to Bottom', undefined, 'jumpToBottom', send),
       // On macOS, Preferences lives in the app (Lekha) menu (added above).
       // On other platforms there is no app menu, so surface it here in Edit.
       ...(process.platform === 'darwin'
