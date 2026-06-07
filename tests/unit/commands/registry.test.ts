@@ -44,6 +44,8 @@ const VALID_IDS: ReadonlySet<AppCommand> = new Set<AppCommand>([
   'superscript',
   'subscript',
   'clearFormatting',
+  'selectLine',
+  'selectBlock',
   'link',
   'insertImage',
   'heading1',

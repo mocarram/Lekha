@@ -239,6 +239,13 @@ export function buildMenuTemplate(
       { role: 'paste' },
       item('Paste as Plain Text', 'CmdOrCtrl+Shift+V', 'pasteAsPlainText', send),
       { role: 'selectAll' },
+      {
+        label: 'Selection',
+        submenu: [
+          item('Select Line',  undefined, 'selectLine',  send),
+          item('Select Block', undefined, 'selectBlock', send),
+        ],
+      },
       sep,
       // Copy the whole document as rich HTML / as Markdown source. These route
       // through the renderer (useCommands) which serializes the doc and writes
@@ -261,6 +268,22 @@ export function buildMenuTemplate(
           item('CRLF (Windows)', undefined, 'eolCrlf', send),
         ],
       },
+      // macOS-native text services: Speech (Start/Stop Speaking) and the
+      // Emoji & Symbols picker. These use Electron's built-in roles so the OS
+      // wires up dictation/text-to-speech without any renderer plumbing.
+      ...(process.platform === 'darwin'
+        ? [
+            sep,
+            {
+              label: 'Speech',
+              submenu: [
+                { role: 'startSpeaking' as const },
+                { role: 'stopSpeaking' as const },
+              ],
+            },
+            { role: 'showSubstitutions' as const },
+          ]
+        : []),
       // On macOS, Preferences lives in the app (Lekha) menu (added above).
       // On other platforms there is no app menu, so surface it here in Edit.
       ...(process.platform === 'darwin'

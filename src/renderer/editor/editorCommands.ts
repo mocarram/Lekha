@@ -139,6 +139,38 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     return true
   }
 
+  // Select the textblock the caret is in (the "line"/paragraph). Expands the
+  // selection to span from the start to the end of the current textblock.
+  const selectLine: Command = (state, dispatch) => {
+    const { $from } = state.selection
+    const start = $from.start()
+    const end = $from.end()
+    if (start === end) return false
+    if (dispatch) {
+      dispatch(state.tr.setSelection(TextSelection.create(state.doc, start, end)))
+    }
+    return true
+  }
+
+  // Select the whole block node enclosing the caret (the "block"): the parent
+  // container one level up (e.g. the list item, blockquote, or table cell), or
+  // the textblock itself when already at the top level.
+  const selectBlock: Command = (state, dispatch) => {
+    const { $from } = state.selection
+    const depth = $from.depth > 1 ? $from.depth - 1 : $from.depth
+    const start = $from.start(depth)
+    const end = $from.end(depth)
+    if (start === end) return false
+    if (dispatch) {
+      // TextSelection.between snaps the endpoints to the nearest valid inline
+      // positions so a block that spans multiple textblocks (e.g. a list item
+      // or blockquote) yields a valid selection.
+      const sel = TextSelection.between(state.doc.resolve(start), state.doc.resolve(end))
+      dispatch(state.tr.setSelection(sel))
+    }
+    return true
+  }
+
   // Clear inline formatting: strip ALL marks from the (non-empty) selection.
   const clearFormatting: Command = (state, dispatch) => {
     const { from, to, empty } = state.selection
@@ -185,6 +217,8 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
     superscript,
     subscript,
     clearFormatting,
+    selectLine,
+    selectBlock,
     jumpToTop,
     jumpToBottom,
 

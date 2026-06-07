@@ -69,6 +69,7 @@ describe('editorCommandMap - entries present', () => {
   const expectedCommands: AppCommand[] = [
     'bold', 'italic', 'strikethrough', 'inlineCode', 'underline',
     'highlight', 'superscript', 'subscript', 'clearFormatting',
+    'selectLine', 'selectBlock',
     'jumpToTop', 'jumpToBottom',
     'heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6',
     'paragraph',
@@ -190,6 +191,46 @@ describe('editorCommandMap - mark toggles', () => {
     const next = applyCmd(state, cmdMap['jumpToBottom']!)
     expect(next).not.toBeNull()
     expect(next!.selection.from).toBe(TextSelection.atEnd(next!.doc).from)
+  })
+
+  it('selectLine expands a collapsed caret to span the whole textblock', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('paragraph', null, [schema.text('first')]),
+      schema.node('paragraph', null, [schema.text('second line')]),
+    ])
+    // Caret inside the second paragraph (doc pos 8 + offset).
+    const $pos = doc.resolve(10)
+    const state = EditorState.create({
+      schema,
+      doc,
+      selection: TextSelection.create(doc, $pos.pos),
+    })
+    const next = applyCmd(state, cmdMap['selectLine']!)
+    expect(next).not.toBeNull()
+    const { $from } = next!.selection
+    expect(next!.selection.from).toBe($from.start())
+    expect(next!.selection.to).toBe($from.end())
+    expect(next!.doc.textBetween(next!.selection.from, next!.selection.to)).toBe('second line')
+  })
+
+  it('selectBlock selects the enclosing list item one level up', () => {
+    const doc = schema.node('doc', null, [
+      schema.node('bullet_list', null, [
+        schema.node('list_item', null, [
+          schema.node('paragraph', null, [schema.text('item text')]),
+        ]),
+      ]),
+    ])
+    // Caret inside the paragraph nested in the list item.
+    const state = EditorState.create({
+      schema,
+      doc,
+      selection: TextSelection.create(doc, 5),
+    })
+    const next = applyCmd(state, cmdMap['selectBlock']!)
+    expect(next).not.toBeNull()
+    // Selection should cover more than just the caret (a real range).
+    expect(next!.selection.to).toBeGreaterThan(next!.selection.from)
   })
 })
 

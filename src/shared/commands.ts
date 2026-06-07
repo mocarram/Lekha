@@ -29,6 +29,8 @@ export type AppCommand =
   | 'superscript'
   | 'subscript'
   | 'clearFormatting'
+  | 'selectLine'
+  | 'selectBlock'
   | 'jumpToTop'
   | 'jumpToBottom'
   | 'link'
