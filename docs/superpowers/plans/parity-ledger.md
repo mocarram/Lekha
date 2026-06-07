@@ -626,3 +626,13 @@ Implemented (Edit/View additions, D2):
 Note: applies to documents created/opened after a change (input-rule plugins are built per editor state) - not a live retro-toggle of the open doc, to avoid an editor re-create that could disturb the caret/scroll.
 
 Tests: +3 (buildInputRules off keeps `--`/quotes literal, on converts; settings default). Patched 6 test Settings literals + DEFAULTS. 1233 unit + 7 e2e green.
+
+### Wave 20 - Line Endings LF/CRLF (`feat/wysiwyg-line-endings`)
+Implemented (Edit additions, D3):
+- **src/shared/eol.ts** (new): `normalizeLineEndings(text, eol)`, `detectEol(text)`, `Eol` type. LF collapses CR/CRLF->LF; CRLF converts LF->CRLF; both idempotent.
+- **editorStore**: `eol` state (default `lf`) + `setEol`; `openFile` runs `detectEol(markdown)` so re-saves preserve the file's original convention.
+- **useFileOps.persist**: `normalizeLineEndings(md, editorStore.getState().eol)` before `writeFile`.
+- **Edit menu**: Line Endings submenu (LF (Unix) / CRLF (Windows)); commands `eolLf`/`eolCrlf` (AppCommand + registry + useCommands).
+- **StatusBar**: `.status-bar__eol` segment shows LF/CRLF.
+
+Tests: +4 (eol helper: collapse, convert, idempotent, detect). 1241 unit + 7 e2e green.
