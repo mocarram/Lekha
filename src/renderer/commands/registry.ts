@@ -31,6 +31,7 @@ export const COMMANDS: CommandDef[] = [
   { id: 'save', label: 'Save', group: 'File', shortcut: '⌘S' },
   { id: 'saveAs', label: 'Save As…', group: 'File', shortcut: '⌘⇧S' },
   { id: 'duplicateFile', label: 'Duplicate', group: 'File' },
+  { id: 'renameFile', label: 'Rename…', group: 'File' },
   { id: 'moveFileTo', label: 'Move To…', group: 'File' },
   { id: 'revertToSaved', label: 'Revert to Saved', group: 'File' },
   { id: 'deleteFile', label: 'Move to Trash…', group: 'File' },

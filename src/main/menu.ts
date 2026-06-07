@@ -193,6 +193,7 @@ export function buildMenuTemplate(
       // round-trip) so it reaches all windows, not just the focused one.
       { label: 'Save All', click: () => { onSaveAll() } },
       item('Duplicate',       undefined,         'duplicateFile', send),
+      item('Rename…',         undefined,         'renameFile',    send),
       item('Move To…',        undefined,         'moveFileTo',    send),
       item('Revert to Saved', undefined,         'revertToSaved', send),
       item('Move to Trash…',  undefined,         'deleteFile',    send),

@@ -85,6 +85,11 @@ export interface CommandOpts {
   onPresentation: () => void
   /** Open the template picker modal. */
   onNewFromTemplate: () => void
+  /**
+   * Open the rename dialog for the current document. Optional so existing
+   * callers/tests that don't wire renaming keep working.
+   */
+  onRename?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +174,11 @@ export function useCommands(
       }
       if (cmd === 'moveFileTo') {
         void fo.moveCurrentTo()
+        return
+      }
+      if (cmd === 'renameFile') {
+        // App hosts the rename dialog (Electron has no window.prompt).
+        o.onRename?.()
         return
       }
       if (cmd === 'deleteFile') {

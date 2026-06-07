@@ -9,6 +9,7 @@ export type AppCommand =
   | 'showInFinder'
   | 'revealInFileTree'
   | 'duplicateFile'
+  | 'renameFile'
   | 'moveFileTo'
   | 'deleteFile'
   | 'print'

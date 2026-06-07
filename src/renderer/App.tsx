@@ -18,6 +18,7 @@ import { Sidebar } from '@renderer/components/Sidebar'
 import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
 import { ImageDialog } from '@renderer/components/ImageDialog'
+import { RenameDialog } from '@renderer/components/RenameDialog'
 import { Preferences } from '@renderer/components/Preferences'
 import { WordCountPanel } from '@renderer/components/WordCountPanel'
 import { TableToolbar } from '@renderer/components/TableToolbar'
@@ -116,6 +117,14 @@ export default function App() {
     seq: number
     initial: { src: string; alt: string }
   }>({ open: false, seq: 0, initial: { src: '', alt: '' } })
+
+  // Rename dialog state (renaming the current document). `seq` bumps on each
+  // open so the dialog remounts and re-seeds the input with the current name.
+  const [renameState, setRenameState] = useState<{
+    open: boolean
+    seq: number
+    initial: string
+  }>({ open: false, seq: 0, initial: '' })
 
   // Preferences modal open/closed state.
   const [prefsOpen, setPrefsOpen] = useState(false)
@@ -226,6 +235,12 @@ export default function App() {
       }))
     },
     onPreferences: () => { setPrefsOpen(true) },
+    onRename: () => {
+      const path = useEditorStore.getState().path
+      if (path === null) return
+      const base = path.split('/').pop() ?? ''
+      setRenameState((prev) => ({ open: true, seq: prev.seq + 1, initial: base }))
+    },
     onCommandPalette: () => {
       setPaletteState((prev) => ({ open: true, seq: prev.seq + 1, mode: 'commands' }))
     },
@@ -519,6 +534,18 @@ export default function App() {
         }}
         onOpenUrl={(url) => { void window.lekha.openExternal(url) }}
         onClose={() => setLinkState((prev) => ({ ...prev, open: false }))}
+      />
+
+      <RenameDialog
+        key={`rename-${renameState.seq}`}
+        open={renameState.open}
+        initial={renameState.initial}
+        onClose={() => setRenameState((prev) => ({ ...prev, open: false }))}
+        onSubmit={(newName) => {
+          setRenameState((prev) => ({ ...prev, open: false }))
+          const path = useEditorStore.getState().path
+          if (path !== null) void handleRenameEntry(path, newName)
+        }}
       />
 
       <ImageDialog

@@ -561,3 +561,9 @@ Implemented (build order c):
 - **Print…** - new `window:print` IPC (fire-and-forget); main calls `event.sender.print()` so the OS print dialog (page setup included) opens for the sending window. Preload `print()`, AppCommand `print`, useCommands handler, File ▸ Print…, command registry. No accelerator (Cmd+P stays Quick Open in Lekha).
 
 Tests: +1 dispatch + registry; updated all 4 LekhaAPI mocks with print. 1198 unit + 7 e2e green.
+
+### Wave 10 - Rename current document (`feat/wysiwyg-rename`)
+Implemented:
+- **Rename…** - new App-hosted `RenameDialog` (reuses .dialog CSS + useFocusTrap; prefilled with the current basename, base selected, Enter/Esc). useCommands gains an optional `onRename` option; App opens the dialog on `renameFile` and on submit reuses the existing `handleRenameEntry` (renamePath + updates the open-doc path + refreshes the tree). AppCommand `renameFile`, File ▸ Rename…, command registry.
+
+Tests: +5 (RenameDialog render/prefill/submit/unchanged-noop; renameFile dispatch). 1203 unit + 7 e2e green.
