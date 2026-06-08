@@ -215,6 +215,9 @@
   margin-top: 1.6em;
   margin-bottom: 0.7em;
   color: var(--heading);
+  /* Positioning context for the fold chevron, so it anchors to the heading's
+     first line (top: 0) rather than its baseline-derived static position. */
+  position: relative;
 }
 
 /* H1: large and a touch lighter for an elegant, airy title (WYSIWYG-style).
@@ -885,14 +888,30 @@
  * hover over the heading to stay out of the way while writing. */
 .editor-pane .ProseMirror .heading-fold-toggle {
   position: absolute;
+  /* Anchor to the heading's first line: top: 0 is the heading's content top
+     (headings use margin, not padding), and a box exactly one line tall
+     (height: 1lh, line-height inherited from the heading's 1.3) with the glyph
+     centered lines the small triangle up with the first line's text - and keeps
+     it there even when the heading wraps to two lines. Without the explicit
+     top:0 the absolutely-positioned box fell back to a baseline-derived static
+     position and sat a few px too high. */
+  top: 0;
   margin-left: -1.1em;
   padding: 0;
   border: none;
   background: none;
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 0.6em;
+  /* The BOX keeps the heading's font size + line-height (1.3 is unitless, so
+     inheriting it and NOT shrinking the box's font means 1lh resolves to a full
+     heading line). The glyph itself is shrunk on ::before instead. height: 1lh +
+     centering then lands the chevron on the first line's optical center. */
+  font-size: inherit;
   line-height: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1lh;
   opacity: 0;
   transition: opacity 0.12s ease, transform 0.12s ease, color 0.12s ease;
   user-select: none;
@@ -902,6 +921,10 @@
  * the heading's textContent. */
 .editor-pane .ProseMirror .heading-fold-toggle::before {
   content: '\25BE'; /* ▾ */
+  /* Shrink only the glyph (the button box stays a full heading line so the glyph
+     can be centered on the first line). */
+  font-size: 0.6em;
+  line-height: 1;
 }
 
 /* Reveal the chevron when hovering the heading, and keep it visible while a
