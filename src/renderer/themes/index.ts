@@ -102,6 +102,31 @@ export function getAllThemes(userThemes: UserTheme[]): ThemeDef[] {
   return [...THEMES, ...userThemes.map((t) => ({ id: t.id, label: t.label }))]
 }
 
+/** localStorage key holding the last applied (resolved) theme id. */
+const THEME_CACHE_KEY = 'lekha:theme'
+
+/**
+ * Apply the cached theme synchronously, BEFORE React renders, to avoid the
+ * first-paint flash (FOUC) where a dark-theme user briefly sees the light
+ * default. Called from main.tsx prior to createRoot().render().
+ *
+ * Only built-in theme CSS is bundled and available this early, so a cached
+ * user-theme id (whose CSS is injected later, async) falls back to the default
+ * tokens until the real applyTheme runs - no worse than today. Best-effort:
+ * any storage error is swallowed and the normal async restore still applies the
+ * theme a moment later.
+ */
+export function applyCachedThemeEarly(): void {
+  try {
+    const cached = localStorage.getItem(THEME_CACHE_KEY)
+    if (cached && THEME_IDS.has(cached)) {
+      document.documentElement.dataset['theme'] = cached
+    }
+  } catch {
+    // Storage unavailable - skip; useStartup's applyTheme will set it shortly.
+  }
+}
+
 /**
  * Apply a theme by updating document.documentElement.dataset.theme.
  *
@@ -114,6 +139,16 @@ export function applyTheme(id: string): void {
   // use this attribute to select the correct token overrides. Setting it on
   // documentElement (not document.body) ensures :root selectors also match.
   document.documentElement.dataset['theme'] = resolved
+
+  // Cache the resolved theme so the NEXT launch can apply it synchronously
+  // before first paint (see applyCachedThemeEarly), avoiding the white -> dark
+  // flash (FOUC) while the async settings load completes. localStorage is
+  // best-effort: a failure here must never break theming.
+  try {
+    localStorage.setItem(THEME_CACHE_KEY, resolved)
+  } catch {
+    // Private mode / quota / disabled storage - ignore; theming still works.
+  }
 
   // Notify theme-aware, non-CSS consumers that the app theme changed. Mermaid
   // listens for this to re-initialize with a matching theme ('night' -> 'dark')

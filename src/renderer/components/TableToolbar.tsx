@@ -68,29 +68,36 @@ const EDGE_MARGIN = 8
 
 export function TableToolbar({ show, rect, onCommand }: TableToolbarProps) {
   const ref = useRef<HTMLDivElement>(null)
-  // Clamped position + visibility, computed against the toolbar's own measured
-  // width and the editor pane's visible bounds (so it never overflows the right
-  // edge, never overlaps the top chrome, and hides when the table is scrolled
-  // out of view). Defaults to the raw anchor; useLayoutEffect refines it before
-  // paint, so there is no flicker.
+  // The toolbar's own width is constant (fixed set of buttons), so measure it
+  // once and cache it - re-reading offsetWidth on every scroll-driven reposition
+  // forces a layout reflow each frame for no benefit.
+  const widthRef = useRef(0)
+  // Position + visibility, computed against the cached width and the editor
+  // pane's visible bounds (so it never overflows the right edge and hides when
+  // the table's top scrolls out of view rather than lingering pinned to the top).
+  // Defaults to the raw anchor; useLayoutEffect refines it before paint, so there
+  // is no flicker.
   const [pos, setPos] = useState({ top: rect.top - TOOLBAR_OFFSET, left: rect.left, visible: true })
 
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    const width = el.offsetWidth
+    // Cache the width on first measure; reuse it thereafter (no per-frame reflow).
+    if (widthRef.current === 0) widthRef.current = el.offsetWidth
+    const width = widthRef.current
     const pane = document.querySelector('.editor-pane')
     const pr = pane?.getBoundingClientRect() ?? null
 
+    // Anchor a fixed offset above the table - no clamping to the pane top, which
+    // previously left the toolbar pinned and lingering after the table scrolled
+    // away.
+    const top = rect.top - TOOLBAR_OFFSET
     let visible = true
-    let top = rect.top - TOOLBAR_OFFSET
     if (pr) {
-      // Hide once the table is essentially scrolled out of the editor viewport.
-      if (rect.top + rect.height < pr.top + 8 || rect.top > pr.bottom - 8) visible = false
-      // Never let the toolbar rise above the editor content area (top chrome).
-      top = Math.max(top, pr.top + 4)
-    } else {
-      top = Math.max(top, 4)
+      // Hide when the anchor would rise above the editor's content top (the
+      // table's top has scrolled out of view, so the toolbar would overlap the
+      // chrome) or the table has scrolled below the pane bottom.
+      if (top < pr.top + 4 || rect.top > pr.bottom - 8) visible = false
     }
 
     // Clamp horizontally so the (often wide) toolbar stays on screen.

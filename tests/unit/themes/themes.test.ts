@@ -5,14 +5,19 @@
  * document.documentElement is available.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { THEMES, applyTheme } from '../../../src/renderer/themes/index'
+import {
+  THEMES,
+  applyTheme,
+  applyCachedThemeEarly,
+} from '../../../src/renderer/themes/index'
 
 // ---------------------------------------------------------------------------
-// Reset dataset.theme before every test so tests are isolated.
+// Reset dataset.theme + the theme cache before every test so tests are isolated.
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
   delete document.documentElement.dataset['theme']
+  localStorage.clear()
 })
 
 // ---------------------------------------------------------------------------
@@ -139,5 +144,46 @@ describe('applyTheme', () => {
   it('sets data-theme="graphite" when called with "graphite"', () => {
     applyTheme('graphite')
     expect(document.documentElement.dataset['theme']).toBe('graphite')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Theme cache + early apply (FOUC avoidance)
+// ---------------------------------------------------------------------------
+
+describe('theme cache (applyCachedThemeEarly)', () => {
+  it('applyTheme caches the resolved theme id in localStorage', () => {
+    applyTheme('night')
+    expect(localStorage.getItem('lekha:theme')).toBe('night')
+  })
+
+  it('caches the FALLBACK id when given an unknown theme', () => {
+    applyTheme('does-not-exist')
+    expect(document.documentElement.dataset['theme']).toBe('github')
+    expect(localStorage.getItem('lekha:theme')).toBe('github')
+  })
+
+  it('applyCachedThemeEarly applies a cached built-in theme before render', () => {
+    localStorage.setItem('lekha:theme', 'nord')
+    applyCachedThemeEarly()
+    expect(document.documentElement.dataset['theme']).toBe('nord')
+  })
+
+  it('applyCachedThemeEarly ignores an unknown cached id (no data-theme set)', () => {
+    localStorage.setItem('lekha:theme', 'totally-unknown')
+    applyCachedThemeEarly()
+    expect(document.documentElement.dataset['theme']).toBeUndefined()
+  })
+
+  it('applyCachedThemeEarly is a no-op when nothing is cached', () => {
+    applyCachedThemeEarly()
+    expect(document.documentElement.dataset['theme']).toBeUndefined()
+  })
+
+  it('round-trips: applyTheme then applyCachedThemeEarly restores the same theme', () => {
+    applyTheme('solarized-dark')
+    delete document.documentElement.dataset['theme']
+    applyCachedThemeEarly()
+    expect(document.documentElement.dataset['theme']).toBe('solarized-dark')
   })
 })

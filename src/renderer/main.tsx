@@ -20,6 +20,12 @@ import './styles/themes/solarized-dark.css'
 import './styles/themes/nord.css'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { applyCachedThemeEarly } from './themes/index'
+
+// Apply the last-used theme synchronously, before the first paint, so dark-theme
+// users do not see a white -> dark flash while the async settings load runs.
+// useStartup re-applies the authoritative theme from settings a moment later.
+applyCachedThemeEarly()
 
 // Surface otherwise-silent async failures. A rejected promise with no .catch or
 // an error thrown outside React's render path would vanish without these; log

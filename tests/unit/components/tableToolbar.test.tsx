@@ -80,6 +80,26 @@ describe('TableToolbar - positioning', () => {
 
     document.body.removeChild(pane)
   })
+
+  it('hides (does not pin) once the table top scrolls up near the chrome', () => {
+    const pane = document.createElement('div')
+    pane.className = 'editor-pane'
+    pane.getBoundingClientRect = () =>
+      ({ top: 80, bottom: 800, left: 0, right: 1000, width: 1000, height: 720, x: 0, y: 80, toJSON() {} })
+    document.body.appendChild(pane)
+
+    // A tall table whose top has scrolled up close to the pane top: its bottom is
+    // still in view, but the toolbar's anchor (rect.top - 40 = 50) would sit above
+    // the editor content top (84). It must HIDE, not pin to the top and linger.
+    const scrolledUp = { top: 90, left: 50, width: 300, height: 500 }
+    // A visibility:hidden element is excluded from the a11y tree, so query the
+    // node directly rather than via getByRole (which would not find it).
+    const { container } = render(<TableToolbar show rect={scrolledUp} onCommand={vi.fn()} />)
+    const bar = container.querySelector('.table-toolbar') as HTMLElement
+    expect(bar.style.visibility).toBe('hidden')
+
+    document.body.removeChild(pane)
+  })
 })
 
 describe('TableToolbar - command dispatch', () => {
