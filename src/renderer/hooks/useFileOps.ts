@@ -508,8 +508,15 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     snapshotActive()
     documentsStore.getState().newDocument()
     blankEditor()
+    // Place the caret in the fresh document so it is immediately typeable (and
+    // the cursor blinks). Deferred to the next frame: newDocument() triggers a
+    // React re-render that commits AFTER this callback, and that commit would
+    // otherwise blur a synchronously-focused editor. rAF runs post-commit so the
+    // focus sticks. Without this the user would have to click into the editor
+    // before the caret appears.
+    requestAnimationFrame(() => editorRef.current?.focus())
     return Promise.resolve()
-  }, [snapshotActive, documentsStore, blankEditor])
+  }, [snapshotActive, documentsStore, blankEditor, editorRef])
 
   // Switch the active tab: snapshot the current doc, then load the target.
   const selectTab = useCallback((id: string): Promise<void> => {

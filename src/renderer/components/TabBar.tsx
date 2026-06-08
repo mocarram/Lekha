@@ -110,6 +110,9 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
         className="tab-bar__new"
         aria-label="New document"
         title="New document"
+        // Prevent the button from grabbing focus on mousedown so the new
+        // document's editor keeps the caret (newFile focuses the editor).
+        onMouseDown={(e) => e.preventDefault()}
         onClick={onNew}
       >
         +
