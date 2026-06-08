@@ -53,6 +53,40 @@ describe('activeBlockPlugin', () => {
     expect(decos).not.toContain(0)
   })
 
+  // Perf path: while typing inside a block the plugin MAPS the existing
+  // decoration forward instead of rebuilding it. These guard that the mapped
+  // decoration still brackets the right block (and that a cursor move to another
+  // block correctly rebuilds), so the optimization stays correct.
+  it('keeps the decoration on the active block across an in-block edit (mapping path)', () => {
+    const doc = parseMarkdown('First\n\nSecond')
+    let state = EditorState.create({ doc, plugins: [activeBlockPlugin()] })
+    const secondStart = doc.child(0).nodeSize
+    state = state.apply(
+      state.tr.setSelection(TextSelection.near(state.doc.resolve(secondStart + 1))),
+    )
+    expect(getDecoratedPositions(state)).toContain(secondStart)
+    // Insert a character inside the second block.
+    state = state.apply(state.tr.insertText('X', state.selection.head))
+    // Still decorating the second block, not the first - the mapped set tracked
+    // the edit rather than going stale or jumping.
+    expect(getDecoratedPositions(state)).toContain(secondStart)
+    expect(getDecoratedPositions(state)).not.toContain(0)
+  })
+
+  it('rebuilds the decoration when the cursor moves to another block after edits', () => {
+    const doc = parseMarkdown('First\n\nSecond')
+    let state = EditorState.create({ doc, plugins: [activeBlockPlugin()] })
+    state = state.apply(state.tr.setSelection(TextSelection.near(state.doc.resolve(1))))
+    state = state.apply(state.tr.insertText('Z', 1))
+    expect(getDecoratedPositions(state)).toContain(0)
+    const secondStart = state.doc.child(0).nodeSize
+    state = state.apply(
+      state.tr.setSelection(TextSelection.near(state.doc.resolve(secondStart + 1))),
+    )
+    expect(getDecoratedPositions(state)).toContain(secondStart)
+    expect(getDecoratedPositions(state)).not.toContain(0)
+  })
+
   it('only one block is decorated at a time', () => {
     const doc = parseMarkdown('A\n\nB\n\nC')
     const state = EditorState.create({ doc, plugins: [activeBlockPlugin()] })

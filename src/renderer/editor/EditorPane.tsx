@@ -184,6 +184,14 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
     const wysiwygRef = useRef<EditorHandle | null>(null)
     const sourceRef = useRef<SourceHandle | null>(null)
 
+    // The scroll container (`.editor-pane`). It persists across a mode toggle,
+    // but swapping its child (EditorView <-> SourceView) momentarily collapses
+    // the content height, so the browser resets scrollTop to 0. We capture the
+    // scroll fraction before the swap and restore it (and focus) after the new
+    // view mounts - see toggleMode + the restore effect below.
+    const containerRef = useRef<HTMLDivElement>(null)
+    const pendingScrollRestore = useRef<number | null>(null)
+
     // Ref-to-latest-callback: keeps onChange current without re-running effects
     const onChangeRef = useRef(onChange)
     // Update the ref on every render so it always points to the latest prop
@@ -262,6 +270,16 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
       // Compute the next mode eagerly so we can return it synchronously.
       // The setMode call uses the same value - no stale-closure risk.
       const nextMode: EditorMode = mode === 'wysiwyg' ? 'source' : 'wysiwyg'
+
+      // Capture the current scroll fraction so the restore effect can put the
+      // reader back where they were after the view remounts (otherwise the swap
+      // collapses content height and scrollTop snaps to 0).
+      const el = containerRef.current
+      if (el) {
+        const max = el.scrollHeight - el.clientHeight
+        pendingScrollRestore.current = max > 0 ? el.scrollTop / max : 0
+      }
+
       if (nextMode === 'source') {
         // Capture latest PM content before unmounting. We read synchronously
         // so SourceView mounts with the current text.
@@ -282,6 +300,36 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
       }
       setMode(nextMode)
       return nextMode
+    }, [mode])
+
+    // After a mode toggle remounts the editor, restore the scroll position and
+    // focus the new view so the writer stays where they were and can keep
+    // typing. Runs only when toggleMode armed a pending restore (never on first
+    // mount). rAF + a short retry handles the lazily-loaded SourceView chunk,
+    // whose content height is not ready until it mounts.
+    useEffect(() => {
+      if (pendingScrollRestore.current === null) return
+      const fraction = pendingScrollRestore.current
+      pendingScrollRestore.current = null
+      let frames = 0
+      const restore = (): void => {
+        const el = containerRef.current
+        if (!el) return
+        const ready = mode === 'wysiwyg' ? wysiwygRef.current : sourceRef.current
+        const max = el.scrollHeight - el.clientHeight
+        // Wait for the new view to mount + lay out (height ready) before
+        // restoring; bail out after ~0.5s so we never spin forever.
+        if ((!ready || max <= 0) && frames < 30) {
+          frames++
+          requestAnimationFrame(restore)
+          return
+        }
+        el.scrollTop = fraction * Math.max(0, max)
+        // Keep editing flowing: focus the freshly mounted view.
+        if (mode === 'wysiwyg') wysiwygRef.current?.focus()
+        else sourceRef.current?.focus()
+      }
+      requestAnimationFrame(restore)
     }, [mode])
 
     // Expose the imperative handle
@@ -417,6 +465,7 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
       // We set it on the same element that carries focus-mode so the typewriter
       // plugin's closest('[data-typewriter="on"]') finds the scroll container.
       <div
+        ref={containerRef}
         className={containerClass}
         data-typewriter={typewriterMode ? 'on' : undefined}
       >

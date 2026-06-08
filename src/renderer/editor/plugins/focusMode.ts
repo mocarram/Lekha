@@ -19,38 +19,21 @@
  *   by ProseMirror via NodeDecoration attrs.
  */
 
-import { Plugin, PluginKey } from 'prosemirror-state'
-import { Decoration, DecorationSet } from 'prosemirror-view'
-import { findActiveTopLevelBlock } from './topLevelBlock'
+import { type Plugin, PluginKey } from 'prosemirror-state'
+import { type DecorationSet } from 'prosemirror-view'
+import { activeBlockDecorationPlugin } from './topLevelBlock'
 
 // Exported key so tests can look up the plugin by key name.
 export const focusModeKey = new PluginKey<DecorationSet>('focusMode')
 
 /**
- * Return a ProseMirror Plugin that decorates the focused top-level block.
- *
- * The plugin computes decorations on every state change: it finds the direct
- * child of the doc that contains `state.selection.head` and wraps it with a
- * node decoration carrying `class: 'block-focused'`.
+ * Return a ProseMirror Plugin that decorates the focused top-level block (the
+ * direct child of the doc containing the selection head) with a node decoration
+ * carrying `class: 'block-focused'`. CSS gates the dimming behind the
+ * `.focus-mode` container class. The decoration is stateful + mapped (see
+ * activeBlockDecorationPlugin) so it stays cheap to recompute per keystroke in
+ * large documents.
  */
 export function focusModePlugin(): Plugin<DecorationSet> {
-  return new Plugin<DecorationSet>({
-    key: focusModeKey,
-
-    props: {
-      decorations(state) {
-        // Find the top-level block (direct doc child) containing the cursor.
-        const block = findActiveTopLevelBlock(state)
-        if (!block) return DecorationSet.empty
-
-        // Node decoration: wraps the matched top-level block with a class.
-        // The `class` attr is merged onto the block element by ProseMirror.
-        const deco = Decoration.node(block.from, block.to, {
-          class: 'block-focused',
-        })
-
-        return DecorationSet.create(state.doc, [deco])
-      },
-    },
-  })
+  return activeBlockDecorationPlugin(focusModeKey, 'block-focused')
 }

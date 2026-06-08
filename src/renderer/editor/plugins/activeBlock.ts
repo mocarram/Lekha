@@ -16,32 +16,19 @@
  * as the user navigates between blocks.
  */
 
-import { Plugin, PluginKey } from 'prosemirror-state'
-import { Decoration, DecorationSet } from 'prosemirror-view'
-import { findActiveTopLevelBlock } from './topLevelBlock'
+import { type Plugin, PluginKey } from 'prosemirror-state'
+import { type DecorationSet } from 'prosemirror-view'
+import { activeBlockDecorationPlugin } from './topLevelBlock'
 
 // Exported key so tests can look up the plugin by key name.
 export const activeBlockKey = new PluginKey<DecorationSet>('activeBlock')
 
 /**
- * Return a ProseMirror Plugin that decorates the active top-level block with
- * a node decoration carrying `class: 'is-active-block'`.
+ * Return a ProseMirror Plugin that decorates the active top-level block with a
+ * node decoration carrying `class: 'is-active-block'`. The decoration is stateful
+ * + mapped (see activeBlockDecorationPlugin) so recomputing it on every keystroke
+ * stays cheap even in large documents.
  */
 export function activeBlockPlugin(): Plugin<DecorationSet> {
-  return new Plugin<DecorationSet>({
-    key: activeBlockKey,
-
-    props: {
-      decorations(state) {
-        const block = findActiveTopLevelBlock(state)
-        if (!block) return DecorationSet.empty
-
-        const deco = Decoration.node(block.from, block.to, {
-          class: 'is-active-block',
-        })
-
-        return DecorationSet.create(state.doc, [deco])
-      },
-    },
-  })
+  return activeBlockDecorationPlugin(activeBlockKey, 'is-active-block')
 }
