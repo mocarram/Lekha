@@ -185,11 +185,20 @@ const serializer = new MarkdownSerializer(
     // paragraph's inline content is serialized (lossless for the common case).
     footnote_definition(state, node) {
       const label = node.attrs['label'] as string
-      // Get the first paragraph's serialized text (inline-only, no block wrapper).
-      // serializeMarkdown is a forward reference; it is safe because this
-      // function is only called at serialize-time, after the module is initialized.
+      // Serialize the first paragraph's inline content WITH its marks. We must
+      // NOT pass the paragraph node itself to serializeMarkdown: serialize()
+      // calls renderContent(parent), which renders each of the paragraph's
+      // CHILDREN through the bare `text` node handler (state.text) - dropping
+      // every mark (bold/italic/code/link/strike/math). Instead we wrap the
+      // paragraph in a throwaway top (`doc`) node, exactly like table cells do
+      // (serializeCell passes the table_cell node): now render() dispatches to
+      // the `paragraph` handler, which runs renderInline and preserves marks.
+      // serializeMarkdown is a forward reference; safe because this runs only at
+      // serialize-time, after the module is initialized.
       const first = node.firstChild
-      const inlineText = first ? serializeMarkdown(first).trim() : ''
+      const inlineText = first
+        ? serializeMarkdown(node.type.schema.topNodeType.create(null, first)).trim()
+        : ''
       state.write('[^' + label + ']: ' + inlineText)
       state.closeBlock(node)
     },

@@ -64,6 +64,27 @@ describe('Footnotes', () => {
     expect(rt(md)).toBe(md)
   })
 
+  // Regression: footnote definitions with inline formatting silently lost ALL
+  // marks on the first save (the inner paragraph was serialized one level too
+  // deep, so bold/italic/code/link/strike were dropped). Each of these must
+  // survive a round-trip - and a second round-trip (idempotence) - intact.
+  it('preserves inline marks inside a footnote definition (no silent data loss)', () => {
+    const cases = [
+      'x[^1].\n\n[^1]: This is **bold** text.',
+      'x[^1].\n\n[^1]: This is *italic* text.',
+      'x[^1].\n\n[^1]: This is `literal code` text.',
+      'x[^1].\n\n[^1]: This is ~~struck~~ text.',
+      'x[^1].\n\n[^1]: A [link](https://example.com) here.',
+      'x[^1].\n\n[^1]: Mixed **bold** and `code` and *italic*.',
+    ]
+    for (const md of cases) {
+      const once = rt(md)
+      expect(once).toBe(md)
+      // Idempotent: a second pass must not drift.
+      expect(rt(once)).toBe(once)
+    }
+  })
+
   it('serializes footnote_ref as [^label]', () => {
     const serialized = rt(footnoteMd)
     expect(serialized).toContain('[^1]')

@@ -170,6 +170,14 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   const extCheckInFlight = useRef(false)
   const extCheckLast = useRef(0)
 
+  // Last-known on-disk signature (mtime + size) per file path, captured when we
+  // read (open/revert) or write (save) that path. Used to detect a concurrent
+  // external edit BEFORE a Save overwrites it (prevents silent last-writer-wins
+  // data loss). Keyed by PATH - not by the active doc - so it stays correct
+  // across tab switches without per-tab store plumbing. A ref so it persists
+  // across renders and never triggers one.
+  const diskSig = useRef<Map<string, { mtimeMs: number; sizeBytes: number }>>(new Map())
+
   // -------------------------------------------------------------------------
   // Document-path sync
   // -------------------------------------------------------------------------
@@ -242,13 +250,17 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
         eol: editorStore.getState().eol,
       })
 
-      // Capture the file's inode so a later outside rename can be recovered.
+      // Capture the file's inode so a later outside rename can be recovered, and
+      // record its on-disk signature (mtime+size) as the baseline for detecting a
+      // concurrent external edit before a later Save.
       try {
         const st = await window.lekha.statFile(path)
         editorStore.getState().setInode(st.inode)
         documentsStore.getState().updateActive({ inode: st.inode })
+        diskSig.current.set(path, { mtimeMs: st.mtimeMs, sizeBytes: st.sizeBytes })
       } catch {
         // stat may fail (rare); leave inode null - detection still detects loss.
+        diskSig.current.delete(path)
       }
     },
     [editorRef, editorStore, workspaceStore, documentsStore],
@@ -259,12 +271,52 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
    * Shared by save() and saveAs().
    */
   const persist = useCallback(
-    async (path: string): Promise<void> => {
+    async (path: string, opts?: { checkExternal?: boolean }): Promise<void> => {
       const md = editorRef.current?.getMarkdown() ?? ''
       // Write with the document's chosen line-ending style (LF default; CRLF
       // when detected on open or chosen via the Line Endings menu).
       const out = normalizeLineEndings(md, editorStore.getState().eol)
-      await window.lekha.writeFile(path, out)
+
+      // Concurrent-external-edit guard (plain Save only). If the on-disk file
+      // changed since we last read/wrote it (another editor, git, a sync client),
+      // writing now would silently discard those changes. Prompt first. Save As
+      // is exempt: the user explicitly chose that target path in the dialog.
+      if (opts?.checkExternal) {
+        const baseline = diskSig.current.get(path)
+        if (baseline) {
+          try {
+            const cur = await window.lekha.statFile(path)
+            if (cur.mtimeMs !== baseline.mtimeMs || cur.sizeBytes !== baseline.sizeBytes) {
+              const proceed = window.confirm(
+                'This file has changed on disk since you opened it in Lekha ' +
+                  '(another app, git, or a sync client may have edited it).\n\n' +
+                  'Saving now will overwrite those external changes with your version.\n\n' +
+                  'Overwrite?',
+              )
+              if (!proceed) return // abort the Save; the document stays dirty
+            }
+          } catch {
+            // stat failed (file gone/unreadable) - nothing external to clobber;
+            // fall through and let writeFile (re)create it.
+          }
+        }
+      }
+
+      // Surface write failures instead of swallowing them. On error we return
+      // WITHOUT marking clean, so the document stays dirty (work preserved) and
+      // any guard that awaited this save sees it is still dirty and aborts rather
+      // than discarding. No throw -> no unhandled rejection in fire-and-forget
+      // callers (the menu/command 'save').
+      try {
+        await window.lekha.writeFile(path, out)
+      } catch (err) {
+        window.alert(
+          'Could not save the file:\n\n' +
+            (err instanceof Error ? err.message : String(err)) +
+            '\n\nYour changes are still in the editor (unsaved).',
+        )
+        return
+      }
 
       editorStore.getState().markClean()
 
@@ -299,13 +351,19 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
         recovered: false,
       })
 
-      // Refresh the inode (Save As writes a new file with a new inode).
+      // Refresh the inode AND the on-disk signature baseline (Save As writes a
+      // new file/inode; a plain Save bumps mtime). This makes the just-written
+      // state the new baseline so the next Save's external-change check compares
+      // against what WE wrote, not the pre-save value.
       try {
         const st = await window.lekha.statFile(path)
         editorStore.getState().setInode(st.inode)
         documentsStore.getState().updateActive({ inode: st.inode })
+        diskSig.current.set(path, { mtimeMs: st.mtimeMs, sizeBytes: st.sizeBytes })
       } catch {
-        // ignore - inode stays as-is
+        // ignore - inode stays as-is; drop a stale signature so we never compare
+        // against an unverifiable baseline on the next save.
+        diskSig.current.delete(path)
       }
     },
     [editorRef, editorStore, workspaceStore, documentsStore],
@@ -406,7 +464,9 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       await saveAs()
       return
     }
-    await persist(path)
+    // checkExternal: a plain Save of an already-open file must not silently
+    // overwrite a concurrent external edit (saveAs targets a user-picked path).
+    await persist(path, { checkExternal: true })
   }, [editorStore, persist, saveAs])
 
   /**

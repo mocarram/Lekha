@@ -345,6 +345,112 @@ describe('useFileOps - save()', () => {
 })
 
 // ---------------------------------------------------------------------------
+// save() - concurrent external-edit guard (prevents silent overwrite)
+// ---------------------------------------------------------------------------
+
+/** statFile mock whose mtime changes between the open baseline and the next read. */
+function changingStat(mtimes: number[]) {
+  let i = 0
+  return vi.fn(() => {
+    const mtimeMs = mtimes[Math.min(i, mtimes.length - 1)] ?? 0
+    i++
+    return Promise.resolve({ sizeBytes: 0, birthtimeMs: 0, mtimeMs, inode: 1 })
+  })
+}
+
+describe('useFileOps - save() external-change guard', () => {
+  it('prompts before overwriting a file changed on disk and ABORTS on cancel', async () => {
+    const { handle } = makeMockEditor('# Edited in Lekha')
+    // open baseline mtime=100, then pre-write check sees mtime=200 (changed).
+    const statFile = changingStat([100, 200])
+    const writeFile = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('lekha', makeMockLekha({ statFile, writeFile }))
+    const confirmSpy = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirmSpy)
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    await act(async () => { await result.current.openPath('/docs/note.md') })
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.save() })
+
+    expect(confirmSpy).toHaveBeenCalledOnce()
+    expect(writeFile).not.toHaveBeenCalled()
+    // Aborted - work is preserved (still dirty), NOT discarded.
+    expect(useEditorStore.getState().isDirty).toBe(true)
+  })
+
+  it('overwrites when the user confirms the on-disk change', async () => {
+    const { handle } = makeMockEditor('# Edited in Lekha')
+    const statFile = changingStat([100, 200, 200])
+    const writeFile = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('lekha', makeMockLekha({ statFile, writeFile }))
+    vi.stubGlobal('confirm', vi.fn(() => true))
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    await act(async () => { await result.current.openPath('/docs/note.md') })
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.save() })
+
+    expect(writeFile).toHaveBeenCalledWith('/docs/note.md', '# Edited in Lekha')
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
+
+  it('does NOT prompt when the on-disk signature is unchanged', async () => {
+    const { handle } = makeMockEditor('# Edited in Lekha')
+    const statFile = changingStat([100]) // every read returns the same mtime
+    const writeFile = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('lekha', makeMockLekha({ statFile, writeFile }))
+    const confirmSpy = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirmSpy)
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    await act(async () => { await result.current.openPath('/docs/note.md') })
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.save() })
+
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(writeFile).toHaveBeenCalledOnce()
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// save() - write-failure surfacing (no silent "saved" when the write failed)
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - save() write failure', () => {
+  it('alerts and keeps the document dirty when the write fails', async () => {
+    const { handle } = makeMockEditor('# Content')
+    const writeFile = vi.fn(() => Promise.reject(new Error('EACCES: permission denied')))
+    vi.stubGlobal('lekha', makeMockLekha({ writeFile }))
+    const alertSpy = vi.fn()
+    vi.stubGlobal('alert', alertSpy)
+
+    useEditorStore.getState().openFile('/notes/file.md', '# Content')
+    useEditorStore.getState().markDirty()
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    await act(async () => { await result.current.save() })
+
+    expect(writeFile).toHaveBeenCalledOnce()
+    expect(alertSpy).toHaveBeenCalledOnce()
+    // The user is NOT told it saved: the document remains dirty.
+    expect(useEditorStore.getState().isDirty).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // saveAs()
 // ---------------------------------------------------------------------------
 
