@@ -69,10 +69,11 @@ export const DEFAULT_TEMPLATE_CSS = `/*
   --hr-color:           #e1e4e8;  /* horizontal rule */
 
   /* --- Chrome --- */
-  --sidebar-bg:      #fafafa;   /* sidebar panel background */
-  --sidebar-hover:   #efefef;   /* hovered file/outline row */
-  --titlebar-bg:     #fafafa;   /* titlebar background */
-  --statusbar-text:  #9b9b9b;   /* status bar text */
+  --sidebar-bg:        #fafafa;   /* sidebar panel background */
+  --sidebar-hover:     #efefef;   /* hovered file/outline row */
+  --titlebar-bg:       #fafafa;   /* titlebar background */
+  --statusbar-text:    #9b9b9b;   /* status bar text */
+  --sidebar-font-size: 14px;      /* file-tree / outline / articles row text */
 
   /* --- Find / highlight --- */
   --find-match:         #fff3b0;  /* non-current find highlight */
