@@ -67,15 +67,27 @@ const EXPORT_CSP_META =
   `<meta http-equiv="Content-Security-Policy" content="script-src 'none'">`
 
 /**
- * Insert the export CSP meta tag immediately after the document's <head> open
- * tag. If no <head> is present (defensive - the renderer always emits one), the
- * HTML is returned unchanged rather than producing a malformed document.
+ * Insert the export CSP meta tag so the exported / printed document can never
+ * execute embedded script. FAIL CLOSED: if the HTML has no <head> (the renderer
+ * always emits one, but we must not depend on that), we synthesize one rather
+ * than returning the HTML unprotected - the previous behaviour silently dropped
+ * the only script CSP when <head> was absent.
  */
 export function injectExportCsp(html: string): string {
+  // Normal path: insert right after the existing <head> open tag.
   const headMatch = /<head[^>]*>/i.exec(html)
-  if (!headMatch) return html
-  const insertAt = headMatch.index + headMatch[0].length
-  return html.slice(0, insertAt) + '\n  ' + EXPORT_CSP_META + html.slice(insertAt)
+  if (headMatch) {
+    const insertAt = headMatch.index + headMatch[0].length
+    return html.slice(0, insertAt) + '\n  ' + EXPORT_CSP_META + html.slice(insertAt)
+  }
+  // No <head>: synthesize one carrying the CSP, immediately after <html> if
+  // present, otherwise prepended so the meta still governs the whole document.
+  const htmlMatch = /<html[^>]*>/i.exec(html)
+  if (htmlMatch) {
+    const insertAt = htmlMatch.index + htmlMatch[0].length
+    return html.slice(0, insertAt) + `\n<head>\n  ${EXPORT_CSP_META}\n</head>` + html.slice(insertAt)
+  }
+  return `<head>\n  ${EXPORT_CSP_META}\n</head>\n` + html
 }
 
 // ---------------------------------------------------------------------------

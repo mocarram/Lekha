@@ -30,9 +30,24 @@ describe('injectExportCsp', () => {
     expect(out.startsWith('<head lang="en">')).toBe(true)
   })
 
-  it('returns the input unchanged when there is no <head>', () => {
+  // Fail CLOSED: a missing <head> must NOT yield unprotected HTML.
+  it('synthesizes a <head> with the CSP for a bare fragment (no html/head)', () => {
     const html = '<div>fragment only</div>'
-    expect(injectExportCsp(html)).toBe(html)
+    const out = injectExportCsp(html)
+    expect(out).toContain("script-src 'none'")
+    expect(out).toContain('<head>')
+    // The original content is preserved after the synthesized head.
+    expect(out).toContain('<div>fragment only</div>')
+    expect(out.indexOf('<head>')).toBeLessThan(out.indexOf('<div>'))
+  })
+
+  it('synthesizes a <head> right after <html> when there is no <head>', () => {
+    const html = '<html lang="en"><body><p>hi</p></body></html>'
+    const out = injectExportCsp(html)
+    expect(out).toContain("script-src 'none'")
+    // The CSP sits inside a head placed after <html> and before <body>.
+    expect(out.indexOf('<html')).toBeLessThan(out.indexOf('<head>'))
+    expect(out.indexOf('<head>')).toBeLessThan(out.indexOf('<body>'))
   })
 
   it('injects only once (single head match)', () => {
@@ -40,5 +55,18 @@ describe('injectExportCsp', () => {
     const out = injectExportCsp(html)
     const count = out.split('Content-Security-Policy').length - 1
     expect(count).toBe(1)
+  })
+
+  it('always emits exactly one CSP regardless of input shape', () => {
+    for (const html of [
+      '<head></head>',
+      '<html><head></head><body></body></html>',
+      '<html><body></body></html>',
+      '<div>fragment</div>',
+      '',
+    ]) {
+      const count = injectExportCsp(html).split('Content-Security-Policy').length - 1
+      expect(count).toBe(1)
+    }
   })
 })
