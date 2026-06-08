@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Settings } from '@shared/types'
-import { DEFAULT_FONT_SIZE, migrateThemeId } from '@shared/types'
+import { DEFAULT_FONT_SIZE } from '@shared/types'
 
 export interface SettingsStore {
   get(): Promise<Settings>
@@ -38,11 +38,7 @@ export function createSettingsStore(baseDir: string): SettingsStore {
     try {
       const raw = await readFile(filePath, 'utf8')
       const parsed = JSON.parse(raw) as Partial<Settings>
-      const merged = { ...DEFAULTS, ...parsed }
-      // Migrate a renamed built-in theme id (e.g. an old persisted value) to its
-      // current id so the user keeps their theme + the menu radio stays correct.
-      merged.theme = migrateThemeId(merged.theme)
-      return merged
+      return { ...DEFAULTS, ...parsed }
     } catch {
       // Missing or corrupt file - fall back to defaults.
       return { ...DEFAULTS }

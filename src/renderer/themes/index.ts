@@ -19,7 +19,7 @@
 export type { ThemeDef } from '@shared/types'
 export { THEMES } from '@shared/types'
 
-import { THEMES, migrateThemeId, type ThemeDef, type UserTheme } from '@shared/types'
+import { THEMES, type ThemeDef, type UserTheme } from '@shared/types'
 
 /** Set of built-in theme ids for fast O(1) lookup. */
 const THEME_IDS = new Set(THEMES.map((t) => t.id))
@@ -120,9 +120,8 @@ const THEME_CACHE_KEY = 'lekha:theme'
 export function applyCachedThemeEarly(): void {
   try {
     const cached = localStorage.getItem(THEME_CACHE_KEY)
-    const migrated = cached ? migrateThemeId(cached) : null
-    if (migrated && THEME_IDS.has(migrated)) {
-      document.documentElement.dataset['theme'] = migrated
+    if (cached && THEME_IDS.has(cached)) {
+      document.documentElement.dataset['theme'] = cached
     }
   } catch {
     // Storage unavailable - skip; useStartup's applyTheme will set it shortly.
@@ -136,8 +135,7 @@ export function applyCachedThemeEarly(): void {
  * never leaves the UI in an undefined state.
  */
 export function applyTheme(id: string): void {
-  const migrated = migrateThemeId(id)
-  const resolved = THEME_IDS.has(migrated) || userThemeIds.has(migrated) ? migrated : 'github'
+  const resolved = THEME_IDS.has(id) || userThemeIds.has(id) ? id : 'github'
   // Set the data-theme attribute on <html>. All CSS files loaded in main.tsx
   // use this attribute to select the correct token overrides. Setting it on
   // documentElement (not document.body) ensures :root selectors also match.
