@@ -34,15 +34,9 @@ test.afterAll(async () => {
   await app.close()
 })
 
-// The e2e tsconfig is node-only (no DOM lib), so reach the page DOM through a
-// locally-typed globalThis instead of the global `document`/`HTMLElement` names.
-type DomGlobal = {
-  document: { querySelector(sel: string): { scrollTop: number } | null }
-}
-
 function paneScrollTop(): Promise<number> {
   return win.evaluate(() => {
-    const el = (globalThis as unknown as DomGlobal).document.querySelector('.editor-pane')
+    const el = document.querySelector('.editor-pane')
     return el ? el.scrollTop : -1
   })
 }
@@ -72,7 +66,7 @@ test('clicking an outline item scrolls the editor to that heading', async () => 
 
   // Start at the top so the jump has somewhere to scroll to.
   await win.evaluate(() => {
-    const el = (globalThis as unknown as DomGlobal).document.querySelector('.editor-pane')
+    const el = document.querySelector('.editor-pane')
     if (el) el.scrollTop = 0
   })
   const before = await paneScrollTop()
@@ -90,8 +84,7 @@ test('clicking an outline item scrolls the editor to that heading', async () => 
   await expect(items).toHaveCount(4)
   await expect(items.nth(3)).toBeVisible()
   const appScroll = await win.evaluate(() => {
-    const se = (globalThis as unknown as { document: { scrollingElement: { scrollTop: number } | null } })
-      .document.scrollingElement
+    const se = document.scrollingElement
     return se ? se.scrollTop : 0
   })
   expect(appScroll).toBe(0)

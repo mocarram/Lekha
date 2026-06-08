@@ -46,14 +46,10 @@ test('WYSIWYG table fills its width with no empty bordered gap', async () => {
   await win.waitForSelector('.ProseMirror table', { state: 'visible' })
 
   const m = await win.evaluate(() => {
-    type El = { getBoundingClientRect(): { left: number; right: number; width: number } }
-    const g = globalThis as unknown as {
-      document: { querySelector(s: string): El | null; querySelectorAll(s: string): ArrayLike<El> }
-    }
-    const table = g.document.querySelector('.ProseMirror table')!
-    const wrapper = g.document.querySelector('.ProseMirror .tableWrapper')!
-    const pane = g.document.querySelector('.editor-pane')!
-    const cells = g.document.querySelectorAll('.ProseMirror table tr:first-child > *')
+    const table = document.querySelector('.ProseMirror table')!
+    const wrapper = document.querySelector('.ProseMirror .tableWrapper')!
+    const pane = document.querySelector('.editor-pane')!
+    const cells = document.querySelectorAll('.ProseMirror table tr:first-child > *')
     const lastCell = cells[cells.length - 1]!
     const t = table.getBoundingClientRect()
     const c = lastCell.getBoundingClientRect()

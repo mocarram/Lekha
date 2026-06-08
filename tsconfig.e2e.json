@@ -1,0 +1,18 @@
+{
+  // E2E (Playwright Electron) specs straddle two runtimes: the top-level test
+  // body runs in Node (Playwright runner, fs/os/path), while page.evaluate()
+  // callbacks run in the browser and legitimately use DOM globals (document,
+  // HTMLElement, window). So unlike tsconfig.node.json (main/preload, Node-only,
+  // NO DOM), these files are typechecked WITH the DOM lib. Keeping them in their
+  // own project means a stray `document` in real Node code (src/main) is still
+  // caught there, while e2e authors can write evaluate() callbacks naturally
+  // instead of reaching through fragile `globalThis as unknown as {...}` casts.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["tests/e2e/**/*.ts"]
+}

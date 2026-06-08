@@ -19,8 +19,9 @@
     // Theme unit tests that run under the Node environment.
     "tests/unit/themes/settingsTheme.test.ts",
     "tests/unit/themes/menuTheme.test.ts",
-    // E2E tests run under Node (Playwright Electron) environment.
-    "tests/e2e/**/*.ts",
+    // NOTE: E2E specs are intentionally NOT here. They are typechecked in
+    // tsconfig.e2e.json because their browser-side page.evaluate() callbacks
+    // need the DOM lib, which this Node-only project deliberately omits.
     // Build/tooling configs live in Node.
     "electron.vite.config.ts",
     "vitest.config.ts",

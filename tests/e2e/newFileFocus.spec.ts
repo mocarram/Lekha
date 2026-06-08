@@ -4,9 +4,9 @@
  * (File menu). Regression for: new file opened but the editor wasn't focused,
  * so no cursor showed until the user clicked into the editor.
  *
- * The e2e tsconfig is node-typed (no DOM lib), so inside win.evaluate callbacks
- * we reach the DOM through a locally-typed globalThis cast rather than the bare
- * `document`/`HTMLElement` globals (same pattern as outlineNav.spec.ts).
+ * page.evaluate() callbacks run in the browser and use DOM globals directly
+ * (document, HTMLElement) - typechecked via tsconfig.e2e.json, which includes
+ * the DOM lib.
  */
 import { test, expect, _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
@@ -17,12 +17,6 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = path.resolve(__dirname, '../..')
-
-interface DomGlobal {
-  document: {
-    activeElement: { classList: { contains(c: string): boolean } } | null
-  }
-}
 
 let app: ElectronApplication
 let win: Page
@@ -46,17 +40,15 @@ test.afterAll(async () => {
 /** True when the focused element is the ProseMirror editable surface. */
 async function editorIsFocused(): Promise<boolean> {
   return win.evaluate(() => {
-    const active = (globalThis as unknown as DomGlobal).document.activeElement
-    return active !== null && active.classList.contains('ProseMirror')
+    const active = document.activeElement
+    return active instanceof HTMLElement && active.classList.contains('ProseMirror')
   })
 }
 
 /** Move focus off the editor so the next assertion is meaningful. */
 async function blurActive(): Promise<void> {
   await win.evaluate(() => {
-    const active = (globalThis as unknown as { document: { activeElement: { blur?: () => void } | null } })
-      .document.activeElement
-    active?.blur?.()
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
   })
 }
 
