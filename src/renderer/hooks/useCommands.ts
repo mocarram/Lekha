@@ -181,10 +181,16 @@ export function useCommands(
         void fo.revertToSaved()
         return
       }
-      if (cmd === 'discardAndClose') {
-        // Main's window-close guard chose "Don't Save": drop the active doc's
-        // crash backup and report clean so the close completes without saving.
-        void fo.discardActiveBackup()
+      if (cmd === 'saveAllAndClose') {
+        // Main's window-close guard chose "Save": save EVERY dirty tab so the
+        // window can close clean (a cancelled Save As keeps the window open).
+        void fo.saveAllForClose()
+        return
+      }
+      if (cmd === 'discardAllAndClose') {
+        // Main's window-close guard chose "Don't Save": drop EVERY tab's crash
+        // backup and mark all clean so the close completes without saving.
+        void fo.discardAllForClose()
         return
       }
       if (cmd === 'duplicateFile') {

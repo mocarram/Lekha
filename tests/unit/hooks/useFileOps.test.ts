@@ -132,6 +132,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     getRecentFiles: vi.fn(() => Promise.resolve([] as string[])),
     addRecentFile: vi.fn(() => Promise.resolve()),
     setDocumentState: vi.fn(),
+    setWindowDirty: vi.fn(),
     newWindow: vi.fn(),
     print: vi.fn(),
     share: vi.fn(),
@@ -1070,6 +1071,107 @@ describe('useFileOps - file-tree ops', () => {
     act(() => { result.current.revealEntry('/proj/x.md') })
 
     expect(revealPath).toHaveBeenCalledWith('/proj/x.md')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// saveAllForClose / discardAllForClose - window-level close-guard handlers.
+// These act on EVERY dirty tab, not just the active one.
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - saveAllForClose', () => {
+  it('writes EVERY dirty tab with a path and marks them all clean', async () => {
+    const { handle } = makeMockEditor('# active edited')
+    const writeFile = vi.fn((_path: string, _content: string) => Promise.resolve())
+    const mockLekha = makeMockLekha({ writeFile })
+    vi.stubGlobal('lekha', mockLekha)
+
+    // Two tabs, both dirty, both with paths. Tab a is active (its live content
+    // is folded in via snapshotActive); tab b is a dirty background tab.
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B edited' })
+    useDocumentsStore.getState().updateDocument(b, { isDirty: true })
+    // Make a the active tab and mark it dirty in both stores.
+    useDocumentsStore.getState().activateDocument(a)
+    useDocumentsStore.getState().updateDocument(a, { isDirty: true })
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.saveAllForClose() })
+
+    // Both paths were written (the active tab's snapshot picks up the live editor
+    // content via snapshotActive).
+    const written = writeFile.mock.calls.map((c) => c[0])
+    expect(written).toContain('/a.md')
+    expect(written).toContain('/b.md')
+    // Both tabs are now clean.
+    const docs = useDocumentsStore.getState().documents
+    expect(docs.find((d) => d.id === a)?.isDirty).toBe(false)
+    expect(docs.find((d) => d.id === b)?.isDirty).toBe(false)
+    // The live editor dirty flag is cleared too (active tab was saved).
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
+
+  it('aborts and keeps the offending tab dirty when a write fails', async () => {
+    const { handle } = makeMockEditor('# A')
+    const writeFile = vi.fn(() => Promise.reject(new Error('EACCES')))
+    vi.stubGlobal('lekha', makeMockLekha({ writeFile }))
+    vi.stubGlobal('alert', vi.fn())
+
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    useDocumentsStore.getState().activateDocument(a)
+    useDocumentsStore.getState().updateDocument(a, { isDirty: true })
+    useEditorStore.getState().openFile('/a.md', '# A')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.saveAllForClose() })
+
+    // The write failed -> the tab stays dirty so the window stays open.
+    expect(useDocumentsStore.getState().documents.find((d) => d.id === a)?.isDirty).toBe(true)
+  })
+})
+
+describe('useFileOps - discardAllForClose', () => {
+  it('deletes every tab backup, marks all clean, and writes NO file', async () => {
+    const { handle } = makeMockEditor('# A')
+    const writeFile = vi.fn(() => Promise.resolve())
+    const deleteBackup = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('lekha', makeMockLekha({ writeFile, deleteBackup }))
+
+    // Two dirty tabs, each with a linked crash backup.
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B' })
+    useDocumentsStore.getState().updateDocument(a, { isDirty: true, backupId: 'bk-a' })
+    useDocumentsStore.getState().updateDocument(b, { isDirty: true, backupId: 'bk-b' })
+    useEditorStore.getState().openFile('/b.md', '# B')
+    useEditorStore.getState().markDirty()
+
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+
+    const { result } = renderHook(() => useFileOps(editorRef))
+    await act(async () => { await result.current.discardAllForClose() })
+
+    // Both backups were deleted.
+    expect(deleteBackup).toHaveBeenCalledWith('bk-a')
+    expect(deleteBackup).toHaveBeenCalledWith('bk-b')
+    // All tabs are clean with their backup state cleared.
+    for (const d of useDocumentsStore.getState().documents) {
+      expect(d.isDirty).toBe(false)
+      expect(d.backupId).toBeNull()
+      expect(d.recovered).toBe(false)
+    }
+    // The live editor is clean too, and NO file was written (discard, not save).
+    expect(useEditorStore.getState().isDirty).toBe(false)
+    expect(writeFile).not.toHaveBeenCalled()
   })
 })
 

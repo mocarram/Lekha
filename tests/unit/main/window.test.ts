@@ -1,13 +1,15 @@
 // @vitest-environment node
 /**
- * Unit tests for the pure window-geometry helpers in src/main/window.ts.
+ * Unit tests for the pure window-geometry helpers and the per-window close-guard
+ * state machine (WindowController) in src/main/window.ts.
  *
- * Only the pure, Electron-free helpers are tested here: BrowserWindow creation
- * and the per-window close-guard state machine are Electron-bound and covered
- * by the e2e suite instead.
+ * BrowserWindow creation is Electron-bound and covered by the e2e suite; the
+ * WindowController tests below drive the state machine against a hand-rolled fake
+ * BrowserWindow (only the webContents.send + close methods it touches).
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
+  WindowController,
   nextWindowBounds,
   defaultWindowBounds,
   isSaneBounds,
@@ -17,6 +19,22 @@ import {
   DEFAULT_MAX_SIZE,
   CASCADE_OFFSET,
 } from '../../../src/main/window'
+import type { BrowserWindow } from 'electron'
+
+// ---------------------------------------------------------------------------
+// Fake BrowserWindow for the WindowController state-machine tests.
+//
+// The controller only touches win.webContents.send (to dispatch the close
+// command) and win.close (to complete the close once the renderer reports the
+// window clean). We model exactly those, with vi.fn() spies so the tests can
+// assert on the dispatched command and the close call.
+// ---------------------------------------------------------------------------
+function makeFakeWindow() {
+  const send = vi.fn()
+  const close = vi.fn()
+  const win = { webContents: { send }, close } as unknown as BrowserWindow
+  return { win, send, close }
+}
 
 describe('isSaneBounds - accepts multi-monitor (negative) coordinates', () => {
   it('accepts bounds on a secondary display at negative coordinates', () => {
@@ -97,5 +115,72 @@ describe('defaultWindowBounds - big, centered first window', () => {
   it('falls back to the fixed default when the work area is too small or invalid', () => {
     expect(defaultWindowBounds({ width: 100, height: 100 })).toEqual({ ...DEFAULT_WINDOW_SIZE })
     expect(defaultWindowBounds({ width: NaN, height: 900 })).toEqual({ ...DEFAULT_WINDOW_SIZE })
+  })
+})
+
+describe('WindowController - window-level close-guard state machine', () => {
+  it('canCloseWithout reflects window-level dirtiness (anyDirty)', () => {
+    const { win } = makeFakeWindow()
+    const controller = new WindowController(win)
+
+    // Clean window: a close is allowed without prompting.
+    expect(controller.anyDirty).toBe(false)
+    expect(controller.canCloseWithout(false)).toBe(true)
+
+    // Any open tab dirty -> the guard must block (prompt) the close.
+    controller.setWindowDirty(true)
+    expect(controller.canCloseWithout(false)).toBe(false)
+
+    // The e2e teardown bypass forces a close regardless of dirtiness.
+    expect(controller.canCloseWithout(true)).toBe(true)
+  })
+
+  it('setWindowDirty(false) while pendingClose (after Save) closes the window and forces it', () => {
+    const { win, close } = makeFakeWindow()
+    const controller = new WindowController(win)
+    controller.setWindowDirty(true)
+
+    // Start the save-then-close handshake (pendingClose = true).
+    controller.beginSaveAndClose()
+    // The renderer reports the window clean once every dirty tab is saved.
+    controller.setWindowDirty(false)
+
+    // The handshake completes: win.close() is called and the next close passes
+    // the guard unprompted (forceClose), then resets.
+    expect(close).toHaveBeenCalledOnce()
+    expect(controller.canCloseWithout(false)).toBe(true) // forceClose was set
+    // forceClose resets after one use: a fresh clean window still closes, a
+    // dirty one would block again.
+    expect(controller.canCloseWithout(false)).toBe(true) // now via !anyDirty (clean)
+  })
+
+  it('beginSaveAndClose dispatches the saveAllAndClose command to the renderer', () => {
+    const { win, send } = makeFakeWindow()
+    const controller = new WindowController(win)
+
+    controller.beginSaveAndClose()
+
+    expect(send).toHaveBeenCalledOnce()
+    expect(send).toHaveBeenCalledWith('app:command', 'saveAllAndClose')
+  })
+
+  it('beginDiscardAndClose dispatches the discardAllAndClose command to the renderer', () => {
+    const { win, send } = makeFakeWindow()
+    const controller = new WindowController(win)
+
+    controller.beginDiscardAndClose()
+
+    expect(send).toHaveBeenCalledOnce()
+    expect(send).toHaveBeenCalledWith('app:command', 'discardAllAndClose')
+  })
+
+  it('does NOT close while pendingClose is unset (a stray clean report is inert)', () => {
+    const { win, close } = makeFakeWindow()
+    const controller = new WindowController(win)
+    controller.setWindowDirty(true)
+
+    // No Save/Discard handshake started: a clean report must not close the window.
+    controller.setWindowDirty(false)
+    expect(close).not.toHaveBeenCalled()
   })
 })

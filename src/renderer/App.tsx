@@ -395,6 +395,37 @@ export default function App() {
     return unsubscribe
   }, [handleApplyAutoSave])
 
+  // Push window-level dirtiness (ANY open tab dirty) to main so the close guard
+  // and the macOS edited dot are window-level, not active-doc-level. A clean
+  // active tab with a dirty BACKGROUND tab must still prompt on close. Subscribe
+  // to BOTH stores (the live editor's isDirty and the per-tab snapshots), and
+  // only send when the computed value changes (ref-tracked) to avoid redundant
+  // IPC. Mount-only: refs/stores are stable, so this never re-subscribes.
+  const lastAnyDirty = useRef<boolean | null>(null)
+  useEffect(() => {
+    if (typeof window.lekha === 'undefined') return undefined
+    const computeAnyDirty = (): boolean => {
+      const ed = useEditorStore.getState()
+      const ds = useDocumentsStore.getState()
+      // active live dirty OR any OTHER tab dirty
+      return ed.isDirty || ds.documents.some((d) => d.id !== ds.activeId && d.isDirty)
+    }
+    const maybePush = (): void => {
+      const v = computeAnyDirty()
+      if (v === lastAnyDirty.current) return
+      lastAnyDirty.current = v
+      window.lekha.setWindowDirty(v)
+    }
+    // Push once on mount so main starts from the correct state.
+    maybePush()
+    const unsubEditor = useEditorStore.subscribe(maybePush)
+    const unsubDocuments = useDocumentsStore.subscribe(maybePush)
+    return () => {
+      unsubEditor()
+      unsubDocuments()
+    }
+  }, [])
+
   // Debounce timer ref - used to delay outline/count recomputation so we
   // don't parse on every keystroke. Cleared on unmount to avoid a setState
   // call on an already-unmounted component.

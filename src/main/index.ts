@@ -455,8 +455,9 @@ void app.whenReady().then(async () => {
   // getWindow closure.
   registerDialogHandlers()
 
-  // Rebuild the menu when recents or settings (theme) change. setDocumentState
-  // updates the sender window's WindowController dirty flag inside the handler.
+  // Rebuild the menu when recents or settings (theme) change. Window-level
+  // dirtiness (the close guard + macOS edited dot) is driven by the separate
+  // setWindowDirty handler above, not by setDocumentState.
   registerFileHandlers(
     settings,
     registry,
@@ -537,6 +538,17 @@ void app.whenReady().then(async () => {
   // Always on Top: float the sender window above others (toggle from the View menu).
   ipcMain.on(IPC.setAlwaysOnTop, (event, value: unknown) => {
     BrowserWindow.fromWebContents(event.sender)?.setAlwaysOnTop(Boolean(value))
+  })
+
+  // Window-level dirtiness (ANY open tab dirty): drives the close guard and the
+  // macOS edited dot. Separate from setDocumentState, which only drives the
+  // ACTIVE doc's title bullet (per-document indicator).
+  ipcMain.on(IPC.setWindowDirty, (event, anyDirty: unknown) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    if (!win) return
+    const v = Boolean(anyDirty)
+    if (process.platform === 'darwin') win.setDocumentEdited(v)
+    registry.get(win)?.setWindowDirty(v)
   })
 
   // Remember valid saved bounds for restoring/cascading future windows.

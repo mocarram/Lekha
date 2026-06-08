@@ -79,6 +79,13 @@ export interface LekhaAPI {
   // --- Window state ---
   setDocumentState(state: DocumentState): void
 
+  /**
+   * Report window-level dirtiness (true when ANY open tab is dirty). Drives the
+   * main-process close guard and the macOS edited dot, separate from
+   * setDocumentState's active-doc title indicator.
+   */
+  setWindowDirty(anyDirty: boolean): void
+
   /** Open a new, independent editor window (fresh single-document instance). */
   newWindow(): void
 

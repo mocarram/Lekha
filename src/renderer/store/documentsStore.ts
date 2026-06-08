@@ -69,6 +69,12 @@ interface DocumentsActions {
   /** Patch the active tab in place (id cannot be changed). */
   updateActive(patch: Partial<Omit<DocumentTab, 'id'>>): void
   /**
+   * Patch the tab with the given `id` in place (id cannot be changed). Mirrors
+   * updateActive but targets a specific tab - used by the window-level save-all
+   * / discard-all close flows, which mutate background tabs by id.
+   */
+  updateDocument(id: string, patch: Partial<Omit<DocumentTab, 'id'>>): void
+  /**
    * Ensure the tab with `id` has a backupId, assigning a fresh
    * crypto.randomUUID() when missing. Returns the tab's backupId (existing or
    * newly assigned), or null when the id is unknown.
@@ -214,6 +220,12 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       documents: s.documents.map((d) =>
         d.id === activeId ? { ...d, ...patch } : d,
       ),
+    }))
+  },
+
+  updateDocument(id, patch) {
+    set((s) => ({
+      documents: s.documents.map((d) => (d.id === id ? { ...d, ...patch } : d)),
     }))
   },
 

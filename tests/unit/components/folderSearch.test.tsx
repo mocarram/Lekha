@@ -56,6 +56,7 @@ function makeMockLekha(
     getRecentFiles: vi.fn(() => Promise.resolve([])),
     addRecentFile: vi.fn(() => Promise.resolve()),
     setDocumentState: vi.fn(),
+    setWindowDirty: vi.fn(),
     newWindow: vi.fn(),
     print: vi.fn(),
     share: vi.fn(),

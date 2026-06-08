@@ -6,9 +6,11 @@
  *
  *   - `nextWindowBounds` / `isSaneBounds` - pure geometry helpers (Electron-free,
  *     unit-tested).
- *   - `WindowController` - encapsulates ALL per-window mutable state: the dirty
- *     flag mirrored from the renderer plus the close-guard state machine
- *     (forceClose / pendingClose). One controller per BrowserWindow.
+ *   - `WindowController` - encapsulates ALL per-window mutable state: the
+ *     window-level dirty flag (any open tab dirty) mirrored from the renderer
+ *     plus the close-guard state machine (forceClose / pendingClose). The guard
+ *     is window-level: closing with ANY dirty tab prompts, and "Save" saves
+ *     every dirty tab. One controller per BrowserWindow.
  *   - `WindowRegistry` - the set of live windows + their controllers, with a
  *     lookup from a BrowserWindow (or a webContents sender) to its controller.
  *
@@ -181,51 +183,57 @@ export function defaultWindowBounds(workArea: { width: number; height: number })
 /**
  * WindowController - all mutable state for ONE window.
  *
- * Close-guard state machine (per window, so each window protects only its own
- * document):
+ * Close-guard state machine (per window). The guard is WINDOW-level: it fires
+ * whenever ANY open tab in this window is dirty, and "Save" saves EVERY dirty
+ * tab (not just the active one). State:
  *
- *   dirty        - mirrors this window's renderer isDirty flag, updated on every
- *                  setDocumentState message so the close handler always sees the
- *                  current state without an extra IPC round-trip.
+ *   anyDirty     - mirrors this window's window-level dirtiness (true when ANY
+ *                  open tab is dirty), pushed via setWindowDirty so the close
+ *                  handler always sees the current state without an extra IPC
+ *                  round-trip.
  *
- *   forceClose   - flipped true (by setDirty) once a pending Save/Discard
- *                  handshake reports the document clean, so the win.close() it
+ *   forceClose   - flipped true (by setWindowDirty) once a pending Save/Discard
+ *                  handshake reports the window clean, so the win.close() it
  *                  triggers passes the guard unprompted.
  *
  *   pendingClose - set true when the user picks "Save" or "Don't Save". We send
- *                  the matching command ('save' or 'discardAndClose') to this
- *                  window's renderer and wait. When that renderer later reports
- *                  dirty:false while pendingClose is true, we flip forceClose=true
- *                  and call win.close() to complete the close. If the user cancels
- *                  a Save As dialog the doc stays dirty, the window stays open, and
- *                  pendingClose resets so a later close re-prompts.
+ *                  the matching command ('saveAllAndClose' or 'discardAllAndClose')
+ *                  to this window's renderer and wait. When that renderer later
+ *                  reports anyDirty:false while pendingClose is true, we flip
+ *                  forceClose=true and call win.close() to complete the close. If
+ *                  the user cancels a Save As dialog a tab stays dirty, the window
+ *                  stays open, and pendingClose resets so a later close re-prompts.
  *
  * Cmd+Q coverage: Electron fires each window's 'close' after 'before-quit', so
  * the SAME per-window guard protects the red-button close AND Cmd+Q.
  */
 export class WindowController {
-  dirty = false
+  /** Window-level dirtiness: true when ANY open tab in this window is dirty. */
+  anyDirty = false
   private forceClose = false
   private pendingClose = false
 
   constructor(readonly win: BrowserWindow) {}
 
-  /** Begin a save-then-close: ask the renderer to save; close when it goes clean. */
+  /**
+   * Begin a save-then-close: ask the renderer to save EVERY dirty tab; close
+   * when the window goes clean.
+   */
   beginSaveAndClose(): void {
     this.pendingClose = true
-    this.win.webContents.send(IPC.command, 'save')
+    this.win.webContents.send(IPC.command, 'saveAllAndClose')
   }
 
   /**
-   * Begin a discard-then-close ("Don't Save"): ask the renderer to delete the
-   * active document's crash backup and report the document clean. The same
-   * pendingClose handshake then completes the close (setDirty(false) below),
-   * but NO file is written. This keeps the crash-recovery invariant intact - a
-   * clean exit, whether via Save or Don't Save, leaves no backup behind.
+   * Begin a discard-then-close ("Don't Save"): ask the renderer to delete EVERY
+   * tab's crash backup and report the window clean. The same pendingClose
+   * handshake then completes the close (setWindowDirty(false) below), but NO
+   * file is written. This keeps the crash-recovery invariant intact - a clean
+   * exit, whether via Save or Don't Save, leaves no backup behind.
    */
   beginDiscardAndClose(): void {
     this.pendingClose = true
-    this.win.webContents.send(IPC.command, 'discardAndClose')
+    this.win.webContents.send(IPC.command, 'discardAllAndClose')
   }
 
   /** True if a close should be allowed without prompting (clean or forced). */
@@ -234,17 +242,17 @@ export class WindowController {
       this.forceClose = false // reset for any future re-use
       return true
     }
-    return !this.dirty
+    return !this.anyDirty
   }
 
   /**
-   * Update the dirty flag from a setDocumentState message. If a save triggered
-   * by the close guard (pendingClose) just completed and the document is now
-   * clean, proceed with closing this window.
+   * Update the window-level dirty flag from a setWindowDirty message. If a save
+   * triggered by the close guard (pendingClose) just completed and the window is
+   * now clean, proceed with closing this window.
    */
-  setDirty(dirty: boolean): void {
-    this.dirty = dirty
-    if (this.pendingClose && !dirty) {
+  setWindowDirty(anyDirty: boolean): void {
+    this.anyDirty = anyDirty
+    if (this.pendingClose && !anyDirty) {
       this.pendingClose = false
       this.forceClose = true
       this.win.close()

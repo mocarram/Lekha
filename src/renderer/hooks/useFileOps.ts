@@ -77,11 +77,18 @@ export interface FileOps {
    */
   closeTab(id: string): Promise<void>
   /**
-   * Handle the main-process window-close guard's "Don't Save" choice: delete the
-   * active document's crash backup and report the document clean so the close
-   * completes WITHOUT writing the file. Leaves the buffer untouched.
+   * Handle the main-process window-close guard's "Save" choice: save EVERY dirty
+   * tab (writing each tab's snapshot, prompting a Save As for path-less tabs) so
+   * the window can close clean. A cancelled Save As leaves that tab dirty and
+   * stops, so the window stays open and re-prompts on the next close.
    */
-  discardActiveBackup(): Promise<void>
+  saveAllForClose(): Promise<void>
+  /**
+   * Handle the main-process window-close guard's "Don't Save" choice: drop EVERY
+   * tab's crash backup and mark all clean WITHOUT writing any file, so the window
+   * can close and nothing is falsely recovered next launch.
+   */
+  discardAllForClose(): Promise<void>
   /**
    * Re-point the active document at `newPath` atomically: update the editor
    * store path (re-deriving the title), the documents-store tab path, and the OS
@@ -637,25 +644,54 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     }
   }, [documentsStore, selectTab, editorStore, guardUnsaved, loadTab, blankEditor])
 
-  // "Don't Save" from the main-process window-close guard: discard the active
-  // doc's crash backup (so it is not falsely recovered next launch), then report
-  // the document clean so the guard's pendingClose handshake completes the close
-  // WITHOUT writing the file. The buffer is intentionally left untouched - the
-  // window is about to be destroyed.
-  const discardActiveBackup = useCallback(async (): Promise<void> => {
-    const active = documentsStore.getState().activeDocument()
-    const backupId = active?.backupId ?? null
-    if (backupId !== null) {
+  // "Save" from the main-process window-close guard: save EVERY dirty tab so the
+  // window can close clean. Tabs with a path are written directly from their
+  // snapshot; path-less tabs each get a Save As dialog. A cancelled Save As (or a
+  // write error) leaves that tab dirty and stops, so the window stays open (the
+  // pendingClose handshake never completes) and re-prompts on the next close.
+  const saveAllForClose = useCallback(async (): Promise<void> => {
+    // Fold the live active-editor content into its tab snapshot first.
+    snapshotActive()
+    // Save every dirty tab that has a path by writing its snapshot directly.
+    const withPath = documentsStore.getState().documents.filter((d) => d.isDirty && d.path !== null)
+    for (const tab of withPath) {
       try {
-        await window.lekha.deleteBackup(backupId)
-      } catch {
-        // ignore - a leftover backup is harmless; recovery cleans it up.
+        await window.lekha.writeFile(tab.path as string, normalizeLineEndings(tab.markdown, tab.eol))
+      } catch (err) {
+        window.alert('Could not save "' + tab.title + '":\n\n' + (err instanceof Error ? err.message : String(err)) + '\n\nClosing was cancelled - your other changes are unaffected.')
+        return // leave it dirty; window stays open (anyDirty stays true)
       }
+      if (tab.backupId !== null) { try { await window.lekha.deleteBackup(tab.backupId) } catch { /* harmless */ } }
+      documentsStore.getState().updateDocument(tab.id, { isDirty: false, backupId: null, recovered: false })
+      try { await window.lekha.addRecentFile(tab.path as string) } catch { /* ignore */ }
     }
-    documentsStore.getState().updateActive({ backupId: null, recovered: false })
+    // If the active tab was just saved, clear the LIVE editor dirty flag too so
+    // window-level dirtiness can reach false.
+    const active = documentsStore.getState().activeDocument()
+    if (active !== null && !active.isDirty) editorStore.getState().markClean()
+    // Path-less dirty tabs need a Save As dialog each. Activate and save them one
+    // at a time; a cancelled Save As leaves that tab dirty, so we stop (window
+    // stays open and will re-prompt on the next close).
+    // Guard the loop against infinite spins.
+    let guard = 0
+    while (guard++ < 1000) {
+      const pathless = documentsStore.getState().documents.find((d) => d.isDirty && d.path === null)
+      if (pathless === undefined) break
+      await selectTab(pathless.id)
+      await saveAs()
+      if (editorStore.getState().isDirty) return // user cancelled Save As -> stop
+    }
+  }, [snapshotActive, documentsStore, editorStore, selectTab, saveAs])
+
+  // "Don't Save" from the main-process window-close guard: drop EVERY tab's crash
+  // backup and mark all clean, WITHOUT writing any file, so the window can close
+  // and nothing is falsely recovered next launch.
+  const discardAllForClose = useCallback(async (): Promise<void> => {
+    for (const tab of documentsStore.getState().documents) {
+      if (tab.backupId !== null) { try { await window.lekha.deleteBackup(tab.backupId) } catch { /* harmless */ } }
+      documentsStore.getState().updateDocument(tab.id, { isDirty: false, backupId: null, recovered: false })
+    }
     editorStore.getState().markClean()
-    const { title, path } = editorStore.getState()
-    window.lekha.setDocumentState({ title, dirty: false, path })
   }, [documentsStore, editorStore])
 
   // Open a folder by absolute path (no dialog): read its tree and set it as the
@@ -902,7 +938,8 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     moveCurrentTo,
     selectTab,
     closeTab,
-    discardActiveBackup,
+    saveAllForClose,
+    discardAllForClose,
     syncActivePath,
     createFileEntry,
     createFolderEntry,

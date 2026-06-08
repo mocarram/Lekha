@@ -37,9 +37,11 @@ function safeHandle<T>(
  * Registers IPC handlers for filesystem and settings operations.
  * Also handles the window document-state update (title bar, dirty dot, represented file).
  *
- * @param registry           - The multi-window registry. setDocumentState
- *   updates the SENDER's window (title bar, proxy icon, edited dot) and its
- *   per-window close-guard dirty flag via the matching WindowController.
+ * @param _registry          - The multi-window registry. Currently unused in
+ *   this file: setDocumentState only updates the SENDER's window title bar +
+ *   proxy icon, and the window-level edited dot / close-guard dirtiness moved to
+ *   the setWindowDirty handler in index.ts. Kept in the signature (registered
+ *   positionally from index.ts) so the wiring stays stable for future handlers.
  * @param onRecentAdded      - Optional callback invoked after a file is added to
  *   recents. The main process uses this to rebuild the Open Recent menu so it
  *   stays in sync with the persisted list without an extra IPC round-trip.
@@ -58,7 +60,7 @@ function safeHandle<T>(
  */
 export function registerFileHandlers(
   settings: SettingsStore,
-  registry: WindowRegistry,
+  _registry: WindowRegistry,
   onRecentAdded: (() => Promise<void> | void) | undefined,
   onSettingsChanged: ((updated: Settings) => Promise<void> | void) | undefined,
   getUserDataPath: () => string,
@@ -176,12 +178,17 @@ export function registerFileHandlers(
   })
 
   // --- Window document state ---
-  // Renderer sends { title, dirty, path } to update the title bar decoration.
-  // Multi-window: the update targets the SENDER's window (the one whose
-  // renderer reported the state), resolved via BrowserWindow.fromWebContents,
-  // never a shared global window.
-  // On macOS, setRepresentedFilename drives the proxy icon in the title bar;
-  // setDocumentEdited controls the • dot on the window close button.
+  // Renderer sends { title, dirty, path } to update the title bar decoration for
+  // the ACTIVE document. Multi-window: the update targets the SENDER's window
+  // (the one whose renderer reported the state), resolved via
+  // BrowserWindow.fromWebContents, never a shared global window.
+  //
+  // This handler drives ONLY the active-doc title bullet (a per-document,
+  // WYSIWYG-style indicator). The macOS edited dot and the close guard are
+  // WINDOW-level (any open tab dirty) and driven separately by setWindowDirty -
+  // a clean active tab must not clear the edited dot / guard while a background
+  // tab is still dirty.
+  // On macOS, setRepresentedFilename drives the proxy icon in the title bar.
   ipcMain.on(
     IPC.setDocumentState,
     (event, state: { title: string; dirty: boolean; path: string | null }) => {
@@ -190,14 +197,11 @@ export function registerFileHandlers(
       const isMac = process.platform === 'darwin'
       win.setTitle(formatWindowTitle(state.title, state.dirty, isMac))
       if (isMac) {
-        // Proxy icon (Cmd-click -> folder breadcrumb; drag to move) + the native
-        // edited dot on the close button. setRepresentedFilename('') clears the
-        // proxy icon for an unsaved (path-less) document.
+        // Proxy icon (Cmd-click -> folder breadcrumb; drag to move).
+        // setRepresentedFilename('') clears the proxy icon for an unsaved
+        // (path-less) document.
         win.setRepresentedFilename(state.path ?? '')
-        win.setDocumentEdited(state.dirty)
       }
-      // Update THIS window's close-guard dirty flag (per-window state machine).
-      registry.get(win)?.setDirty(state.dirty)
     },
   )
 }

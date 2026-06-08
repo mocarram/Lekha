@@ -36,6 +36,12 @@ export const IPC = {
   getSettings: 'settings:get',
   setSettings: 'settings:set',
   setDocumentState: 'window:setDocumentState',
+  /**
+   * Renderer -> main: window-level dirtiness (ANY open tab dirty). Drives the
+   * close guard + the macOS edited dot, separate from setDocumentState's
+   * active-doc title indicator.
+   */
+  setWindowDirty: 'window:setDirty',
   /** Renderer -> main: open a new, independent editor window. */
   newWindow: 'window:new',
   /** Renderer -> main: open the OS print dialog for the sender's window. */

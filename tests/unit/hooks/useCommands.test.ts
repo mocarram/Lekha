@@ -129,7 +129,8 @@ interface MockFileOpsResult {
   duplicateCurrent: ReturnType<typeof vi.fn>
   deleteCurrent: ReturnType<typeof vi.fn>
   moveCurrentTo: ReturnType<typeof vi.fn>
-  discardActiveBackup: ReturnType<typeof vi.fn>
+  saveAllForClose: ReturnType<typeof vi.fn>
+  discardAllForClose: ReturnType<typeof vi.fn>
 }
 
 function makeMockFileOps(): MockFileOpsResult {
@@ -148,7 +149,8 @@ function makeMockFileOps(): MockFileOpsResult {
   const moveCurrentTo = vi.fn(() => Promise.resolve())
   const selectTab = vi.fn(() => Promise.resolve())
   const closeTab = vi.fn(() => Promise.resolve())
-  const discardActiveBackup = vi.fn(() => Promise.resolve())
+  const saveAllForClose = vi.fn(() => Promise.resolve())
+  const discardAllForClose = vi.fn(() => Promise.resolve())
   const syncActivePath = vi.fn()
   const createFileEntry = vi.fn(() => Promise.resolve())
   const createFolderEntry = vi.fn(() => Promise.resolve())
@@ -157,8 +159,8 @@ function makeMockFileOps(): MockFileOpsResult {
   const revealEntry = vi.fn()
   const verifyActiveDoc = vi.fn(() => Promise.resolve())
   const resetToBlank = vi.fn()
-  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, openFolderPath, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab, discardActiveBackup, syncActivePath, createFileEntry, createFolderEntry, renameEntry, deleteEntry, revealEntry, verifyActiveDoc, resetToBlank }
-  return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, discardActiveBackup }
+  const fileOps: FileOps = { newFile, open, openPath, save, saveAs, openFolder, openFolderPath, refreshTree, guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab, saveAllForClose, discardAllForClose, syncActivePath, createFileEntry, createFolderEntry, renameEntry, deleteEntry, revealEntry, verifyActiveDoc, resetToBlank }
+  return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, saveAllForClose, discardAllForClose }
 }
 
 // ---------------------------------------------------------------------------
@@ -410,14 +412,24 @@ describe('useCommands - file operation routing', () => {
     expect(moveCurrentTo).toHaveBeenCalledOnce()
   })
 
-  it('dispatching "discardAndClose" calls fileOps.discardActiveBackup()', () => {
+  it('dispatching "discardAllAndClose" calls fileOps.discardAllForClose()', () => {
     const { ref } = makeMockEditor()
-    const { fileOps, discardActiveBackup } = makeMockFileOps()
+    const { fileOps, discardAllForClose } = makeMockFileOps()
 
     renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
-    act(() => { capturedDispatch!('discardAndClose') })
+    act(() => { capturedDispatch!('discardAllAndClose') })
 
-    expect(discardActiveBackup).toHaveBeenCalledOnce()
+    expect(discardAllForClose).toHaveBeenCalledOnce()
+  })
+
+  it('dispatching "saveAllAndClose" calls fileOps.saveAllForClose()', () => {
+    const { ref } = makeMockEditor()
+    const { fileOps, saveAllForClose } = makeMockFileOps()
+
+    renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+    act(() => { capturedDispatch!('saveAllAndClose') })
+
+    expect(saveAllForClose).toHaveBeenCalledOnce()
   })
 
   it('dispatching "openFolder" calls fileOps.openFolder()', () => {

@@ -6,11 +6,16 @@ export type AppCommand =
   | 'save'
   | 'saveAs'
   | 'revertToSaved'
+  // Internal (main -> renderer): the user chose "Save" in the window-close guard.
+  // The renderer saves EVERY dirty tab (writing each tab's snapshot, prompting a
+  // Save As for path-less tabs) and reports window-level dirtiness clean, letting
+  // the main close-guard complete the close. Not shown in any menu.
+  | 'saveAllAndClose'
   // Internal (main -> renderer): the user chose "Don't Save" in the window-close
-  // guard. The renderer discards the active doc's crash backup and reports the
-  // document clean, letting the main close-guard complete the close WITHOUT
-  // writing the file. Not shown in any menu.
-  | 'discardAndClose'
+  // guard. The renderer discards EVERY tab's crash backup and marks all clean,
+  // letting the main close-guard complete the close WITHOUT writing any file.
+  // Not shown in any menu.
+  | 'discardAllAndClose'
   | 'showInFinder'
   | 'revealInFileTree'
   | 'revealInLibrary'
