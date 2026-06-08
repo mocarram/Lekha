@@ -3,7 +3,7 @@
  *
  * This file provides ONLY the structural skeleton: flex layout, dimensions,
  * box-sizing, and CSS variable declarations with neutral fallbacks. Colors,
- * typography, and WYSIWYG-matched theming are deferred to M14 (theme layer).
+ * typography, and full theming are deferred to M14 (theme layer).
  * Class names here match component class names so M14 can target them directly.
  */
 
@@ -54,7 +54,7 @@ body,
   flex-shrink: 0;
   -webkit-app-region: drag;
   /* No divider border: the chrome surface tint vs the editor background already
-     separates the title bar from the content (WYSIWYG-style). */
+     separates the title bar from the content (minimalist chrome). */
   background-color: var(--color-surface);
   user-select: none;
 }
@@ -117,7 +117,7 @@ body,
   position: relative;
 }
 
-/* Section header (WYSIWYG-style): uppercase, letter-spaced, muted title that
+/* Section header (minimalist): uppercase, letter-spaced, muted title that
    names the active panel (Files / Outline / Search). Gives the sidebar a calm
    anchor at the top instead of the list butting against the window edge. */
 .sidebar__header {
@@ -158,7 +158,7 @@ body,
   opacity: 0.35;
 }
 
-/* Tab buttons at the bottom of the sidebar (WYSIWYG-style) */
+/* Tab buttons at the bottom of the sidebar (minimalist chrome) */
 .sidebar__tabs {
   display: flex;
   flex-direction: row;
@@ -482,7 +482,7 @@ body,
 .tab--active {
   color: var(--color-text);
   background-color: var(--color-bg);
-  /* A subtle top accent rule marks the active tab (WYSIWYG-like). */
+  /* A subtle top accent rule marks the active tab. */
   box-shadow: inset 0 2px 0 var(--color-accent);
 }
 
@@ -1415,7 +1415,7 @@ body,
 }
 
 /* -------------------------------------------------------------------------
- * Slash menu (`/` block-insert popup) - a feature WYSIWYG lacks.
+ * Slash menu (`/` block-insert popup).
  *
  * Anchored at the caret in client coordinates (position: fixed), token-themed
  * so it adapts to light + dark. Rows are <button> elements for accessibility;

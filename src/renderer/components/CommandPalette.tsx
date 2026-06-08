@@ -1,6 +1,6 @@
 /**
  * CommandPalette - a centered modal (anchored in the upper third) that drives
- * two power-user features WYSIWYG lacks:
+ * two power-user features:
  *
  *   mode='commands' (Cmd+Shift+P): fuzzy-search every user command and run it.
  *   mode='files'    (Cmd+P):       fuzzy-search workspace Markdown files and open one.

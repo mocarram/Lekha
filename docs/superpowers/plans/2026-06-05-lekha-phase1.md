@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use superpowers:subagent-driven-development to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Build a WYSIWYG-faithful WYSIWYG Markdown editor (Phase 1 MVP) as a hardened macOS Electron app, test-first.
+**Goal:** Build a polished WYSIWYG Markdown editor (Phase 1 MVP) as a hardened macOS Electron app, test-first.
 
 **Architecture:** Three-process Electron (main / preload / renderer). The renderer hosts a ProseMirror editor engine with a tested Markdown round-trip (markdown-it parser + custom serializer), input rules, lowlight highlighting, and a CodeMirror source mode. Main owns filesystem IO, native menu, dialogs, and a JSON settings store, exposed via an allow-listed `window.lekha` preload bridge.
 

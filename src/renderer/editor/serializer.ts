@@ -8,7 +8,7 @@ import {
 /**
  * ProseMirror document -> Markdown serializer for Lekha.
  *
- * Extends the prosemirror-markdown baseline serializer with WYSIWYG's set:
+ * Extends the prosemirror-markdown baseline serializer with the editor's set:
  * fenced code blocks keyed on a `language` attr, the strikethrough mark, GFM
  * task lists (mixing plain and checkbox items), and GFM tables. Output is
  * canonical: ATX headings, `-` bullets, fenced (never indented) code.
@@ -33,7 +33,7 @@ function listItemMarker(child: Node): string {
  * dropped. Continuation lines indent by two spaces (canonical for `- `).
  *
  * Task lists are rendered TIGHT (no blank lines between items): that is the
- * canonical GFM/WYSIWYG form, and it collapses a loose-authored mix
+ * canonical GFM form, and it collapses a loose-authored mix
  * (e.g. bullets, blank line, then checkboxes) into one compact block.
  */
 function renderMixedList(state: MarkdownSerializerState, node: Node): void {
@@ -223,7 +223,7 @@ const serializer = new MarkdownSerializer(
     highlight: { open: '==', close: '==', mixable: true, expelEnclosingWhitespace: true },
     subscript: { open: '~', close: '~', mixable: true },
     superscript: { open: '^', close: '^', mixable: true },
-    // Underline has no Markdown syntax - emit raw <u> HTML (WYSIWYG-style).
+    // Underline has no Markdown syntax - emit raw <u> HTML.
     underline: { open: '<u>', close: '</u>', mixable: true, expelEnclosingWhitespace: true },
   },
   {

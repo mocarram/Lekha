@@ -87,7 +87,7 @@ function setColumnAlign(align: Align): Command {
 }
 
 /**
- * Tab-at-end-of-table command (WYSIWYG parity): when the caret is in the very
+ * Tab-at-end-of-table command: when the caret is in the very
  * last cell of a table, append a new empty row and move into its first cell, so
  * a table can be built entirely from the keyboard.
  *

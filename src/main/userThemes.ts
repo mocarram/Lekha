@@ -11,7 +11,7 @@
  * Security: only *.css files in the one themes folder are read (no traversal,
  * no subdirectories). The returned CSS is injected by the renderer as
  * style-only content (never executed); the renderer also strips any closing
- * </style> sequence. Themes are local-trust, like WYSIWYG.
+ * </style> sequence. Themes are local-trust.
  */
 import { readdir, readFile, lstat, mkdir, writeFile } from 'node:fs/promises'
 import { join, basename, extname } from 'node:path'

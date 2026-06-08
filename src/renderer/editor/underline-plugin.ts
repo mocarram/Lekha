@@ -4,7 +4,7 @@ import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs'
 /**
  * markdown-it inline plugin for underline via raw `<u>…</u>` tags.
  *
- * Markdown has no underline syntax, so (like WYSIWYG) Lekha stores underline as
+ * Markdown has no underline syntax, so Lekha stores underline as
  * literal `<u>`/`</u>` HTML. The tokenizer runs with `html: false`, so those
  * tags would otherwise render as escaped text. This rule recognizes the bare
  * `<u>` and `</u>` tokens and emits paired `u_open`/`u_close` inline tokens,

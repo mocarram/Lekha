@@ -51,7 +51,7 @@ import { SIDEBAR_DEFAULT_WIDTH } from '@renderer/components/sidebarResizerUtils'
 
 const WELCOME_MARKDOWN = `# Welcome to Lekha
 
-Lekha is a WYSIWYG-style WYSIWYG Markdown editor.
+Lekha is a clean, distraction-free WYSIWYG Markdown editor.
 
 ## Getting started
 

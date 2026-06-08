@@ -82,12 +82,25 @@ export interface UserTheme {
 export const THEMES: ThemeDef[] = [
   { id: 'github',          label: 'GitHub',          type: 'light' },
   { id: 'night',           label: 'Night',           type: 'dark'  },
-  { id: 'graphite',          label: 'Graphite',          type: 'dark'  },
+  { id: 'graphite',        label: 'Graphite',        type: 'dark'  },
   { id: 'sepia',           label: 'Sepia',           type: 'light' },
   { id: 'solarized-light', label: 'Solarized Light', type: 'light' },
   { id: 'solarized-dark',  label: 'Solarized Dark',  type: 'dark'  },
   { id: 'nord',            label: 'Nord',            type: 'dark'  },
 ]
+
+/**
+ * Renamed-theme migration: legacy persisted theme id -> current id. Lets a user
+ * who had a renamed built-in theme selected keep it across the rename instead of
+ * silently falling back to the default. Used by the settings loader (main) and
+ * applyTheme (renderer).
+ */
+export const THEME_ID_MIGRATIONS: Record<string, string> = { graphite: 'graphite' }
+
+/** Resolve a possibly-legacy theme id to its current id. */
+export function migrateThemeId(id: string): string {
+  return THEME_ID_MIGRATIONS[id] ?? id
+}
 
 /** A single line match inside a file during folder-wide search. */
 export interface FolderSearchMatch {

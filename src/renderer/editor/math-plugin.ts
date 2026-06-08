@@ -16,7 +16,7 @@
  *     only support the fence form: $$ / content / $$). Emits a `math_block`
  *     token with token.content = the inner text (trailing newline stripped).
  *
- * These patterns match WYSIWYG's / markdown-it-texmath's dollar rules.
+ * These patterns match the common markdown-it-texmath dollar rules.
  */
 
 import type MarkdownIt from 'markdown-it'
@@ -38,7 +38,7 @@ import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs'
  *   1. Escaped: the character before the $ is `\` - skip.
  *   2. Double $$: a second $ immediately follows - skip (block rule territory).
  *   3. Empty: closing $ comes immediately after opening $ - skip.
- *   4. Digit-adjacent (WYSIWYG convention): opening $ is immediately preceded
+ *   4. Digit-adjacent (common convention): opening $ is immediately preceded
  *      by a digit, OR the character immediately after the closing $ is a digit
  *      - skip. This prevents "$5 goes to $10" from matching.
  *   5. Must find a closing $ on the same or a later position.

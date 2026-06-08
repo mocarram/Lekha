@@ -183,8 +183,8 @@ export function registerFileHandlers(
   // (the one whose renderer reported the state), resolved via
   // BrowserWindow.fromWebContents, never a shared global window.
   //
-  // This handler drives ONLY the active-doc title bullet (a per-document,
-  // WYSIWYG-style indicator). The macOS edited dot and the close guard are
+  // This handler drives ONLY the active-doc title bullet (a per-document
+  // indicator). The macOS edited dot and the close guard are
   // WINDOW-level (any open tab dirty) and driven separately by setWindowDirty -
   // a clean active tab must not clear the edited dot / guard while a background
   // tab is still dirty.

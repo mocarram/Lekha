@@ -1,6 +1,6 @@
-# Lekha - WYSIWYG-Parity Campaign Capstone Report
+# Lekha - Feature-Parity Campaign Capstone Report
 
-Final review of the autonomous WYSIWYG-parity campaign. Lekha is an
+Final review of the autonomous feature-parity campaign. Lekha is an
 Electron + React + ProseMirror WYSIWYG Markdown editor. This report summarizes
 what shipped, the final architecture, the hardening work, the test/quality
 posture, and the consciously-deferred items.
@@ -15,7 +15,7 @@ posture, and the consciously-deferred items.
 ## 1. Features shipped this campaign
 
 ### Document Tabs (waves 23a-23d)
-Multi-document editing with a WYSIWYG-style tab strip.
+Multi-document editing with a minimalist tab strip.
 - **23a** `documentsStore` - the open-tab collection (`DocumentTab` {id, path,
   title, markdown, isDirty, eol, mode} + `activeId`) with pure reducers
   (`openDocument` de-dupes by path, `closeDocument` left-neighbour activation,
@@ -39,7 +39,7 @@ A single, documented, modular token contract.
   verified all built-in themes are token-only `[data-theme]` blocks.
 
 ### Custom Themes (waves 25a-25c)
-User-authored themes loaded at runtime (WYSIWYG-style).
+User-authored themes loaded at runtime.
 - **25a** main process: `userData/themes` folder seeded with the template on
   first run; `themes:list`/`reload`/`openFolder` IPC; metadata parser
   (`@name`/`@type`).
@@ -52,7 +52,7 @@ User-authored themes loaded at runtime (WYSIWYG-style).
 Menu/settings parity, line endings (LF/CRLF), Selection submenu + macOS
 Speech/Emoji roles, a dedicated Paragraph menu with Indent/Outdent and
 heading promote/demote, smart-punctuation toggle, underline, and the broad
-WYSIWYG-fidelity polish recorded in `wysiwyg-parity-ledger.md`.
+Editor-fidelity polish recorded in `parity-ledger.md`.
 
 ---
 
@@ -124,7 +124,7 @@ Full finding-by-finding detail (including the baseline posture) lives in
   `img-src 'self' data: file: blob:` (no remote http), `object-src 'none'`,
   `frame-src 'none'`; plus `X-Content-Type-Options: nosniff` and
   `X-Frame-Options: DENY`.
-- Custom themes are **local-trust** (like WYSIWYG) but defensively contained:
+- Custom themes are **local-trust** but defensively contained:
   CSS is injected via `textContent` (no HTML parse) with `</style>` escaped;
   the CSP blocks `url()` beaconing and any network; the themes folder scan uses
   `lstat` so symlinks can't be followed into arbitrary files; user theme ids
@@ -139,15 +139,15 @@ These were confirmed by the audits but consciously NOT changed - each would add
 risk or complexity out of proportion to its value:
 
 - **Round 1**: combobox `aria-expanded` semantics (cosmetic); close-last-tab
-  leaves a blank Untitled (intentional WYSIWYG behavior); a one-off MarkdownIt
+  leaves a blank Untitled (intentional behavior); a one-off MarkdownIt
   escape micro-optimization (negligible).
 - **Round 2**: empty-text links `[](url)` vanish (links are ProseMirror *marks*;
   preserving empty-text links needs a schema change for a pathological, rare
   input); reference-links normalize to inline (lossy but idempotent, and the
-  standard WYSIWYG behavior WYSIWYG also exhibits); table-cell literal newline
+  standard WYSIWYG behavior); table-cell literal newline
   collapse (unreachable - GFM cells cannot contain literal newlines); HR
   `***`/`___` normalize to `---` (cosmetic and idempotent).
-- The `wysiwyg-parity-ledger.md` backlog still lists many `[ ]` items whose work
+- The `parity-ledger.md` backlog still lists many `[ ]` items whose work
   actually shipped in earlier waves but whose checkboxes were never ticked; a
   few genuinely-optional niceties (drag-drop file moves in the tree, per-image
   resize handles, regex find) remain as future enhancements, not blockers.
@@ -157,7 +157,7 @@ risk or complexity out of proportion to its value:
 ## 6. Conclusion
 
 Lekha now has the three headline features requested - **document tabs**, a clean
-**design-token system**, and **custom themes** - plus a WYSIWYG-faithful menu and
+**design-token system**, and **custom themes** - plus a polished menu and
 editing surface, all delivered as small, individually-verified, feature-branch
 waves with a consistently green test suite. Two adversarial audit rounds drove
 targeted security/perf/a11y/correctness fixes, with the remaining findings

@@ -24,7 +24,7 @@ import { countWords } from '../../../src/renderer/editor/wordCount'
 // ---------------------------------------------------------------------------
 const WELCOME_MARKDOWN = `# Welcome to Lekha
 
-Lekha is a WYSIWYG-style WYSIWYG Markdown editor.
+Lekha is a clean, distraction-free WYSIWYG Markdown editor.
 
 ## Getting started
 

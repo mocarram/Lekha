@@ -46,7 +46,7 @@ interface SidebarProps {
  * sidebarVisible is false, the component renders nothing. Otherwise, it shows
  * the FileTree, Outline, or FolderSearch panel based on the active tab.
  *
- * Three tab buttons at the bottom (WYSIWYG-style) let the user switch between
+ * Three tab buttons at the bottom (minimalist chrome) let the user switch between
  * Files, Outline, and Search. The search icon activates the search view.
  * Tab changes are written back to workspaceStore so the state persists.
  */
@@ -110,7 +110,7 @@ export function Sidebar({
 
   if (!sidebarVisible) return null
 
-  // Section header label reflects the active tab (WYSIWYG-style uppercase title).
+  // Section header label reflects the active tab (minimalist uppercase title).
   const headerLabel =
     sidebarTab === 'files'
       ? 'Files'
@@ -177,7 +177,7 @@ export function Sidebar({
         onWidthChange={onSidebarWidthChange}
       />
 
-      {/* Tab switcher at the bottom (WYSIWYG-style) */}
+      {/* Tab switcher at the bottom (minimalist chrome) */}
       <div className="sidebar__tabs">
         <button
           type="button"

@@ -19,7 +19,7 @@ describe('countWords', () => {
   })
 
   it('includes code block text in counts', () => {
-    // Code blocks are included (WYSIWYG behavior).
+    // Code blocks are included.
     // The fenced block content is "foo bar" (trailing newline stripped by parser).
     const c = countWords(parseMarkdown('```\nfoo bar\n```'))
     expect(c.words).toBe(2)

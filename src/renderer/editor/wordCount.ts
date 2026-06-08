@@ -12,7 +12,7 @@ import type { DocCounts } from '@shared/types'
  *   a single token ("endstart"), while the joining character itself does not
  *   add phantom words.
  *
- * - Code blocks: included (matches WYSIWYG's behaviour - the user can see and
+ * - Code blocks: included (the user can see and
  *   edit that text, so it contributes to the document length).
  *
  * - `chars`: the sum of `textContent.length` for every leaf text-block, before

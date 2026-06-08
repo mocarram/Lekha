@@ -1,13 +1,13 @@
-# WYSIWYG-Parity Campaign - Spec & Process
+# Feature-Parity Campaign - Spec & Process
 
 **Date:** 2026-06-07
-**Goal:** Drive Lekha to faithful WYSIWYG parity (features, styles, UI, UX), then harden
+**Goal:** Drive Lekha to a polished feature set (features, styles, UI, UX), then harden
 it for security, performance, and real usage. Run as repeated **plan → spec → build →
 verify** waves until the app is fully prepared.
 
 ## Scope (as directed)
 
-1. **~50 rounds** of feature / style / UI / UX parity with WYSIWYG.
+1. **~50 rounds** of feature / style / UI / UX parity work.
 2. **~20 rounds** of security review + fixes.
 3. **~20 rounds** of performance review + fixes.
 4. **~20 rounds** of live-usage / real-user-usage checks + fixes.
@@ -19,8 +19,8 @@ feature branch.
 ## Process (per wave)
 
 1. **Audit (workflow):** specialized agents read the Lekha source and compare to known
-   WYSIWYG behavior, each returning structured findings
-   `{title, wysiwyg, lekha, change, files, priority, effort}`.
+   reference WYSIWYG-editor behavior, each returning structured findings
+   `{title, reference, lekha, change, files, priority, effort}`.
 2. **Triage:** dedupe + rank; pick the high-value, sane-effort, low-risk items.
 3. **Build:** branch off `staging` (`feat/...` or `fix/...`), implement test-first where
    logic is involved, follow existing patterns, keep it DRY.
@@ -56,7 +56,7 @@ the app done.
 
 ## Ledger
 
-Progress is tracked in `docs/superpowers/plans/wysiwyg-parity-ledger.md` (round-by-round:
+Progress is tracked in `docs/superpowers/plans/parity-ledger.md` (round-by-round:
 what was found, what was implemented, what was deferred and why).
 
 ## Categories audited (parity wave)

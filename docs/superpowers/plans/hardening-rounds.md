@@ -112,13 +112,13 @@ handleChange no longer mirrors `markdown` into the active tab on every keystroke
 - (18) useCommands reloadThemes gained a .catch -> alert so a failed re-scan is surfaced.
 - (15) reloadThemes: if the active theme's file was removed (id no longer built-in or in the reloaded list), fall back to applyTheme('github') + persist, so the UI is never stuck on a dead theme.
 - (19) Dirty tabs now italicize their title (.tab--dirty .tab__title) so the unsaved state stays visible even while hovered (when the dot is swapped for the close x). +1 CSS test.
-Deferred: (14) close-last-tab leaves a blank Untitled - this is intentional WYSIWYG-like behavior (wontfix). (12) combobox aria-expanded - cosmetic, low value (wontfix). (17) MarkdownIt escape micro-opt - negligible (deferred). (6 tab arrow-key nav, 11 dialog focus-return) -> next wave.
+Deferred: (14) close-last-tab leaves a blank Untitled - this is intentional behavior (wontfix). (12) combobox aria-expanded - cosmetic, low value (wontfix). (17) MarkdownIt escape micro-opt - negligible (deferred). (6 tab arrow-key nav, 11 dialog focus-return) -> next wave.
 
 ### Wave 30 - FIXED: keyboard a11y (findings 6, 11) - AUDIT ROUND 1 COMPLETE
 - (11) useFocusTrap now returns focus to the opener element on close (captures document.activeElement when the trap engages; restores on cleanup, but only when focus is "loose" - body/null/inside the closing container - so it never steals focus the user/app moved elsewhere). All dialogs (Rename/GetInfo/Link/Image/Preferences) get this for free. +2 tests.
 - (6) TabBar implements the WAI-ARIA tabs keyboard pattern: roving tabindex (active tab = 0, others = -1), ArrowLeft/ArrowRight (wrap), Home/End, Enter/Space activate; .tab:focus-visible ring. +5 tests.
 
-Round-1 tally: 19 confirmed -> 15 fixed (1,2,3,4,6,7,8,9,10,11,13,15,16,18,19) + 1 root-cause-resolved (5) + 3 reasoned-deferred (12 cosmetic, 14 intentional WYSIWYG behavior, 17 negligible micro-opt). Suite: 1350 unit + 9 e2e green.
+Round-1 tally: 19 confirmed -> 15 fixed (1,2,3,4,6,7,8,9,10,11,13,15,16,18,19) + 1 root-cause-resolved (5) + 3 reasoned-deferred (12 cosmetic, 14 intentional behavior, 17 negligible micro-opt). Suite: 1350 unit + 9 e2e green.
 
 ## Round 2 - correctness bug-hunt (workflow wf_ad971ea7-354, 33 agents, 16 confirmed)
 
@@ -143,7 +143,7 @@ Round-1 tally: 19 confirmed -> 15 fixed (1,2,3,4,6,7,8,9,10,11,13,15,16,18,19) +
 - (1) Table cell backslashes were double-escaped (serializeCell re-escaped `\` on top of the inner serializer's escaping), growing unbounded on every save (a\b -> a\\b -> a\\\\b ...). Removed the redundant backslash re-escape; cells now only escape pipes + collapse newlines. Idempotent.
 - (2) A literal "$x$" arising from escaped `\$...\$` re-parsed into an inline-math node on the next load (semantic data loss). Added `escapeExtraCharacters: /\$/g` to the MarkdownSerializer so `$` in text is written `\$` (real math is a math_inline node serialized separately, so it is unaffected).
 - Removed two scratch round-trip test files the audit agents left in tests/unit/editor; added a clean tests/unit/editor/serializerRoundtrip.test.ts (+5).
-Deferred (round-2): (3) empty links `[](url)` vanish - links are MARKS so empty-text links can't carry the mark; fixing needs a schema change for a pathological/rare input (documented, low value). (7) ref-links normalize to inline - lossy but idempotent + standard WYSIWYG behavior (WYSIWYG does the same). (16) `***`/`___` HR -> `---` - cosmetic, idempotent. (8) table-cell newline collapse - not reachable (GFM cells can't contain literal newlines).
+Deferred (round-2): (3) empty links `[](url)` vanish - links are MARKS so empty-text links can't carry the mark; fixing needs a schema change for a pathological/rare input (documented, low value). (7) ref-links normalize to inline - lossy but idempotent + standard WYSIWYG behavior. (16) `***`/`___` HR -> `---` - cosmetic, idempotent. (8) table-cell newline collapse - not reachable (GFM cells can't contain literal newlines).
 
 ### Wave 32 - FIXED: perf reuse live AST (round-2 bugs 4, 10, 11)
 WYSIWYG typing no longer re-parses the whole markdown string to derive outline + word/char counts. EditorView already hands EditorPane the live ProseMirror doc; EditorPane now forwards it to App's onChange as a second arg, and recomputeDerived(doc) consumes it directly (getOutline/countWords already take a Node). The 150ms-debounced full markdown-it parse on the typing path is eliminated for WYSIWYG (the common case). Source mode (no PM doc) still parses the string once per debounce window. recomputeDerived signature changed string->Node; mount seed parses once.

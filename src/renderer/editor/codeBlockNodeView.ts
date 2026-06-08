@@ -27,7 +27,7 @@
  *     so PM does not hijack select/button interactions.
  *   - `destroy`: clear the debounce timer, copy timer, and release event listeners.
  *
- * Phase 2 note (not implemented): WYSIWYG hides the source on blur and shows
+ * Phase 2 note (not implemented): some editors hide the source on blur and show
  * only the rendered diagram. That "hide-source-on-blur" toggle is intentionally
  * omitted here to keep editing robust. Follow-up task.
  */

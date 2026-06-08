@@ -145,6 +145,20 @@ describe('applyTheme', () => {
     applyTheme('graphite')
     expect(document.documentElement.dataset['theme']).toBe('graphite')
   })
+
+  // Renamed-theme migration: the legacy id must resolve to the current one so a
+  // user who had it selected keeps their theme instead of falling back.
+  it('migrates the legacy "graphite" id to "graphite"', () => {
+    applyTheme('graphite')
+    expect(document.documentElement.dataset['theme']).toBe('graphite')
+    expect(localStorage.getItem('lekha:theme')).toBe('graphite')
+  })
+
+  it('applyCachedThemeEarly migrates a cached legacy "graphite" id to "graphite"', () => {
+    localStorage.setItem('lekha:theme', 'graphite')
+    applyCachedThemeEarly()
+    expect(document.documentElement.dataset['theme']).toBe('graphite')
+  })
 })
 
 // ---------------------------------------------------------------------------

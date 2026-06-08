@@ -46,8 +46,8 @@ export function FindReplace({ open, mode, editorRef, onClose }: FindReplaceProps
   // Confine Tab/Shift+Tab to the overlay while it is open.
   useFocusTrap(overlayRef, open)
 
-  // On open: seed the query from the editor's current selection (WYSIWYG
-  // behavior), then autofocus + select the input so the user can type over it.
+  // On open: seed the query from the editor's current selection,
+  // then autofocus + select the input so the user can type over it.
   // Only seed short, single-line selections so a large/multi-line selection
   // doesn't become an unwieldy query.
   useEffect(() => {

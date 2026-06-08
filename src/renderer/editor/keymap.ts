@@ -45,7 +45,7 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
   )
   const tabCmd = chainCommands(
     goToNextCell(1),
-    // In the last table cell, Tab appends a new row (WYSIWYG behavior).
+    // In the last table cell, Tab appends a new row.
     addRowOnTab,
     sinkListItem(listItemType),
     sinkListItem(taskItemType),
@@ -56,7 +56,7 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     liftListItem(taskItemType),
   )
 
-  // Shift-Enter inserts a hard line break (WYSIWYG: soft newline within a block).
+  // Shift-Enter inserts a hard line break (a soft newline within a block).
   const hardBreakType = schema.nodes['hard_break']
   const hardBreakCmd: Command = (state, dispatch) => {
     if (!hardBreakType) return false
@@ -86,7 +86,7 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     Tab: tabCmd,
     'Shift-Tab': shiftTabCmd,
 
-    // Hard line break (WYSIWYG parity)
+    // Hard line break
     'Shift-Enter': hardBreakCmd,
 
     // Backspace first tries to undo a just-applied input rule (so e.g. typing
@@ -95,23 +95,23 @@ export function keymapBindings(schema: Schema): Record<string, Command> {
     // nothing to revert, letting the base keymap handle a normal delete.
     Backspace: undoInputRule,
 
-    // Block type shortcuts. WYSIWYG uses Cmd+1..6 for headings and Cmd+0 for
+    // Block type shortcuts. Cmd+1..6 select headings and Cmd+0 selects
     // paragraph; we bind those as the primary shortcuts and keep Mod-Alt-0..6
     // as alternates (shared impl from editorCommandMap).
     'Mod-0': cmds.paragraph!,
     'Mod-Alt-0': cmds.paragraph!,
 
-    // Indent / outdent list items (WYSIWYG: Cmd+] / Cmd+[). Shared impl from
+    // Indent / outdent list items (Cmd+] / Cmd+[). Shared impl from
     // editorCommandMap (chained sink/lift across list_item + task_item).
     'Mod-]': cmds.indent!,
     'Mod-[': cmds.outdent!,
 
-    // Increase / decrease heading level (WYSIWYG: Cmd+Shift+= / Cmd+Shift+-).
+    // Increase / decrease heading level (Cmd+Shift+= / Cmd+Shift+-).
     'Mod-Shift-=': cmds.increaseHeading!,
     'Mod-Shift--': cmds.decreaseHeading!,
   }
 
-  // Add heading level shortcuts: Mod-1..6 (WYSIWYG) + Mod-Alt-1..6 (alternate).
+  // Add heading level shortcuts: Mod-1..6 (primary) + Mod-Alt-1..6 (alternate).
   for (let level = 1; level <= 6; level++) {
     const cmd = cmds[`heading${level}` as keyof typeof cmds]!
     bindings[`Mod-${level}`] = cmd

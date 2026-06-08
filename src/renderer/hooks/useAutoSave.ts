@@ -1,7 +1,7 @@
 /**
  * useAutoSave - automatically saves the document after a short debounce.
  *
- * Behaviour (WYSIWYG-like):
+ * Behaviour:
  *   - When `enabled`, `isDirty`, AND `hasPath`: schedules save() ~1500ms after
  *     the last change. Each new call while the timer is pending resets the
  *     clock (classic debounce).

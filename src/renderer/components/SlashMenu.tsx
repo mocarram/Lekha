@@ -1,5 +1,5 @@
 /**
- * SlashMenu - the popup for the `/` block-insert menu (a feature WYSIWYG lacks).
+ * SlashMenu - the popup for the `/` block-insert menu.
  *
  * It is purely presentational. The slashMenu ProseMirror plugin owns the
  * `{ open, from, query }` activation state; EditorView lifts that into React

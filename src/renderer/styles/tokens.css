@@ -124,7 +124,7 @@
   --hr-color:           var(--gh-hr-color);
 
   /* Sidebar / chrome.
-   * The active-row background is a faint, accent-tinted wash (WYSIWYG-style) so
+   * The active-row background is a faint, accent-tinted wash (minimalist chrome) so
    * the selection whispers instead of shouting. Because it is derived from
    * --accent via color-mix, every theme gets a coherent subtle highlight without
    * needing its own --sidebar-active override. */
@@ -157,7 +157,7 @@
 
   /* Editor layout metrics (theme-overridable). A theme can widen the reading
      column, scale the type, or loosen line spacing without touching the engine.
-     The width is WYSIWYG-like: it expands to fill the available pane (88%) up to
+     The width is the app's wide reading default: it expands to fill the available pane (88%) up to
      a 1150px cap, so wide windows use the space instead of leaving big empty
      gutters, while narrower windows keep comfortable side margins. */
   --editor-max-width:  min(1150px, 88%);
@@ -195,7 +195,7 @@
   --pres-counter: rgba(255, 255, 255, 0.5);   /* slide counter text */
 
   /* Component-scoped tokens (theme-overridable):
-   *   --list-indent  Outer + per-level indent for editor lists (WYSIWYG-tight). */
+   *   --list-indent  Outer + per-level indent for editor lists (tight). */
   --list-indent: 1.6em;
   /*   --focus-dim    Opacity of non-focused blocks in Focus Mode. */
   --focus-dim: 0.25;

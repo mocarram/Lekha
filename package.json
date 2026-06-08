@@ -1,7 +1,7 @@
 {
   "name": "lekha",
   "version": "0.1.0",
-  "description": "Lekha - a WYSIWYG-style WYSIWYG Markdown editor",
+  "description": "Lekha - a clean, distraction-free WYSIWYG Markdown editor",
   "author": "Lekha",
   "license": "MIT",
   "private": true,

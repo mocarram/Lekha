@@ -1,5 +1,5 @@
 /**
- * headingFold.ts - ProseMirror plugin for WYSIWYG-style heading section folding.
+ * headingFold.ts - ProseMirror plugin for heading section folding.
  *
  * Clicking the fold chevron next to a heading collapses its SECTION: the blocks
  * after the heading up to - but NOT including - the next heading of the same or

@@ -1,8 +1,7 @@
 # Design System & Custom Themes - Architecture Plan
 
 Goal: make Lekha **fully themable and customizable** with a clean, modular
-design system (no "diabolical" sprawl), then expose **custom/importable themes**
-like WYSIWYG.
+design system (no "diabolical" sprawl), then expose **custom/importable themes**.
 
 ## Current state (already decent)
 
@@ -62,7 +61,7 @@ Principles:
 - **Menu**: Themes ▸ "Open Theme Folder", "Reload Themes".
 - **Safety**: user CSS is style-only (no script execution). Under the existing
   CSP, remote `url()` is already restricted. Strip/escape `</style>` when
-  injecting. Document that themes are local-trust (like WYSIWYG).
+  injecting. Document that themes are local-trust.
 
 ## Migration safety
 
@@ -76,6 +75,6 @@ Principles:
 
 ## Sequencing vs the menu/settings work
 
-Menu/settings parity (`wysiwyg-menu-settings-parity.md`) lands first (user
+Menu/settings parity (`menu-settings-parity.md`) lands first (user
 priority), then this design-system refactor, then custom themes - each as
 audit-backed, verified, feature-branch → staging waves logged in the ledger.

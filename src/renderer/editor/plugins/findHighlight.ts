@@ -161,7 +161,7 @@ export function setFindQuery(
   view.dispatch(tr)
   const pluginState = findHighlightKey.getState(view.state)
   const count = pluginState?.matches.length ?? 0
-  // Scroll the current match into view as soon as a query is set (WYSIWYG jumps
+  // Scroll the current match into view as soon as a query is set (jump
   // to the first/nearest match while you type), without changing which match is
   // current. Skip when there are no matches.
   if (pluginState && count > 0) {

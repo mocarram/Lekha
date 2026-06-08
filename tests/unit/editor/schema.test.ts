@@ -19,7 +19,7 @@ function attrDefault(node: NodeType, attr: string): unknown {
 /**
  * Task 3: the schema is the correctness contract every later task imports.
  * Assert the full node/mark surface exists (18 nodes, 5 marks) and that the
- * WYSIWYG-specific shapes are present and correctly configured.
+ * editor-specific shapes are present and correctly configured.
  */
 
 const EXPECTED_NODES = [
@@ -106,7 +106,7 @@ describe('schema marks', () => {
   })
 })
 
-describe('inline code mark (WYSIWYG parity)', () => {
+describe('inline code mark', () => {
   it('is non-inclusive so typing past it exits the code styling', () => {
     expect(schema.marks['code']!.spec.inclusive).toBe(false)
   })

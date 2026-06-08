@@ -17,7 +17,7 @@ interface TabBarProps {
  * forwards user intent (select / close / new) to the parent via callbacks, so
  * App owns the editor-integration logic (loading content, the save guard).
  *
- * The strip is hidden when zero or one document is open (matching WYSIWYG's
+ * The strip is hidden when zero or one document is open (a
  * "show tabs when multiple documents" behaviour) to avoid wasting vertical
  * space in the common single-file case.
  */

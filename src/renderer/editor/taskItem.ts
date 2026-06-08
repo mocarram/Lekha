@@ -54,7 +54,7 @@ export function taskItemNodeView(
   getPos: () => number | undefined,
 ): NodeView {
   // Outer <li>. The `data-checked` attribute mirrors the node's checked state
-  // so the theme CSS can dim + strike-through completed items (WYSIWYG-style).
+  // so the theme CSS can dim + strike-through completed items.
   const dom = document.createElement('li')
   dom.className = 'task-item'
   dom.dataset['checked'] = String(node.attrs['checked'] as boolean)

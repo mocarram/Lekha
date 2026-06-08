@@ -35,7 +35,7 @@ const FENCE_RE = /^-{3,}\s*$/
  *
  * The rule is deliberately strict: it only matches `---` (or more dashes),
  * NOT `...` closing fences (YAML spec), to stay compatible with the most
- * common WYSIWYG/Pandoc convention.
+ * common Pandoc convention.
  */
 function frontMatterRule(
   state: StateBlock,

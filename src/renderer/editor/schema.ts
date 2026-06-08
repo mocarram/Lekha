@@ -12,7 +12,7 @@ import { tableNodes } from 'prosemirror-tables'
  *
  * Built on top of the prosemirror-markdown baseline (doc, paragraph, heading,
  * blockquote, code_block, lists, image, hard_break, text + em/strong/code/link)
- * and extended with WYSIWYG's set: GFM task lists, GFM tables, and the
+ * and extended with the editor's set: GFM task lists, GFM tables, and the
  * strikethrough mark. The SAME instance is imported by the parser and
  * serializer so the markdown engine has a single source of truth (DRY).
  */
@@ -111,7 +111,7 @@ const highlight: MarkSpec = {
   },
 }
 
-/** Underline mark: `<u>text</u>` (raw HTML, WYSIWYG-style; no Markdown syntax). */
+/** Underline mark: `<u>text</u>` (raw HTML; no Markdown syntax). */
 const underline: MarkSpec = {
   parseDOM: [{ tag: 'u' }],
   toDOM(): DOMOutputSpec {
@@ -137,7 +137,7 @@ const superscript: MarkSpec = {
 
 /**
  * Rebuild the baseline code_block spec so its language lives on a `language`
- * attribute (the baseline uses `params`). Keeps WYSIWYG's mental model and the
+ * attribute (the baseline uses `params`). Keeps the mental model and the
  * fenced-code serializer simple.
  */
 const codeBlock: NodeSpec = {
@@ -312,7 +312,7 @@ const footnoteDefinition: NodeSpec = {
 }
 
 // Start from the baseline node map, override code_block, then append the
-// WYSIWYG additions. baseSchema.spec.nodes is an OrderedMap whose
+// editor additions. baseSchema.spec.nodes is an OrderedMap whose
 // `append`/`update` keep ordering deterministic.
 const nodes = baseSchema.spec.nodes
   .update('code_block', codeBlock)
@@ -331,7 +331,7 @@ const nodes = baseSchema.spec.nodes
     footnote_definition: footnoteDefinition,
   })
 
-// Make the inline `code` mark non-inclusive (WYSIWYG behavior): when the caret
+// Make the inline `code` mark non-inclusive: when the caret
 // sits at the end of an inline-code span, typing continues OUTSIDE the code,
 // rather than extending the code styling indefinitely. Other marks keep the
 // prosemirror-markdown defaults.

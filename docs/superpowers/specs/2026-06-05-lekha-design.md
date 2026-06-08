@@ -1,4 +1,4 @@
-# Lekha - WYSIWYG Clone (Phase 1 MVP) - Design Spec
+# Lekha - WYSIWYG Markdown Editor (Phase 1 MVP) - Design Spec
 
 **Date:** 2026-06-05
 **Status:** Approved direction, ready for implementation planning
@@ -6,14 +6,14 @@
 
 ## 1. Overview
 
-Lekha is a desktop **WYSIWYG Markdown editor** - an independent clone of [WYSIWYG](https://wysiwyg.io/).
+Lekha is a desktop **WYSIWYG Markdown editor** - a polished, independent editor.
 Its defining behavior is **seamless live editing on a single surface**: the user types
 Markdown and it renders in place (no split source/preview pane). Phase 1 delivers a solid,
 fully-tested core editor plus file management. Later phases layer on math, diagrams, export,
 themes, and more.
 
 ### Goals (Phase 1)
-- WYSIWYG-faithful look (GitHub default theme: typography, colors, layout) and core feel.
+- Polished look (GitHub default theme: typography, colors, layout) and core feel.
 - True inline WYSIWYG editing backed by a real document model (ProseMirror).
 - Lossless Markdown round-trip (open file -> edit -> save produces clean, stable Markdown).
 - A reliable macOS desktop app: open folder, file tree, open/save files, native menu.
@@ -185,7 +185,7 @@ tests/ unit/ (+ fixtures/*.md), e2e/
 14. Styling, e2e, packaging.
 
 ## 12. Success Criteria
-- Type Markdown and watch it render inline, WYSIWYG-style, no split pane.
+- Type Markdown and watch it render inline, in place, no split pane.
 - Open/edit/save real `.md` files with stable, clean round-tripped output.
 - Open a folder, browse the tree, switch files, see the outline.
 - Source-mode toggle, find & replace, word count all work.

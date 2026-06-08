@@ -193,7 +193,7 @@ export function editorCommandMap(schema: Schema): Partial<Record<AppCommand, Com
   // ladder: paragraph <-> H6 <-> H5 <-> ... <-> H1.
   //   increaseHeading: one step MORE prominent (paragraph -> H6, H3 -> H2).
   //   decreaseHeading: one step LESS prominent (H1 -> H2, H6 -> paragraph).
-  // Mirrors WYSIWYG's "Increase / Decrease Heading Level".
+  // Provides the familiar "Increase / Decrease Heading Level" commands.
   const headingType = schema.nodes['heading']!
   const paragraphType = schema.nodes['paragraph']!
   const shiftHeading = (delta: number): Command => (state, dispatch) => {

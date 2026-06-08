@@ -104,7 +104,7 @@ function hrInputRule(schema: Schema): InputRule {
 /**
  * Create an InputRule that replaces a `:shortcode:` with its unicode emoji
  * character when the closing `:` is typed. Unknown shortcodes are left as-is
- * (the rule returns null), matching WYSIWYG's behaviour.
+ * (the rule returns null).
  *
  * The name->char map is markdown-it-emoji's `full` data set, the SAME source
  * the parser uses, so typed and pasted emoji resolve identically.
@@ -128,7 +128,7 @@ function emojiInputRule(): InputRule {
 
 /**
  * Convert a plain paragraph into a checkbox task item when the user types
- * `[ ] `, `[] `, or `[x] ` (case-insensitive) at its start - matching WYSIWYG's
+ * `[ ] `, `[] `, or `[x] ` (case-insensitive) at its start - a familiar
  * gesture. The `- ` bullet rule fires before `- [ ] ` can ever complete, so
  * this rule deliberately keys off the bracket marker alone.
  *
@@ -178,7 +178,7 @@ function taskListInputRule(schema: Schema): InputRule {
 
 /**
  * Typing `$$` at the start of an empty paragraph inserts a block equation
- * (WYSIWYG's gesture). Replaces the paragraph with an empty math_block and
+ * (a familiar gesture). Replaces the paragraph with an empty math_block and
  * selects it so the math NodeView is ready to edit.
  */
 function mathBlockInputRule(schema: Schema): InputRule {

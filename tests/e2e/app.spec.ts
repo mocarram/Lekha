@@ -36,7 +36,7 @@
  *   Tests assert both the DOM editor presence AND the button text label.
  *
  * Screenshots (written to tests/e2e/screenshots/) are artifacts for human
- * visual review of the GitHub-theme WYSIWYG look.
+ * visual review of the GitHub-theme reading look.
  */
 
 import { test, expect, _electron as electron } from '@playwright/test'

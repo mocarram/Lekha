@@ -164,7 +164,7 @@
 }
 
 /*
- * ProseMirror container: centered column matching WYSIWYG's GitHub theme layout.
+ * ProseMirror container: centered column for a clean, GitHub-flavored reading layout.
  * max-width 800px, generous horizontal padding, margin auto to center.
  */
 .editor-pane .ProseMirror {
@@ -220,7 +220,7 @@
   position: relative;
 }
 
-/* H1: large and a touch lighter for an elegant, airy title (WYSIWYG-style).
+/* H1: large and a touch lighter for an elegant, airy title.
  * The hairline rule and extra letter-spacing keep it calm rather than heavy. */
 .editor-pane .ProseMirror h1 {
   font-size: 2.25em;
@@ -285,7 +285,7 @@
 /* --- Unordered / ordered / task lists ---
  *
  * All three list flavors share the SAME left padding so bullets, numbers, and
- * checkboxes line up at one consistent left edge (WYSIWYG-tight alignment). The
+ * checkboxes line up at one consistent left edge (tight alignment). The
  * `--list-indent` token drives both the outer indent and each nested level
  * (declared in tokens.css; override per-theme there).
  */
@@ -302,7 +302,7 @@
 }
 
 /* The loose feel comes from the paragraph margins INSIDE each item. Collapse
- * them so single-line items read as one tight line (matching WYSIWYG). */
+ * them so single-line items read as one tight line. */
 .editor-pane .ProseMirror li > p {
   margin: 0;
 }
@@ -442,7 +442,7 @@
  * to the right of the last column.) */
 .editor-pane .ProseMirror .tableWrapper {
   margin: 0 0 1em;
-  /* Size to the table's content (GitHub/WYSIWYG style) rather than forcing full
+  /* Size to the table's content (GitHub style) rather than forcing full
      width - a small table stays compact instead of stretching edge-to-edge.
      max-width caps it at the editor width; overflow scrolls wider tables. */
   width: fit-content;
@@ -963,7 +963,7 @@
  *
  * Floats in the top-right corner of the wrapper. Hidden at rest and revealed
  * on hover or focus-within so it stays out of the way while reading/writing
- * (WYSIWYG-style). Both controls are purely decorative from PM's perspective -
+ * (minimalist chrome). Both controls are purely decorative from PM's perspective -
  * they live outside contentDOM and are ignored by ProseMirror mutations.
  * --------------------------------------------------------------------------- */
 
@@ -1046,7 +1046,7 @@
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Diagram source-hiding gate (better-than-WYSIWYG behavior).
+/* Diagram source-hiding gate.
  *
  * A diagram block (`.is-diagram`, set by codeBlockNodeView for mermaid) shows
  * ONLY its rendered preview when the cursor is elsewhere. When it becomes the

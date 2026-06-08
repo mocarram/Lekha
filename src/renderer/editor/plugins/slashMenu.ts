@@ -1,5 +1,5 @@
 /**
- * slashMenu.ts - the `/` block-insert menu plugin (a feature WYSIWYG lacks).
+ * slashMenu.ts - the `/` block-insert menu plugin.
  *
  * Typing `/` at the START of an empty paragraph opens a Notion-style popup that
  * lists block types to insert; typing after the slash fuzzy-filters the list,

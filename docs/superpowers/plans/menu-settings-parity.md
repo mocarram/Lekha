@@ -1,12 +1,12 @@
-# WYSIWYG Menu & Settings Parity - Map, Plan & Open Questions
+# Menu & Settings Parity - Map, Plan & Open Questions
 
-Compares WYSIWYG's menu/settings surface to Lekha's (`src/main/menu.ts`,
+Compares a reference editor's menu/settings surface to Lekha's (`src/main/menu.ts`,
 `components/Preferences.tsx`, `src/shared/types.ts` Settings). Status legend:
 **HAVE** · **ADD** (will implement) · **SKIP** (not wanted) · **❓** (needs your input).
 
 ## File menu
 
-| WYSIWYG | Lekha | Status |
+| Reference | Lekha | Status |
 |---|---|---|
 | New | New | HAVE |
 | New Tab | – | ❓ Lekha uses one doc per window (no in-window tabs). Add document **tabs**, or keep window-per-doc? Big arch choice. |
@@ -15,7 +15,7 @@ Compares WYSIWYG's menu/settings surface to Lekha's (`src/main/menu.ts`,
 | Open Recent | Open Recent | HAVE |
 | Open Quickly | Quick Open (Cmd+P) | HAVE (rename to "Open Quickly"?) |
 | Get Info | – | ADD - doc info popover (path, size, created/modified, word/char count) |
-| Reveal in Library | – | ❓ Tied to WYSIWYG's "Library/Articles" concept - what should this do in Lekha? |
+| Reveal in Library | – | ❓ Tied to the "Library/Articles" concept - what should this do in Lekha? |
 | Reveal in File Tree | (auto-reveal exists) | ADD - explicit "Reveal in Sidebar" command |
 | Open File Location | (tree row has Reveal) | ADD - doc-level "Show in Finder" |
 | Delete… | (tree row has Delete) | ADD - doc-level "Move to Trash" |
@@ -32,7 +32,7 @@ Compares WYSIWYG's menu/settings surface to Lekha's (`src/main/menu.ts`,
 | Page Setup | – | ❓ needed, or is Print enough? |
 | Print | – | ADD - system print (already a high backlog finding) |
 
-## Edit menu (expanded from WYSIWYG's Edit menu screenshot)
+## Edit menu (expanded from the reference Edit menu)
 HAVE: Undo/Redo, Cut/Copy/Paste/SelectAll, Copy as HTML/Markdown, Find/Replace.
 ADD (needed):
 - **Copy as Plain Text** and **Paste as Plain Text** (strip formatting).
@@ -52,14 +52,14 @@ ADD (have behavior, expose toggle): **Substitutions / Smart Punctuation**
 standard submenu where practical.
 SKIP: Copy Image Content (niche), AutoFill (OS form-fill, irrelevant to an editor).
 
-## Paragraph menu (WYSIWYG separates block-level from inline)
-Lekha folds these into Format. ADD a dedicated **Paragraph** menu mirroring
-WYSIWYG: Heading 1-6, Paragraph, Increase/Decrease Heading Level, Ordered/Bullet/
+## Paragraph menu (block-level separated from inline)
+Lekha folds these into Format. ADD a dedicated **Paragraph** menu with:
+Heading 1-6, Paragraph, Increase/Decrease Heading Level, Ordered/Bullet/
 Task List, Indent/Outdent, Blockquote, Code Fences, Math Block, Table, Horizontal
 Rule, [TOC], Footnote, Link Reference.
 
 ## Format menu (inline)
-ADD: Underline (❓ WYSIWYG supports `<u>`; Lekha has no underline mark yet),
+ADD: Underline (❓ via `<u>`; Lekha has no underline mark yet),
 Highlight (`==`), Superscript (`^`), Subscript (`~`), Comment, Clear Format.
 HAVE: Bold, Italic, Strikethrough, Code, Link, Image. (highlight/sub/sup marks
 exist in the schema but lack menu/command entries.)
@@ -75,7 +75,7 @@ ADD (ties to design-system workstream): "Open Theme Folder" + "Reload Themes"
 HAVE: built-in theme radio list.
 
 ## Settings / Preferences panels to expand
-WYSIWYG groups: General, Appearance, Editor, Image, Markdown, Export, Spelling.
+Reference groups: General, Appearance, Editor, Image, Markdown, Export, Spelling.
 Lekha currently has: theme, font size, focus/typewriter defaults, equation
 numbering, auto-save, spell check + language, sidebar default tab.
 ADD settings (most behaviors already exist - just expose toggles): smart
@@ -105,12 +105,12 @@ reading-time in status bar.
 4. **Print** - YES, Print only (`webContents.print()` opens the native dialog,
    which already exposes page setup). No separate Page Setup item.
 5. **Underline** - YES. Add a `<u>` underline mark with Cmd+U; parser maps `<u>`,
-   serializer emits raw `<u>…</u>` (HTML passthrough, like WYSIWYG). Keep
+   serializer emits raw `<u>…</u>` (HTML passthrough). Keep
    markdown round-trip stable for the rest.
 
 ## Articles/Library view - design
 - Sidebar gains a 4th tab: **Files | Outline | Articles | Search** (Articles
-  between Outline and Search, matching WYSIWYG's emphasis).
+  between Outline and Search, matching the intended emphasis).
 - Main IPC `fs:listArticles(root)` returns `ArticleEntry[]`
   `{ path, title, mtimeMs, sizeBytes, preview }` for all `.md` under root
   (reuse the recursive walk from buildFileTree / searchFolder; cap preview to

@@ -19,7 +19,7 @@
 export type { ThemeDef } from '@shared/types'
 export { THEMES } from '@shared/types'
 
-import { THEMES, type ThemeDef, type UserTheme } from '@shared/types'
+import { THEMES, migrateThemeId, type ThemeDef, type UserTheme } from '@shared/types'
 
 /** Set of built-in theme ids for fast O(1) lookup. */
 const THEME_IDS = new Set(THEMES.map((t) => t.id))
@@ -105,6 +105,7 @@ export function getAllThemes(userThemes: UserTheme[]): ThemeDef[] {
 /** localStorage key holding the last applied (resolved) theme id. */
 const THEME_CACHE_KEY = 'lekha:theme'
 
+
 /**
  * Apply the cached theme synchronously, BEFORE React renders, to avoid the
  * first-paint flash (FOUC) where a dark-theme user briefly sees the light
@@ -119,8 +120,9 @@ const THEME_CACHE_KEY = 'lekha:theme'
 export function applyCachedThemeEarly(): void {
   try {
     const cached = localStorage.getItem(THEME_CACHE_KEY)
-    if (cached && THEME_IDS.has(cached)) {
-      document.documentElement.dataset['theme'] = cached
+    const migrated = cached ? migrateThemeId(cached) : null
+    if (migrated && THEME_IDS.has(migrated)) {
+      document.documentElement.dataset['theme'] = migrated
     }
   } catch {
     // Storage unavailable - skip; useStartup's applyTheme will set it shortly.
@@ -134,7 +136,8 @@ export function applyCachedThemeEarly(): void {
  * never leaves the UI in an undefined state.
  */
 export function applyTheme(id: string): void {
-  const resolved = THEME_IDS.has(id) || userThemeIds.has(id) ? id : 'github'
+  const migrated = migrateThemeId(id)
+  const resolved = THEME_IDS.has(migrated) || userThemeIds.has(migrated) ? migrated : 'github'
   // Set the data-theme attribute on <html>. All CSS files loaded in main.tsx
   // use this attribute to select the correct token overrides. Setting it on
   // documentElement (not document.body) ensures :root selectors also match.

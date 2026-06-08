@@ -243,7 +243,7 @@ function lekhaTables(state: StateCore): boolean {
  * Flatten `emoji` tokens into plain text.
  *
  * markdown-it-emoji replaces a `:shortcode:` run with an `emoji` inline token
- * whose `content` is already the resolved unicode character. WYSIWYG consumes
+ * whose `content` is already the resolved unicode character. The editor consumes
  * the shortcode on first parse, so we simply retype each `emoji` token to a
  * `text` token: the emoji then lives in the document as an ordinary text
  * character, serializes as itself, and re-parses as itself (idempotent).
@@ -291,7 +291,7 @@ const tokenizer = MarkdownIt('commonmark', { html: false })
   .use(frontMatterPlugin)
   .use(tocPlugin)
   .use(footnotePlugin)
-  // Underline via raw <u>…</u> tags (WYSIWYG-style; html stays disabled).
+  // Underline via raw <u>…</u> tags (html stays disabled).
   .use(underlinePlugin)
 
 // Run AFTER markdown-it-task-lists' `github-task-lists` rule so the

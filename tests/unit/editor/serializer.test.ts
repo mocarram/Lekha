@@ -67,7 +67,7 @@ describe('serializeMarkdown - mixed lists (KNOWN FIX #1)', () => {
   })
 })
 
-describe('serializeMarkdown - underline (WYSIWYG <u> mark)', () => {
+describe('serializeMarkdown - underline (<u> mark)', () => {
   it('round-trips <u>underlined</u>', () => {
     expect(rt('<u>underlined</u>')).toBe('<u>underlined</u>')
   })

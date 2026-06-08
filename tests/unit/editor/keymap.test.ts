@@ -262,10 +262,10 @@ describe('keymapBindings - table cell navigation', () => {
 })
 
 // ---------------------------------------------------------------------------
-// WYSIWYG-parity additions: Cmd+1..6 / Cmd+0 headings, Shift-Enter, Backspace
+// Editor shortcut additions: Cmd+1..6 / Cmd+0 headings, Shift-Enter, Backspace
 // ---------------------------------------------------------------------------
 
-describe('keymapBindings - WYSIWYG heading shortcuts (Mod-1..6 / Mod-0)', () => {
+describe('keymapBindings - heading shortcuts (Mod-1..6 / Mod-0)', () => {
   it('exports Mod-1 through Mod-6 and Mod-0', () => {
     for (let i = 1; i <= 6; i++) {
       expect(bindings[`Mod-${i}`], `Mod-${i} missing`).toBeDefined()
@@ -317,7 +317,7 @@ describe('keymapBindings - Backspace undoes input rules', () => {
 })
 
 // ---------------------------------------------------------------------------
-// WYSIWYG-parity: Tab in the last table cell appends a row
+// Tab in the last table cell appends a row
 // ---------------------------------------------------------------------------
 
 describe('keymapBindings - Tab appends a table row at the end', () => {

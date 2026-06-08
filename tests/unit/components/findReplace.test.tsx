@@ -255,7 +255,7 @@ describe('FindReplace - close', () => {
   })
 })
 
-describe('FindReplace - seed from selection (WYSIWYG parity)', () => {
+describe('FindReplace - seed from selection', () => {
   it('prefills the find input with the editor selection on open', () => {
     const { editorRef, handle } = makeMockHandle()
     handle.getSelectionText = vi.fn(() => 'needle')
