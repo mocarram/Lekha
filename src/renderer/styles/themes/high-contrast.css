@@ -1,0 +1,79 @@
+/*
+ * themes/high-contrast.css - "High Contrast" theme for Lekha
+ *
+ * A maximum-legibility dark theme: pure-black background, white text, a bright
+ * accent, strong borders, and a deliberately SQUARE UI (every --radius* set to
+ * 0). It doubles as the reference for the structural radius tokens - proof that
+ * a theme can change shape, not just color. Like every theme, it only
+ * re-assigns design tokens (styles/tokens.css); no component CSS is redeclared.
+ *
+ * Activation: applyTheme('high-contrast') sets data-theme="high-contrast".
+ */
+
+[data-theme="high-contrast"] {
+  /* --- Surfaces --- */
+  --bg:           #000000;
+  --surface:      #0a0a0a;
+  --border:       #6e6e6e;
+  --border-light: #8a8a8a;
+
+  /* --- Text (all high-luminance for contrast >= 7:1 on black) --- */
+  --text:       #ffffff;
+  --text-muted: #d4d4d4;
+  --text-sub:   #cccccc;
+  --text-dark:  #ffffff;
+  --text-file:  #ffffff;
+  --heading:    #ffffff;
+
+  /* --- Accent --- */
+  --link:   #6cb6ff;   /* bright blue links */
+  --accent: #ffd400;   /* high-vis yellow: selection tints, focus, active rows */
+
+  /* --- Editor content --- */
+  --selection:         #15539e;
+  --code-bg:           #161616;
+  --code-bg-inline:    #161616;
+  --code-text:         #ffffff;
+  --blockquote-text:   #d4d4d4;
+  --blockquote-border: #8a8a8a;
+  --table-border:      #8a8a8a;
+  --table-header-bg:   #161616;
+  --hr-color:          #8a8a8a;
+
+  /* --- Chrome --- */
+  --sidebar-bg:     #0a0a0a;
+  --sidebar-hover:  #242424;
+  --titlebar-bg:    #0a0a0a;
+  --statusbar-text: #d4d4d4;
+
+  /* --- Find / highlight --- */
+  --find-match:         #6b5800;
+  --find-match-current: #ffd400;
+  --highlight-bg:       #5a4d00;
+  --highlight-text:     #ffffff;
+
+  /* --- Syntax highlighting (bright, GitHub-dark-inspired) --- */
+  --hljs-keyword:   #ff7ab2;
+  --hljs-string:    #7ee787;
+  --hljs-comment:   #b8b8b8;
+  --hljs-function:  #d2a8ff;
+  --hljs-number:    #79c0ff;
+  --hljs-tag:       #7ee787;
+  --hljs-attribute: #ffa657;
+  --hljs-section:   #79c0ff;
+
+  /* --- Semantic --- */
+  --danger:          #ff6b6b;
+  --on-accent:       #000000;                 /* black text on the yellow accent */
+  --on-accent-muted: rgba(0, 0, 0, 0.72);
+
+  /* --- Shape: fully SQUARE (showcases the structural radius tokens) --- */
+  --radius-sm:   0;
+  --radius:      0;
+  --radius-lg:   0;
+  --radius-xl:   0;
+  --radius-pill: 0;
+
+  /* --- Strong, solid focus ring (not a soft glow) for keyboard visibility --- */
+  --focus-ring: 0 0 0 3px var(--accent);
+}

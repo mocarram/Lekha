@@ -72,6 +72,13 @@ describe('THEMES registry', () => {
     expect(t!.label).toBe('Nord')
   })
 
+  it('includes high-contrast theme with label "High Contrast"', () => {
+    const t = THEMES.find((x) => x.id === 'high-contrast')
+    expect(t).toBeDefined()
+    expect(t!.label).toBe('High Contrast')
+    expect(t!.type).toBe('dark')
+  })
+
   it('has at least 6 themes after adding the 3 new ones', () => {
     expect(THEMES.length).toBeGreaterThanOrEqual(6)
   })
@@ -144,6 +151,11 @@ describe('applyTheme', () => {
   it('sets data-theme="graphite" when called with "graphite"', () => {
     applyTheme('graphite')
     expect(document.documentElement.dataset['theme']).toBe('graphite')
+  })
+
+  it('sets data-theme="high-contrast" when called with "high-contrast"', () => {
+    applyTheme('high-contrast')
+    expect(document.documentElement.dataset['theme']).toBe('high-contrast')
   })
 })
 

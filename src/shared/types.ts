@@ -87,6 +87,7 @@ export const THEMES: ThemeDef[] = [
   { id: 'solarized-light', label: 'Solarized Light', type: 'light' },
   { id: 'solarized-dark',  label: 'Solarized Dark',  type: 'dark'  },
   { id: 'nord',            label: 'Nord',            type: 'dark'  },
+  { id: 'high-contrast',   label: 'High Contrast',   type: 'dark'  },
 ]
 
 /** A single line match inside a file during folder-wide search. */

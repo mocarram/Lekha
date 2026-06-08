@@ -100,14 +100,66 @@ export const DEFAULT_TEMPLATE_CSS = `/*
   --editor-font-scale:  1;                 /* multiply the base font size */
   --editor-line-height: 1.7;               /* body line spacing */
 
-  /* --- Semantic (danger / overlays) --- */
-  --danger:               #cb2431;
-  --on-accent:            #ffffff;          /* text on accent backgrounds */
-  --overlay-scrim:        rgba(0, 0, 0, 0.35);
-  --overlay-scrim-strong: rgba(0, 0, 0, 0.82);
+  /* --- Shape: border-radius scale (set every one to 0 for a square UI) --- */
+  --radius-sm:   4px;     /* inputs, chips, inline code, small buttons */
+  --radius:      6px;     /* buttons, cards, panels, menu surfaces */
+  --radius-lg:   8px;     /* dialogs, toasts, command palette */
+  --radius-xl:   10px;    /* image lightbox, large cards */
+  --radius-pill: 999px;   /* fully-rounded pills / toggles */
+
+  /* --- Semantic (danger / overlays / elevation) --- */
+  --danger:               #cb2431;                  /* error / delete actions */
+  --on-accent:            #ffffff;                  /* text on accent backgrounds */
+  --on-accent-muted:      rgba(255, 255, 255, 0.82);/* dimmed text on accent */
+  --overlay-scrim:        rgba(0, 0, 0, 0.35);      /* modal backdrop */
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.82);      /* lightbox backdrop */
+  --shadow:               0 8px 32px rgba(0, 0, 0, 0.18);  /* menus, dialogs */
+  --shadow-sm:            0 2px 8px rgba(0, 0, 0, 0.14);   /* toolbars */
+  --shadow-lg:            0 16px 48px rgba(0, 0, 0, 0.28); /* palette, lightbox */
+  --focus-ring:           0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  --sidebar-active:       color-mix(in srgb, var(--accent) 14%, transparent); /* active row wash */
+
+  /* --- Chrome metrics (structural; usually left at defaults) --- */
+  --titlebar-height:  34px;
+  --statusbar-height: 26px;
+  --sidebar-width:    240px;   /* default width; the user can still drag-resize */
 
   /* --- Component-scoped --- */
   --list-indent: 1.6em;   /* list indent (outer + per nested level) */
   --focus-dim:   0.25;    /* opacity of non-focused blocks in Focus Mode */
+
+  /* --- Presentation mode (the slideshow stage). Deliberately dark by default
+   *     so slides look the same projected anywhere; override to retheme it. --- */
+  --pres-bg:           #1a1a1a;
+  --pres-text:         #f0f0f0;
+  --pres-heading:      #ffffff;
+  --pres-rule:         rgba(255, 255, 255, 0.15);
+  --pres-border:       rgba(255, 255, 255, 0.2);
+  --pres-code-bg:      rgba(255, 255, 255, 0.08);
+  --pres-code-text:    #e0e0e0;
+  --pres-quote:        #c0c0c0;
+  --pres-quote-border: rgba(255, 255, 255, 0.3);
+  --pres-counter:      rgba(255, 255, 255, 0.5);
 }
+
+/*
+ * ADVANCED (optional) - change more than colors.
+ * ----------------------------------------------
+ * Tokens above cover colors, fonts, radii, and metrics. To restyle structure
+ * the tokens don't expose, your theme file may ALSO contain ordinary CSS rules,
+ * as long as every selector is scoped to your [data-theme="..."] so it only
+ * applies when your theme is active:
+ *
+ *   [data-theme="my-theme"] .tab        { text-transform: uppercase; }
+ *   [data-theme="my-theme"] .cmdk       { border-width: 2px; }
+ *
+ * Tokens are the supported, future-proof path; raw rules may need updating if a
+ * component's class names change.
+ *
+ * WORKED EXAMPLE - a soft, rounded, airy look (copy into your block + adapt):
+ *
+ *   --radius-sm: 8px; --radius: 12px; --radius-lg: 16px; --radius-xl: 20px;
+ *   --editor-line-height: 1.85;
+ *   --editor-max-width: min(820px, 80%);
+ */
 `

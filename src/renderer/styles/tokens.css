@@ -179,6 +179,20 @@
    * from --accent so every theme gets a coherent glow. */
   --focus-ring:          0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 
+  /* Shape - border-radius scale (theme-overridable). Component CSS consumes
+   * ONLY these tokens; no raw px radii are hardcoded. Set them all to 0 for a
+   * square/brutalist UI, or raise them for a softer, rounder look.
+   *   --radius-sm   small controls: inputs, chips, inline code, small buttons
+   *   --radius      base: buttons, cards, panels, menu surfaces
+   *   --radius-lg   large surfaces: dialogs, toasts, command palette
+   *   --radius-xl   extra-large surfaces: image lightbox, large cards
+   *   --radius-pill fully-rounded pills / toggles (clamps large) */
+  --radius-sm:   4px;
+  --radius:      6px;
+  --radius-lg:   8px;
+  --radius-xl:   10px;
+  --radius-pill: 999px;
+
   /* Presentation mode (full-screen slide overlay). These are deliberately dark
    * regardless of the active theme: a presentation reads as a dark stage so it
    * looks the same projected anywhere. Component CSS (.pres-*) consumes these
