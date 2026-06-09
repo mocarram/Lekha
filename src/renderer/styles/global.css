@@ -572,8 +572,11 @@ body,
 .tab--active,
 .tab--active:hover {
   color: var(--color-text);
-  /* Active = filled pill matching the editor card surface. */
+  /* Active = filled pill matching the editor card surface, lifted with a soft
+     shadow so it separates from the strip even in low-contrast light themes
+     (where the pill --bg and the strip --surface are both near-white). */
   background-color: var(--color-bg);
+  box-shadow: var(--shadow-sm);
 }
 
 .tab__title {
