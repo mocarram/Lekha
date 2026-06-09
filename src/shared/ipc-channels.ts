@@ -5,6 +5,8 @@ export const IPC = {
   /** Renderer -> main: ask the user whether to save unsaved changes.
    *  Returns 'save' | 'dontSave' | 'cancel'. */
   confirmUnsaved: 'dialog:confirmUnsaved',
+  /** Renderer -> main: confirm a destructive folder-wide replace. Returns boolean. */
+  confirmReplace: 'dialog:confirmReplace',
   readFile: 'fs:readFile',
   /** Renderer -> main: stat a file (size + created/modified) for Get Info. */
   statFile: 'fs:statFile',

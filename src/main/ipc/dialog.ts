@@ -34,6 +34,20 @@ export function registerDialogHandlers(): void {
     return mapUnsavedResponse(result.response)
   })
 
+  // --- Folder-replace confirmation (destructive, not undoable) ---
+  ipcMain.handle(IPC.confirmReplace, async (event, detail: string): Promise<boolean> => {
+    const win = senderWindow(event)
+    const result = await dialog.showMessageBox(win!, {
+      type: 'warning',
+      buttons: ['Replace All', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      message: 'Replace across files?',
+      detail,
+    })
+    return result.response === 0
+  })
+
   ipcMain.handle(IPC.openFileDialog, async (event) => {
     const win = senderWindow(event)
     const result = await dialog.showOpenDialog(win!, {

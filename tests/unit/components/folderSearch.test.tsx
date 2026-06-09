@@ -29,6 +29,7 @@ function makeMockLekha(
     openFolderDialog: vi.fn(() => Promise.resolve(null)),
     saveAsDialog: vi.fn(() => Promise.resolve(null)),
     confirmUnsaved: vi.fn(() => Promise.resolve('cancel' as const)),
+    confirmReplace: vi.fn(() => Promise.resolve(false)),
     readFile: vi.fn(() => Promise.resolve('')),
     statFile: vi.fn(() => Promise.resolve({ sizeBytes: 0, birthtimeMs: 0, mtimeMs: 0, inode: 0 })),
     getPathForFile: vi.fn(() => ''),

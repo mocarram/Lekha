@@ -34,6 +34,10 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.confirmUnsaved) as Promise<'save' | 'dontSave' | 'cancel'>
   },
 
+  confirmReplace(detail: string): Promise<boolean> {
+    return ipcRenderer.invoke(IPC.confirmReplace, detail) as Promise<boolean>
+  },
+
   // --- Filesystem ---
   readFile(path: string): Promise<string> {
     return ipcRenderer.invoke(IPC.readFile, path) as Promise<string>

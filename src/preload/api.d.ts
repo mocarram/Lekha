@@ -21,6 +21,8 @@ export interface LekhaAPI {
   saveAsDialog(suggestedName?: string): Promise<string | null>
   /** Show the native "unsaved changes" dialog. Returns the user's choice. */
   confirmUnsaved(): Promise<'save' | 'dontSave' | 'cancel'>
+  /** Show the native destructive folder-wide replace confirmation. Returns true to proceed. */
+  confirmReplace(detail: string): Promise<boolean>
 
   // --- Filesystem ---
   readFile(path: string): Promise<string>
