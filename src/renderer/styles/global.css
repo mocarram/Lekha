@@ -61,7 +61,9 @@ body,
  * --------------------------------------------------------------------------- */
 .sidebar-toggle {
   position: absolute;
-  top: 13px;
+  /* Vertically center the 24px button on the macOS traffic lights
+     (trafficLightPosition y:16, ~13px tall -> center ~y22). */
+  top: 10px;
   left: 80px;
   z-index: 50;
   display: flex;
