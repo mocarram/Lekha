@@ -561,6 +561,17 @@ body,
   display: none;
 }
 
+/* The active tab always shows its close × (not only on hover), so the current
+   document can be closed in one click. Its dirty state stays visible via the
+   italic title. */
+.tab--active .tab__close-x {
+  display: block;
+}
+
+.tab--active .tab__dirty-dot {
+  display: none;
+}
+
 .tab-bar__new {
   -webkit-app-region: no-drag;
   display: inline-flex;
