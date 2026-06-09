@@ -444,7 +444,10 @@ body,
   display: flex;
   align-items: center;
   gap: 5px;
-  flex: 1 1 auto;
+  /* Shrink to the tabs' own width (don't fill the strip): the leftover space
+     stays as plain .tab-bar background, which is a reliable window drag region.
+     flex-shrink lets the row narrow + scroll once there are too many tabs. */
+  flex: 0 1 auto;
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
 }
@@ -563,6 +566,8 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Pinned to the right edge; the gap to its left is draggable strip space. */
+  margin-left: auto;
   width: 30px;
   height: 30px;
   flex-shrink: 0;
