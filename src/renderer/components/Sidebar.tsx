@@ -193,14 +193,6 @@ export function Sidebar({
         </button>
         <button
           type="button"
-          className={`sidebar__tab-btn${sidebarTab === 'outline' ? ' active' : ''}`}
-          onClick={() => { useWorkspaceStore.getState().setSidebarTab('outline') }}
-        >
-          <SidebarTabIcon tab="outline" />
-          <span className="sidebar__tab-label">Outline</span>
-        </button>
-        <button
-          type="button"
           className={`sidebar__tab-btn${sidebarTab === 'articles' ? ' active' : ''}`}
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('articles') }}
         >
@@ -215,6 +207,14 @@ export function Sidebar({
         >
           <SidebarTabIcon tab="search" />
           <span className="sidebar__tab-label">Search</span>
+        </button>
+        <button
+          type="button"
+          className={`sidebar__tab-btn${sidebarTab === 'outline' ? ' active' : ''}`}
+          onClick={() => { useWorkspaceStore.getState().setSidebarTab('outline') }}
+        >
+          <SidebarTabIcon tab="outline" />
+          <span className="sidebar__tab-label">Outline</span>
         </button>
       </div>
     </aside>
