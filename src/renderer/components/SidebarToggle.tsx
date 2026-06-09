@@ -6,7 +6,7 @@ import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 // button's glyph reflects the current state at a glance.
 // ---------------------------------------------------------------------------
 
-/** Panel glyph with a FILLED left rail — shown while the sidebar is visible. */
+/** Panel glyph with a FILLED left rail - shown while the sidebar is visible. */
 function PanelShownIcon() {
   return (
     <svg
@@ -27,7 +27,7 @@ function PanelShownIcon() {
   )
 }
 
-/** Panel glyph with an EMPTY left rail — shown while the sidebar is hidden. */
+/** Panel glyph with an EMPTY left rail - shown while the sidebar is hidden. */
 function PanelHiddenIcon() {
   return (
     <svg
