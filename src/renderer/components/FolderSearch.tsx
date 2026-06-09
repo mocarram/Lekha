@@ -113,7 +113,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
           type="button"
           className={`folder-search__case-btn${caseSensitive ? ' active' : ''}`}
           onClick={() => { setCaseSensitive((v) => !v) }}
-          title="Match case"
+          title={caseSensitive ? 'Case-sensitive: on' : 'Match case (case-sensitive)'}
           aria-label="Match case"
           aria-pressed={caseSensitive}
         >
