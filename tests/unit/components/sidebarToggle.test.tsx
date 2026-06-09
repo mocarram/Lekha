@@ -16,6 +16,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  // Reset the toggled state so a click test can't bleed into the next test
+  // (e.g. under shuffled run order).
+  useWorkspaceStore.setState({ sidebarVisible: true })
 })
 
 describe('SidebarToggle', () => {
@@ -24,17 +27,19 @@ describe('SidebarToggle', () => {
     expect(container.querySelector('button.sidebar-toggle')).not.toBeNull()
   })
 
-  it('labels itself "Hide sidebar" and is pressed when the sidebar is visible', () => {
+  it('has a static accessible name with the "Hide sidebar" tooltip + pressed state when visible', () => {
     useWorkspaceStore.setState({ sidebarVisible: true })
     const { getByRole } = render(<SidebarToggle />)
-    const btn = getByRole('button', { name: 'Hide sidebar' })
+    const btn = getByRole('button', { name: 'Toggle sidebar' })
+    expect(btn.getAttribute('title')).toBe('Hide sidebar')
     expect(btn.getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('labels itself "Show sidebar" and is not pressed when the sidebar is hidden', () => {
+  it('keeps the static accessible name with the "Show sidebar" tooltip + not pressed when hidden', () => {
     useWorkspaceStore.setState({ sidebarVisible: false })
     const { getByRole } = render(<SidebarToggle />)
-    const btn = getByRole('button', { name: 'Show sidebar' })
+    const btn = getByRole('button', { name: 'Toggle sidebar' })
+    expect(btn.getAttribute('title')).toBe('Show sidebar')
     expect(btn.getAttribute('aria-pressed')).toBe('false')
   })
 

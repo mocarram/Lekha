@@ -49,6 +49,10 @@ body,
   background-color: var(--window-bg);
   padding: var(--shell-gap);
   gap: var(--shell-gap);
+  /* Sidebar-toggle geometry, shared by the button itself and the collapsed
+     tab-bar's left clearance below so the two can never drift apart. */
+  --sidebar-toggle-left: 80px;
+  --sidebar-toggle-width: 26px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -64,12 +68,12 @@ body,
   /* Vertically center the 24px button on the macOS traffic lights
      (trafficLightPosition y:16, ~13px tall -> center ~y22). */
   top: 10px;
-  left: 80px;
+  left: var(--sidebar-toggle-left);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
+  width: var(--sidebar-toggle-width);
   height: 24px;
   padding: 0;
   border: none;
@@ -114,9 +118,10 @@ body,
  * --------------------------------------------------------------------------- */
 .app--sidebar-hidden .tab-bar {
   /* Clear the OS traffic lights (x:16 + three buttons) AND the sidebar-toggle
-     button (left:80px, width:26px) on the now-leftmost strip. The padding stays
-     a drag region; the lights + toggle sit over it. */
-  padding-left: 116px;
+     button on the now-leftmost strip. Derived from the toggle's own geometry
+     (its right edge + a 10px gap) so it tracks the button automatically. The
+     padding stays a drag region; the lights + toggle sit over it. */
+  padding-left: calc(var(--sidebar-toggle-left) + var(--sidebar-toggle-width) + 10px);
 }
 
 .app--sidebar-hidden .wc-panel {

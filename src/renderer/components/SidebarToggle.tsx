@@ -37,7 +37,7 @@ function PanelHiddenIcon() {
       viewBox="0 0 16 16"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.2"
+      strokeWidth="1.5"
       strokeLinejoin="round"
       aria-hidden="true"
     >
@@ -57,13 +57,15 @@ function PanelHiddenIcon() {
  */
 export function SidebarToggle() {
   const sidebarVisible = useWorkspaceStore((s) => s.sidebarVisible)
-  const label = sidebarVisible ? 'Hide sidebar' : 'Show sidebar'
+  // Static accessible name + aria-pressed is the canonical toggle-button
+  // pattern for assistive tech; the visible tooltip (title) carries the action.
+  const action = sidebarVisible ? 'Hide sidebar' : 'Show sidebar'
   return (
     <button
       type="button"
       className="sidebar-toggle no-drag"
-      aria-label={label}
-      title={label}
+      aria-label="Toggle sidebar"
+      title={action}
       aria-pressed={sidebarVisible}
       onClick={() => { useWorkspaceStore.getState().toggleSidebar() }}
     >
