@@ -313,6 +313,11 @@ export function createWindow(
 ): WindowController {
   const win = new BrowserWindow({
     ...bounds,
+    // Enforce the same minimum the saved-bounds validator uses, so the window
+    // (and with it the editor pane) can never be dragged so narrow that the
+    // sidebar squeezes the content to nothing.
+    minWidth: MIN_WIDTH,
+    minHeight: MIN_HEIGHT,
     show: false,
     titleBarStyle: 'hiddenInset',
     webPreferences: {

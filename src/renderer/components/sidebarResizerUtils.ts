@@ -6,8 +6,8 @@
  * imported from both SidebarResizer.tsx and tests without DOM dependencies.
  */
 
-/** Minimum sidebar width in pixels. */
-export const SIDEBAR_MIN_WIDTH = 160
+/** Minimum sidebar width in pixels (keeps file names readable, not clipped). */
+export const SIDEBAR_MIN_WIDTH = 180
 
 /** Maximum sidebar width in pixels. */
 export const SIDEBAR_MAX_WIDTH = 480

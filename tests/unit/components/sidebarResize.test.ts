@@ -15,15 +15,15 @@ import {
 } from '../../../src/renderer/components/sidebarResizerUtils'
 
 describe('clampSidebarWidth', () => {
-  it('clamps below minimum up to SIDEBAR_MIN_WIDTH (160)', () => {
-    expect(clampSidebarWidth(50)).toBe(160)
-    expect(clampSidebarWidth(0)).toBe(160)
-    expect(clampSidebarWidth(-100)).toBe(160)
-    expect(clampSidebarWidth(159)).toBe(160)
+  it('clamps below minimum up to SIDEBAR_MIN_WIDTH (180)', () => {
+    expect(clampSidebarWidth(50)).toBe(180)
+    expect(clampSidebarWidth(0)).toBe(180)
+    expect(clampSidebarWidth(-100)).toBe(180)
+    expect(clampSidebarWidth(179)).toBe(180)
   })
 
   it('passes through values within the range', () => {
-    expect(clampSidebarWidth(160)).toBe(160)
+    expect(clampSidebarWidth(180)).toBe(180)
     expect(clampSidebarWidth(300)).toBe(300)
     expect(clampSidebarWidth(240)).toBe(240)
     expect(clampSidebarWidth(480)).toBe(480)
@@ -35,8 +35,8 @@ describe('clampSidebarWidth', () => {
     expect(clampSidebarWidth(10000)).toBe(480)
   })
 
-  it('SIDEBAR_MIN_WIDTH is 160', () => {
-    expect(SIDEBAR_MIN_WIDTH).toBe(160)
+  it('SIDEBAR_MIN_WIDTH is 180', () => {
+    expect(SIDEBAR_MIN_WIDTH).toBe(180)
   })
 
   it('SIDEBAR_MAX_WIDTH is 480', () => {
