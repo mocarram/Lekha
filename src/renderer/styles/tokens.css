@@ -134,7 +134,7 @@
   --titlebar-bg:     var(--gh-surface);
   --statusbar-text:  var(--gh-text-muted);
   /* Font size for the sidebar list rows (file tree, outline, articles). */
-  --sidebar-font-size: 14px;
+  --sidebar-font-size: 16px;
 
   /* Find highlights */
   --find-match:         var(--gh-find-match);

@@ -73,7 +73,7 @@ export const DEFAULT_TEMPLATE_CSS = `/*
   --sidebar-hover:     #efefef;   /* hovered file/outline row */
   --titlebar-bg:       #fafafa;   /* titlebar background */
   --statusbar-text:    #9b9b9b;   /* status bar text */
-  --sidebar-font-size: 14px;      /* file-tree / outline / articles row text */
+  --sidebar-font-size: 16px;      /* file-tree / outline / articles row text */
 
   /* --- Find / highlight --- */
   --find-match:         #fff3b0;  /* non-current find highlight */
