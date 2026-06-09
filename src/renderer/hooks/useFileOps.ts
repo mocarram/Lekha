@@ -638,9 +638,11 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (next) {
       loadTab(next)
     } else {
-      // No tabs remain: keep a blank Untitled so there is always a document.
-      documentsStore.getState().newDocument()
+      // No tabs remain: show the editor empty state (App renders a placeholder
+      // when documents.length === 0) instead of spawning a replacement document.
+      // Clear the editor surface underneath and drop the OS window title.
       blankEditor()
+      window.lekha.setDocumentState({ title: '', dirty: false, path: null })
     }
   }, [documentsStore, selectTab, editorStore, guardUnsaved, loadTab, blankEditor])
 

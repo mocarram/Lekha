@@ -17,6 +17,7 @@ import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { TabBar } from '@renderer/components/TabBar'
+import { EmptyState } from '@renderer/components/EmptyState'
 import { Sidebar } from '@renderer/components/Sidebar'
 import { EditorDropZone } from '@renderer/components/EditorDropZone'
 import { FindReplace } from '@renderer/components/FindReplace'
@@ -221,6 +222,8 @@ export default function App() {
   const fileTree = useWorkspaceStore((s) => s.fileTree)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
   const showStatusBar = useWorkspaceStore((s) => s.showStatusBar)
+  // Number of open documents; drives the editor empty state (zero tabs).
+  const documentCount = useDocumentsStore((s) => s.documents.length)
   const paletteFiles = useMemo(
     () => flattenFiles(fileTree, rootFolder),
     [fileTree, rootFolder],
@@ -630,9 +633,16 @@ export default function App() {
             onInsertImage={() => dispatch('insertImage')}
             className="editor-pane"
           />
+          {documentCount === 0 && (
+            <EmptyState
+              onNew={() => dispatch('new')}
+              onOpen={() => dispatch('open')}
+              onOpenFolder={() => dispatch('openFolder')}
+            />
+          )}
         </EditorDropZone>
 
-        {showStatusBar && (
+        {showStatusBar && documentCount > 0 && (
           <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
         )}
       </div>

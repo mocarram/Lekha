@@ -754,10 +754,10 @@ describe('useFileOps - closeTab', () => {
 
     expect(confirmUnsaved).toHaveBeenCalledOnce()
     expect(writeFile).toHaveBeenCalledWith('/a.md', 'A edited')
-    // Last tab closed -> a fresh blank Untitled takes its place.
+    // Last tab closed -> no replacement document; the editor empty state shows.
     const docs = useDocumentsStore.getState()
-    expect(docs.documents).toHaveLength(1)
-    expect(docs.activeDocument()?.path).toBeNull()
+    expect(docs.documents).toHaveLength(0)
+    expect(docs.activeDocument()).toBeNull()
   })
 })
 
