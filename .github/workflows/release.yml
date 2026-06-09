@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck, lint, unit tests
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+
+      - name: Build renderer + main
+        run: npm run build
+
+      # Publishes on a tag push; a manual workflow_dispatch run only builds
+      # (dry run), so you can validate the pipeline without cutting a release.
+      - name: Package, (conditionally) sign + notarize, publish
+        run: npx electron-builder --mac --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signing: empty when the secret is unset -> electron-builder builds
+          # unsigned. Set these to flip to signed (no workflow change needed).
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # Notarization (read by build/notarize.cjs): empty -> skipped.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
