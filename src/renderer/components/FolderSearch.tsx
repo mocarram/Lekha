@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { FolderSearchResult } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { useDocumentsStore } from '@renderer/store/documentsStore'
 import { findMatchRanges } from '@shared/textSearch'
 
 /** Extract the last path segment (file name) from an absolute file path. */
@@ -43,7 +44,7 @@ const DEBOUNCE_MS = 250
  *
  * Debounced 250ms to avoid IPC spam on every keystroke.
  */
-export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
+export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSearchProps) {
   // Query + case flag live in the workspace store so they survive the sidebar
   // collapsing (which unmounts this panel). The mount-time debounced effect
   // below re-runs the search from the restored query, so results come back too.
@@ -52,6 +53,10 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
   const wholeWord = useWorkspaceStore((s) => s.searchWholeWord)
   const [results, setResults] = useState<FolderSearchResult[]>([])
   const [searching, setSearching] = useState(false)
+
+  const replaceText = useWorkspaceStore((s) => s.searchReplaceText)
+  const [replaceOpen, setReplaceOpen] = useState(false)
+  const [replaceStatus, setReplaceStatus] = useState<string | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -85,6 +90,43 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
     },
     [rootFolder],
   )
+
+  const handleReplaceAll = useCallback(async () => {
+    if (!rootFolder || query.length < 1 || results.length === 0) return
+    // Files in the results that are open with unsaved edits -> skip (never clobber).
+    const dirtyOpen = new Set(
+      useDocumentsStore.getState().documents
+        .filter((d) => d.path !== null && d.isDirty)
+        .map((d) => d.path as string),
+    )
+    const skipPaths = results.map((r) => r.filePath).filter((p) => dirtyOpen.has(p))
+    const totalMatches = results.reduce((acc, r) => acc + r.matches.length, 0)
+    const detail =
+      `Replace ${totalMatches} match${totalMatches === 1 ? '' : 'es'} in ` +
+      `${results.length} file${results.length === 1 ? '' : 's'}.` +
+      (skipPaths.length > 0
+        ? ` ${skipPaths.length} open unsaved file${skipPaths.length === 1 ? '' : 's'} will be skipped.`
+        : '') +
+      ' This cannot be undone.'
+
+    const ok = await window.lekha.confirmReplace(detail)
+    if (!ok) return
+
+    const res = await window.lekha.replaceInFolder({
+      root: rootFolder,
+      query,
+      replacement: replaceText,
+      caseSensitive,
+      wholeWord,
+      skipPaths,
+    })
+    onReplaced(res.changedPaths)
+    setReplaceStatus(
+      `Replaced ${res.replacements} in ${res.filesChanged} file${res.filesChanged === 1 ? '' : 's'}` +
+      (skipPaths.length > 0 ? ` · skipped ${skipPaths.length} unsaved` : ''),
+    )
+    runSearch(query, caseSensitive, wholeWord)
+  }, [rootFolder, query, results, replaceText, caseSensitive, wholeWord, onReplaced, runSearch])
 
   // Debounce the search on query/caseSensitive changes.
   useEffect(() => {
@@ -153,6 +195,44 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
           ab
         </button>
       </div>
+
+      {/* Replace toggle + row (collapsed by default, VS Code style). */}
+      <button
+        type="button"
+        className="folder-search__replace-toggle"
+        aria-label={replaceOpen ? 'Hide replace' : 'Show replace'}
+        aria-expanded={replaceOpen}
+        title={replaceOpen ? 'Hide replace' : 'Show replace'}
+        onClick={() => { setReplaceOpen((v) => !v) }}
+      >
+        {replaceOpen ? '⌄ Replace' : '› Replace'}
+      </button>
+      {replaceOpen && (
+        <div className="folder-search__input-row folder-search__replace-row">
+          <input
+            className="folder-search__input"
+            type="text"
+            placeholder="Replace in folder..."
+            value={replaceText}
+            onChange={(e) => { useWorkspaceStore.getState().setSearchReplaceText(e.target.value) }}
+            aria-label="Replace with"
+            spellCheck={false}
+          />
+          <button
+            type="button"
+            className="folder-search__replace-all"
+            onClick={() => { void handleReplaceAll() }}
+            disabled={query.length < 1 || results.length === 0}
+            title="Replace all matches in the folder"
+          >
+            Replace All
+          </button>
+        </div>
+      )}
+
+      {replaceStatus !== null && (
+        <div className="folder-search__status">{replaceStatus}</div>
+      )}
 
       {/* Status line */}
       {query.length > 0 && !searching && (
