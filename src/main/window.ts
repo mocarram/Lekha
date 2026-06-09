@@ -319,7 +319,12 @@ export function createWindow(
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     show: false,
-    titleBarStyle: 'hiddenInset',
+    // Hidden title bar with OS traffic lights placed by us. The floating-panel
+    // shell has a small window gutter + a rounded sidebar, so position the
+    // lights with breathing room inside the sidebar's top strip (.sidebar__chrome)
+    // instead of the cramped default inset.
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

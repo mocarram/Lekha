@@ -55,7 +55,9 @@ body,
  * Lives at the very top of the full-height sidebar panel.
  * --------------------------------------------------------------------------- */
 .sidebar__chrome {
-  height: 30px;
+  /* Tall enough to clear the OS traffic lights (positioned at y:16 in
+     window.ts) with padding before the panel header. */
+  height: 36px;
   flex-shrink: 0;
   -webkit-app-region: drag;
   user-select: none;
