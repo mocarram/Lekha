@@ -3,6 +3,7 @@ import { basename } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult, FolderSearchMatch } from '@shared/types'
 import { buildFileTree, readTextFile } from '@main/fs-helpers'
+import { findMatchRanges } from '@shared/textSearch'
 
 // ---------------------------------------------------------------------------
 // Safety caps
@@ -35,25 +36,22 @@ export function searchInText(
   content: string,
   query: string,
   caseSensitive: boolean,
+  wholeWord = false,
 ): FolderSearchMatch[] {
   if (query.length === 0) return []
 
-  const needle = caseSensitive ? query : query.toLowerCase()
   const lines = content.split('\n')
   const results: FolderSearchMatch[] = []
+  const opts = { caseSensitive, wholeWord }
 
   for (let i = 0; i < lines.length; i++) {
     if (results.length >= MAX_MATCHES_PER_FILE) break
     const raw = lines[i] ?? ''
-    const haystack = caseSensitive ? raw : raw.toLowerCase()
-    if (haystack.includes(needle)) {
+    if (findMatchRanges(raw, query, opts).length > 0) {
       const lineText = raw.length > MAX_LINE_LENGTH
         ? raw.slice(0, MAX_LINE_LENGTH) + '…'
         : raw
-      results.push({
-        lineNumber: i + 1, // 1-based
-        lineText,
-      })
+      results.push({ lineNumber: i + 1, lineText })
     }
   }
 
@@ -69,7 +67,7 @@ export function searchInText(
  * Reuses buildFileTree (which already applies the dotfile/node_modules/
  * extension filters) by recursing into directory children.
  */
-async function collectMarkdownPaths(dir: string): Promise<string[]> {
+export async function collectMarkdownPaths(dir: string): Promise<string[]> {
   const tree = await buildFileTree(dir)
   const paths: string[] = []
 
@@ -95,6 +93,7 @@ interface SearchFolderArgs {
   root: string
   query: string
   caseSensitive: boolean
+  wholeWord: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +113,7 @@ interface SearchFolderArgs {
  */
 export function registerSearchHandlers(): void {
   ipcMain.handle(IPC.searchFolder, async (_event, args: SearchFolderArgs) => {
-    const { root, query, caseSensitive } = args
+    const { root, query, caseSensitive, wholeWord } = args
 
     // Guard: empty query returns nothing.
     if (!query || query.length < 1) return []
@@ -142,7 +141,7 @@ export function registerSearchHandlers(): void {
         continue
       }
 
-      const matches = searchInText(content, query, caseSensitive)
+      const matches = searchInText(content, query, caseSensitive, wholeWord)
       if (matches.length > 0) {
         results.push({
           filePath,

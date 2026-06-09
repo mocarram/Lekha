@@ -232,7 +232,7 @@ const api: LekhaAPI = {
   },
 
   // --- Folder search ---
-  searchFolder(args: { root: string; query: string; caseSensitive: boolean }): Promise<FolderSearchResult[]> {
+  searchFolder(args: { root: string; query: string; caseSensitive: boolean; wholeWord: boolean }): Promise<FolderSearchResult[]> {
     return ipcRenderer.invoke(IPC.searchFolder, args) as Promise<FolderSearchResult[]>
   },
 

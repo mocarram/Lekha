@@ -22,6 +22,7 @@ interface WorkspaceState {
    */
   searchQuery: string
   searchCaseSensitive: boolean
+  searchWholeWord: boolean
 }
 
 interface WorkspaceActions {
@@ -35,6 +36,7 @@ interface WorkspaceActions {
   setAlwaysOnTop(v: boolean): void
   setSearchQuery(q: string): void
   setSearchCaseSensitive(v: boolean): void
+  setSearchWholeWord(v: boolean): void
 }
 
 export type WorkspaceStore = WorkspaceState & WorkspaceActions
@@ -54,6 +56,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   alwaysOnTop: false,
   searchQuery: '',
   searchCaseSensitive: false,
+  searchWholeWord: false,
 
   setRootFolder(path) {
     set({ rootFolder: path })
@@ -93,5 +96,9 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
   setSearchCaseSensitive(v) {
     set({ searchCaseSensitive: v })
+  },
+
+  setSearchWholeWord(v) {
+    set({ searchWholeWord: v })
   },
 }))

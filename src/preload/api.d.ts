@@ -204,6 +204,7 @@ export interface LekhaAPI {
     root: string
     query: string
     caseSensitive: boolean
+    wholeWord: boolean
   }): Promise<FolderSearchResult[]>
 
   // --- Templates ---

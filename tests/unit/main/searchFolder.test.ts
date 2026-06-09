@@ -90,6 +90,11 @@ describe('searchInText', () => {
     expect(results).toHaveLength(1)
     expect(results[0]?.lineNumber).toBe(2)
   })
+
+  it('whole-word search excludes substrings inside larger words', () => {
+    const matches = searchInText('cat\ncats\nthe cat sat', 'cat', false, true)
+    expect(matches.map((m) => m.lineNumber)).toEqual([1, 3])
+  })
 })
 
 // ---------------------------------------------------------------------------

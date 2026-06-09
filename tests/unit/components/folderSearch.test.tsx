@@ -20,6 +20,7 @@ function makeMockLekha(
     root: string
     query: string
     caseSensitive: boolean
+    wholeWord: boolean
   }) => Promise<FolderSearchResult[]> = () => Promise.resolve([]),
 ): LekhaAPI {
   const unsubscribe = () => undefined
@@ -173,6 +174,7 @@ describe('FolderSearch', () => {
       root: '/docs',
       query: 'hello',
       caseSensitive: false,
+      wholeWord: false,
     })
   })
 
@@ -199,6 +201,7 @@ describe('FolderSearch', () => {
       root: '/docs',
       query: 'Hello',
       caseSensitive: true,
+      wholeWord: false,
     })
   })
 

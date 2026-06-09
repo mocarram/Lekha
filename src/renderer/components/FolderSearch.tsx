@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { FolderSearchResult } from '@shared/types'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { findMatchRanges } from '@shared/textSearch'
 
 /** Extract the last path segment (file name) from an absolute file path. */
 function getFileName(filePath: string): string {
@@ -45,6 +46,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
   // below re-runs the search from the restored query, so results come back too.
   const query = useWorkspaceStore((s) => s.searchQuery)
   const caseSensitive = useWorkspaceStore((s) => s.searchCaseSensitive)
+  const wholeWord = useWorkspaceStore((s) => s.searchWholeWord)
   const [results, setResults] = useState<FolderSearchResult[]>([])
   const [searching, setSearching] = useState(false)
 
@@ -60,7 +62,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
 
   // Run a search via IPC and update results state.
   const runSearch = useCallback(
-    (q: string, cs: boolean) => {
+    (q: string, cs: boolean, ww: boolean) => {
       if (!rootFolder || q.length < 1) {
         setResults([])
         setSearching(false)
@@ -68,7 +70,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
       }
       setSearching(true)
       window.lekha
-        .searchFolder({ root: rootFolder, query: q, caseSensitive: cs })
+        .searchFolder({ root: rootFolder, query: q, caseSensitive: cs, wholeWord: ww })
         .then((res) => {
           setResults(res)
           setSearching(false)
@@ -86,7 +88,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
     if (debounceRef.current !== null) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null
-      runSearch(query, caseSensitive)
+      runSearch(query, caseSensitive, wholeWord)
     }, DEBOUNCE_MS)
     return () => {
       if (debounceRef.current !== null) {
@@ -94,7 +96,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
         debounceRef.current = null
       }
     }
-  }, [query, caseSensitive, runSearch])
+  }, [query, caseSensitive, wholeWord, runSearch])
 
   // Total match count across all files.
   const totalMatches = results.reduce((acc, r) => acc + r.matches.length, 0)
@@ -137,6 +139,16 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
         >
           Aa
         </button>
+        <button
+          type="button"
+          className={`folder-search__case-btn${wholeWord ? ' active' : ''}`}
+          onClick={() => { useWorkspaceStore.getState().setSearchWholeWord(!wholeWord) }}
+          title={wholeWord ? 'Whole word: on' : 'Match whole word'}
+          aria-label="Match whole word"
+          aria-pressed={wholeWord}
+        >
+          ab
+        </button>
       </div>
 
       {/* Status line */}
@@ -171,7 +183,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
                 >
                   <span className="folder-search__line-num">{match.lineNumber}</span>
                   <span className="folder-search__line-text">
-                    {highlightMatch(match.lineText, query, caseSensitive)}
+                    {highlightMatch(match.lineText, query, caseSensitive, wholeWord)}
                   </span>
                 </button>
               ))}
@@ -195,31 +207,22 @@ function highlightMatch(
   lineText: string,
   query: string,
   caseSensitive: boolean,
+  wholeWord: boolean,
 ): React.ReactNode[] {
   if (!query) return [lineText]
-
+  const ranges = findMatchRanges(lineText, query, { caseSensitive, wholeWord })
+  if (ranges.length === 0) return [lineText]
   const parts: React.ReactNode[] = []
-  const needle = caseSensitive ? query : query.toLowerCase()
-  const haystack = caseSensitive ? lineText : lineText.toLowerCase()
   let cursor = 0
-  let idx = haystack.indexOf(needle, cursor)
-
-  while (idx !== -1) {
-    if (idx > cursor) {
-      parts.push(lineText.slice(cursor, idx))
-    }
+  ranges.forEach(([start, end], i) => {
+    if (start > cursor) parts.push(lineText.slice(cursor, start))
     parts.push(
-      <mark key={idx} className="folder-search__highlight">
-        {lineText.slice(idx, idx + query.length)}
+      <mark key={i} className="folder-search__highlight">
+        {lineText.slice(start, end)}
       </mark>,
     )
-    cursor = idx + query.length
-    idx = haystack.indexOf(needle, cursor)
-  }
-
-  if (cursor < lineText.length) {
-    parts.push(lineText.slice(cursor))
-  }
-
+    cursor = end
+  })
+  if (cursor < lineText.length) parts.push(lineText.slice(cursor))
   return parts
 }
