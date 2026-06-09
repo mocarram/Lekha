@@ -510,15 +510,16 @@ body,
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  /* Strip height == pill height and no padding, so the pills align flush with
-     the content card below (same left edge) and every shell gap stays a uniform
-     --shell-gap. */
-  height: 30px;
+  /* A subtle surface panel (matching the status bar + sidebar chrome) that
+     frames the pills. The active pill is --bg, so it lifts off this surface and
+     reads as connected to the content card below. */
+  height: 34px;
   gap: 5px;
-  padding: 0;
-  /* The tab strip sits on the window-bg gutter (no fill); the pills float on it.
-     The empty strip is a window drag region - interactive children opt out with
-     -webkit-app-region: no-drag. */
+  padding: 0 4px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  /* The empty strip is a window drag region; interactive children (tabs, +,
+     close) opt out with -webkit-app-region: no-drag. */
   -webkit-app-region: drag;
   font-family: var(--font-ui);
   overflow: hidden;
