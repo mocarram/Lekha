@@ -6,6 +6,7 @@ import { Outline } from './Outline'
 import { Articles } from './Articles'
 import { FolderSearch } from './FolderSearch'
 import { SidebarResizer } from './SidebarResizer'
+import { SidebarTabIcon } from './SidebarTabIcon'
 import { classifyDrop, dragMaybeFolder } from './sidebarDrop'
 
 interface SidebarProps {
@@ -187,21 +188,24 @@ export function Sidebar({
           className={`sidebar__tab-btn${sidebarTab === 'files' ? ' active' : ''}`}
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('files') }}
         >
-          Files
+          <SidebarTabIcon tab="files" />
+          <span className="sidebar__tab-label">Files</span>
         </button>
         <button
           type="button"
           className={`sidebar__tab-btn${sidebarTab === 'outline' ? ' active' : ''}`}
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('outline') }}
         >
-          Outline
+          <SidebarTabIcon tab="outline" />
+          <span className="sidebar__tab-label">Outline</span>
         </button>
         <button
           type="button"
           className={`sidebar__tab-btn${sidebarTab === 'articles' ? ' active' : ''}`}
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('articles') }}
         >
-          Articles
+          <SidebarTabIcon tab="articles" />
+          <span className="sidebar__tab-label">Articles</span>
         </button>
         <button
           type="button"
@@ -209,7 +213,8 @@ export function Sidebar({
           aria-label="Search"
           onClick={() => { useWorkspaceStore.getState().setSidebarTab('search') }}
         >
-          Search
+          <SidebarTabIcon tab="search" />
+          <span className="sidebar__tab-label">Search</span>
         </button>
       </div>
     </aside>

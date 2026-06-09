@@ -215,15 +215,29 @@ body,
 
 .sidebar__tab-btn {
   flex: 1;
-  position: relative;
-  padding: 7px 0;
+  /* Icon stacked above the label, centered (matches the mockup). */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 0 6px;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-muted);
   font-family: var(--font-ui);
+  /* Icon inherits this via currentColor, so it tints with the button state. */
   transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+/* The glyph above each label; color comes from the button (currentColor). */
+.sidebar__tab-icon {
+  flex-shrink: 0;
+}
+
+.sidebar__tab-label {
+  line-height: 1;
 }
 
 .sidebar__tab-btn:hover {
@@ -231,22 +245,11 @@ body,
   background-color: var(--sidebar-hover);
 }
 
+/* Active tab: icon + label both take the accent color (no underline - the
+   accent tint plus the icon are signal enough, per the mockup). */
 .sidebar__tab-btn.active {
   color: var(--color-accent);
   font-weight: 600;
-}
-
-/* Active tab indicator: a short accent underline centered under the label. */
-.sidebar__tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 18px;
-  height: 2px;
-  border-radius: 1px;
-  background-color: var(--color-accent);
 }
 
 /* ---------------------------------------------------------------------------
