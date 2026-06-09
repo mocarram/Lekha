@@ -587,7 +587,13 @@ export default function App() {
       const docId = doc.id
       const docPath = doc.path
       void window.lekha.readFile(docPath).then((content) => {
+        // Re-check dirtiness AFTER the async read: the user may have started
+        // editing this tab during the IPC round-trip. If so, leave their
+        // unsaved edits alone rather than clobbering them with disk content.
+        const current = useDocumentsStore.getState().documents.find((d) => d.id === docId)
+        if (!current || current.isDirty) return
         if (docId === useDocumentsStore.getState().activeId) {
+          if (useEditorStore.getState().isDirty) return
           editorRef.current?.setMarkdown(content)
           useEditorStore.getState().setMarkdown(content)
         }

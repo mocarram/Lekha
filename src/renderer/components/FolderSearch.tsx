@@ -93,19 +93,24 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
 
   const handleReplaceAll = useCallback(async () => {
     if (!rootFolder || query.length < 1 || results.length === 0) return
-    // Files in the results that are open with unsaved edits -> skip (never clobber).
-    const dirtyOpen = new Set(
-      useDocumentsStore.getState().documents
-        .filter((d) => d.path !== null && d.isDirty)
-        .map((d) => d.path as string),
-    )
-    const skipPaths = results.map((r) => r.filePath).filter((p) => dirtyOpen.has(p))
+    setReplaceStatus(null)
+    // SKIP every dirty open file (never write a file whose buffer has unsaved
+    // edits), regardless of whether it is in the current results - the safe,
+    // simple rule. The "will be skipped" count below reports only the dirty
+    // files that actually have matches (i.e. appear in results), so it stays
+    // relevant to this replace.
+    const dirtyOpenPaths = useDocumentsStore.getState().documents
+      .filter((d) => d.path !== null && d.isDirty)
+      .map((d) => d.path as string)
+    const skipPaths = dirtyOpenPaths
+    const dirtyOpen = new Set(dirtyOpenPaths)
+    const skippedWithMatches = results.filter((r) => dirtyOpen.has(r.filePath)).length
     const totalMatches = results.reduce((acc, r) => acc + r.matches.length, 0)
     const detail =
       `Replace ${totalMatches} match${totalMatches === 1 ? '' : 'es'} in ` +
       `${results.length} file${results.length === 1 ? '' : 's'}.` +
-      (skipPaths.length > 0
-        ? ` ${skipPaths.length} open unsaved file${skipPaths.length === 1 ? '' : 's'} will be skipped.`
+      (skippedWithMatches > 0
+        ? ` ${skippedWithMatches} open unsaved file${skippedWithMatches === 1 ? '' : 's'} will be skipped.`
         : '') +
       ' This cannot be undone.'
 
@@ -123,7 +128,7 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
     onReplaced(res.changedPaths)
     setReplaceStatus(
       `Replaced ${res.replacements} in ${res.filesChanged} file${res.filesChanged === 1 ? '' : 's'}` +
-      (skipPaths.length > 0 ? ` · skipped ${skipPaths.length} unsaved` : ''),
+      (skippedWithMatches > 0 ? ` · skipped ${skippedWithMatches} unsaved` : ''),
     )
     runSearch(query, caseSensitive, wholeWord)
   }, [rootFolder, query, results, replaceText, caseSensitive, wholeWord, onReplaced, runSearch])
@@ -133,6 +138,8 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
     if (debounceRef.current !== null) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null
+      // A new search run makes a prior "Replaced N in M files" status stale.
+      setReplaceStatus(null)
       runSearch(query, caseSensitive, wholeWord)
     }, DEBOUNCE_MS)
     return () => {
