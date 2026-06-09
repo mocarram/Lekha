@@ -10,3 +10,12 @@ test-results/
 
 # Claude Code runtime artifacts
 .claude/scheduled_tasks.lock
+
+# Glass themes - exploratory, kept local/untracked (decide later)
+/themes/
+/mockups/
+/scripts/build-glass-themes.mjs
+/scripts/build-glass-themes.d.mts
+/tests/unit/build/glassThemes.test.ts
+/docs/superpowers/specs/2026-06-10-glass-themes-design.md
+/docs/superpowers/plans/2026-06-10-glass-themes.md
