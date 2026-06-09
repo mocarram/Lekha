@@ -429,9 +429,12 @@ body,
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  height: 32px;
+  /* Strip height == pill height and no padding, so the pills align flush with
+     the content card below (same left edge) and every shell gap stays a uniform
+     --shell-gap. */
+  height: 30px;
   gap: 5px;
-  padding: 0 2px;
+  padding: 0;
   /* The tab strip sits on the window-bg gutter (no fill); the pills float on it.
      The empty strip is a window drag region - interactive children opt out with
      -webkit-app-region: no-drag. */
