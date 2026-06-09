@@ -1328,6 +1328,58 @@ body,
   color: var(--on-accent);
 }
 
+/* Replace expand toggle: a quiet ghost row that opens the replace input. */
+.folder-search__replace-toggle {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 0 8px 4px;
+  padding: 2px 4px;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.folder-search__replace-toggle:hover {
+  color: var(--color-text);
+}
+
+/* The replace capsule reuses .folder-search__input-row; just tighten its top margin. */
+.folder-search__replace-row {
+  margin-top: 0;
+}
+
+/* Replace All: a small accent text button inside the replace capsule. */
+.folder-search__replace-all {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-accent);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.folder-search__replace-all:hover {
+  background-color: var(--sidebar-hover);
+}
+
+.folder-search__replace-all:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  cursor: default;
+}
+
 .folder-search__status {
   padding: 4px 8px;
   font-size: 11px;
