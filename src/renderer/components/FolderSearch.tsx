@@ -45,6 +45,14 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
   const [searching, setSearching] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Focus the query input when the search panel opens. FolderSearch mounts fresh
+  // each time the user switches to the Search tab (Sidebar renders it
+  // conditionally), so a mount effect focuses the field on every open.
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   // Run a search via IPC and update results state.
   const runSearch = useCallback(
@@ -92,6 +100,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
       {/* Search input row */}
       <div className="folder-search__input-row">
         <input
+          ref={inputRef}
           className="folder-search__input"
           type="text"
           placeholder="Search in folder..."
