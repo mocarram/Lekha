@@ -19,6 +19,7 @@ import { StatusBar } from '@renderer/components/StatusBar'
 import { TabBar } from '@renderer/components/TabBar'
 import { EmptyState } from '@renderer/components/EmptyState'
 import { Sidebar } from '@renderer/components/Sidebar'
+import { SidebarToggle } from '@renderer/components/SidebarToggle'
 import { EditorDropZone } from '@renderer/components/EditorDropZone'
 import { FindReplace } from '@renderer/components/FindReplace'
 import { LinkDialog, type LinkDialogMode } from '@renderer/components/LinkDialog'
@@ -577,6 +578,7 @@ export default function App() {
 
   return (
     <div className={`app${sidebarVisible ? '' : ' app--sidebar-hidden'}`}>
+      <SidebarToggle />
       <Sidebar
         onSelectFile={(path) => { void fileOps.openPath(path) }}
         onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}

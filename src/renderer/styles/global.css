@@ -39,6 +39,8 @@ body,
 
 .app {
   display: flex;
+  /* Positioning context for the absolutely-placed .sidebar-toggle button. */
+  position: relative;
   flex-direction: row;
   height: 100%;
   overflow: hidden;
@@ -47,6 +49,38 @@ body,
   background-color: var(--window-bg);
   padding: var(--shell-gap);
   gap: var(--shell-gap);
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar toggle button: pinned at the window's top-left, just right of the
+ * macOS traffic lights (configured at x:16 in window.ts; the three buttons end
+ * ~x:68). Positioned against the app root so it occupies the SAME spot whether
+ * the sidebar is open (overlaying .sidebar__chrome) or closed (overlaying the
+ * tab bar's reserved left zone) - it never jumps. no-drag makes it clickable
+ * inside the surrounding drag region.
+ * --------------------------------------------------------------------------- */
+.sidebar-toggle {
+  position: absolute;
+  top: 13px;
+  left: 80px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm, 5px);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.sidebar-toggle:hover {
+  color: var(--color-text);
+  background-color: var(--sidebar-hover);
 }
 
 /* ---------------------------------------------------------------------------
@@ -74,9 +108,10 @@ body,
  *      value is stale, so collapse its offset to the content column's edge.
  * --------------------------------------------------------------------------- */
 .app--sidebar-hidden .tab-bar {
-  /* Clear the OS traffic lights (x:16 + three buttons) on the now-leftmost
-     strip. The padding stays a drag region; the lights sit over empty space. */
-  padding-left: 72px;
+  /* Clear the OS traffic lights (x:16 + three buttons) AND the sidebar-toggle
+     button (left:80px, width:26px) on the now-leftmost strip. The padding stays
+     a drag region; the lights + toggle sit over it. */
+  padding-left: 116px;
 }
 
 .app--sidebar-hidden .wc-panel {
