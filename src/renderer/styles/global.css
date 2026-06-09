@@ -693,6 +693,8 @@ body,
   width: 7px;
   height: 7px;
   border-radius: 50%;
+  /* Muted by default so an INACTIVE dirty tab's dot dims along with its muted
+     title; the active tab brightens it below. */
   background-color: var(--color-text-muted);
   /* Hidden unless the tab is dirty (toggled by .tab--dirty). */
   display: none;
@@ -700,6 +702,12 @@ body,
 
 .tab--dirty .tab__dirty-dot {
   display: block;
+}
+
+/* On the active dirty tab, brighten the dot to match the active (un-muted)
+   title so it reads as clearly as the rest of the active tab. */
+.tab--active .tab__dirty-dot {
+  background-color: var(--color-text);
 }
 
 .tab__close-x {
@@ -720,15 +728,12 @@ body,
   display: none;
 }
 
-/* The active tab always shows its close × (not only on hover), so the current
-   document can be closed in one click. Its dirty state stays visible via the
-   italic title. */
-.tab--active .tab__close-x {
+/* The active CLEAN tab always shows its close × (not only on hover), so the
+   current document can be closed in one click. An active DIRTY tab instead keeps
+   its unsaved dot at rest (matching VS Code) and reveals the × only on hover,
+   via the .tab:hover rules above - so it is intentionally excluded here. */
+.tab--active:not(.tab--dirty) .tab__close-x {
   display: block;
-}
-
-.tab--active .tab__dirty-dot {
-  display: none;
 }
 
 .tab-bar__new {
