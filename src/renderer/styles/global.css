@@ -570,8 +570,10 @@ body,
   flex-shrink: 0;
   /* A subtle surface panel (matching the status bar + sidebar chrome) that
      frames the pills. The active pill is --bg, so it lifts off this surface and
-     reads as connected to the content card below. */
-  height: 34px;
+     reads as connected to the content card below. Height is kept slim so the
+     tab row's vertical center lines up with the macOS traffic lights + the
+     sidebar-toggle icon (both centered ~22px from the window top). */
+  height: 30px;
   gap: 5px;
   /* No horizontal padding: the leftmost tab sits flush with the strip's left
      edge (which lines up with the content card below). The surface still frames
@@ -608,7 +610,7 @@ body,
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 30px;
+  height: 26px;
   min-width: 0;
   max-width: 180px;
   padding: 0 12px;
