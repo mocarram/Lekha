@@ -20,6 +20,11 @@ interface SidebarProps {
    * and navigates to the matching text (open-then-find approach).
    */
   onOpenSearchResult: (filePath: string, query: string, caseSensitive: boolean) => void
+  /**
+   * Called after a folder-wide replace with the absolute paths of files that
+   * changed on disk, so the parent can reload any open in a clean tab.
+   */
+  onReplaced: (changedPaths: string[]) => void
   /** Create a new file in `dir` (null = workspace root), then refresh the tree. */
   onNewFile: (dir: string | null) => void | Promise<void>
   /** Create a new folder in `dir` (null = workspace root), then refresh. */
@@ -55,6 +60,7 @@ export function Sidebar({
   onSelectFile,
   onJumpToHeading,
   onOpenSearchResult,
+  onReplaced,
   onNewFile,
   onNewFolder,
   onRenameEntry,
@@ -171,6 +177,7 @@ export function Sidebar({
           <FolderSearch
             rootFolder={rootFolder}
             onOpenResult={onOpenSearchResult}
+            onReplaced={onReplaced}
           />
         )}
       </div>

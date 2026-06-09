@@ -576,11 +576,32 @@ export default function App() {
     }
   }, [])
 
+  // After a folder-wide replace, reload any CHANGED file open in a CLEAN tab so
+  // the on-disk change and the in-app buffer never diverge. Dirty tabs were
+  // skipped by the replace and are intentionally left alone.
+  const handleFolderReplaced = useCallback((changedPaths: string[]) => {
+    const changed = new Set(changedPaths)
+    const docs = useDocumentsStore.getState()
+    for (const doc of docs.documents) {
+      if (doc.path === null || doc.isDirty || !changed.has(doc.path)) continue
+      const docId = doc.id
+      const docPath = doc.path
+      void window.lekha.readFile(docPath).then((content) => {
+        if (docId === useDocumentsStore.getState().activeId) {
+          editorRef.current?.setMarkdown(content)
+          useEditorStore.getState().setMarkdown(content)
+        }
+        useDocumentsStore.getState().updateDocument(docId, { markdown: content, isDirty: false })
+      })
+    }
+  }, [])
+
   return (
     <div className={`app${sidebarVisible ? '' : ' app--sidebar-hidden'}`}>
       <Sidebar
         onSelectFile={(path) => { void fileOps.openPath(path) }}
         onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
+        onReplaced={handleFolderReplaced}
         onOpenSearchResult={(filePath, query, caseSensitive) => {
           // Open-then-find: open the file, then use the in-document find to
           // highlight and navigate to the query. Line-to-position mapping in

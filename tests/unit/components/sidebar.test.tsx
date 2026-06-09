@@ -46,6 +46,7 @@ describe('Sidebar', () => {
     onRenameEntry: noop,
     onDeleteEntry: noop,
     onRevealEntry: noop,
+    onReplaced: noop,
     onOpenFolderPath: noop,
     onNotify: noop,
     sidebarWidth: 240,

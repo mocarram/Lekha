@@ -23,6 +23,7 @@ interface WorkspaceState {
   searchQuery: string
   searchCaseSensitive: boolean
   searchWholeWord: boolean
+  searchReplaceText: string
 }
 
 interface WorkspaceActions {
@@ -37,6 +38,7 @@ interface WorkspaceActions {
   setSearchQuery(q: string): void
   setSearchCaseSensitive(v: boolean): void
   setSearchWholeWord(v: boolean): void
+  setSearchReplaceText(v: string): void
 }
 
 export type WorkspaceStore = WorkspaceState & WorkspaceActions
@@ -57,6 +59,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   searchQuery: '',
   searchCaseSensitive: false,
   searchWholeWord: false,
+  searchReplaceText: '',
 
   setRootFolder(path) {
     set({ rootFolder: path })
@@ -100,5 +103,9 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
   setSearchWholeWord(v) {
     set({ searchWholeWord: v })
+  },
+
+  setSearchReplaceText(v) {
+    set({ searchReplaceText: v })
   },
 }))

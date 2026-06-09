@@ -132,14 +132,14 @@ afterEach(() => {
 describe('FolderSearch', () => {
   it('renders a search input', () => {
     vi.stubGlobal('lekha', makeMockLekha())
-    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />)
+    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />)
     expect(screen.getByRole('textbox')).toBeTruthy()
   })
 
   it('shows "No folder open" empty state when rootFolder is null', () => {
     vi.stubGlobal('lekha', makeMockLekha())
     const { container } = render(
-      <FolderSearch rootFolder={null} onOpenResult={vi.fn()} />,
+      <FolderSearch rootFolder={null} onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
     )
     expect(container.textContent).toContain('No folder open')
   })
@@ -147,7 +147,7 @@ describe('FolderSearch', () => {
   it('does NOT show "No folder open" when a folder is set', () => {
     vi.stubGlobal('lekha', makeMockLekha())
     const { container } = render(
-      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />,
+      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
     )
     expect(container.textContent).not.toContain('No folder open')
   })
@@ -156,7 +156,7 @@ describe('FolderSearch', () => {
     const searchFolder = vi.fn(() => Promise.resolve([]))
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
-    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />)
+    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />)
     const input = screen.getByRole('textbox')
 
     fireEvent.change(input, { target: { value: 'hello' } })
@@ -184,7 +184,7 @@ describe('FolderSearch', () => {
     const searchFolder = vi.fn(() => Promise.resolve([]))
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
-    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />)
+    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />)
 
     // Toggle case-sensitive on (button has aria-label "Match case").
     const caseBtn = screen.getByRole('button', { name: 'Match case' })
@@ -212,7 +212,7 @@ describe('FolderSearch', () => {
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
     const { container } = render(
-      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />,
+      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
     )
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'hello' } })
@@ -241,7 +241,7 @@ describe('FolderSearch', () => {
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
     const { container } = render(
-      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />,
+      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
     )
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } })
 
@@ -259,7 +259,7 @@ describe('FolderSearch', () => {
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
     const { container } = render(
-      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />,
+      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
     )
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'zzz' } })
 
@@ -276,7 +276,7 @@ describe('FolderSearch', () => {
     const onOpenResult = vi.fn()
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
-    render(<FolderSearch rootFolder="/docs" onOpenResult={onOpenResult} />)
+    render(<FolderSearch rootFolder="/docs" onOpenResult={onOpenResult} onReplaced={vi.fn()} />)
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } })
     await act(async () => {
@@ -299,7 +299,7 @@ describe('FolderSearch', () => {
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
     const { container } = render(
-      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />,
+      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
     )
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } })
     await act(async () => {
@@ -318,7 +318,7 @@ describe('FolderSearch', () => {
     const searchFolder = vi.fn(() => Promise.resolve([]))
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
 
-    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} />)
+    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'abc' } })
 
     // Advance only 100ms - debounce has not fired yet.

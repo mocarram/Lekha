@@ -21,6 +21,9 @@ interface FolderSearchProps {
    * editor highlights and navigates to the matching text.
    */
   onOpenResult: (filePath: string, query: string, caseSensitive: boolean) => void
+  /** Called with paths changed on disk by a folder replace, so the parent can
+   *  reload any open in a clean tab. */
+  onReplaced: (changedPaths: string[]) => void
 }
 
 // ---------------------------------------------------------------------------
