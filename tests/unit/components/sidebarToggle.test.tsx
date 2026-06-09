@@ -16,7 +16,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  useWorkspaceStore.setState({ sidebarVisible: true })
 })
 
 describe('SidebarToggle', () => {

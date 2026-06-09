@@ -2068,3 +2068,9 @@ select.dialog-input {
   outline: none;
   box-shadow: var(--focus-ring);
 }
+
+/* Sidebar toggle button (top-left panel show/hide). */
+.sidebar-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
