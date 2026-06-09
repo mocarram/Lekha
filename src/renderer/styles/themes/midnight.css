@@ -48,8 +48,8 @@
   --statusbar-text: #8d99ab;
 
   /* Translucent-white scrollbar thumb so it stays visible on the dark navy. */
-  --scrollbar-thumb:       rgba(255, 255, 255, 0.24);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
 
   /* --- Find / highlight (warm amber stands out against the blue) --- */
   --find-match:         #5c4a12;

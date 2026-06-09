@@ -676,6 +676,13 @@
   background-clip: content-box;
 }
 
+/* The sidebar is peripheral chrome, so keep its resting thumb dimmer than the
+   editor's - a bright scrollbar there pulls the reader's eye. It brightens to
+   the full hover value below when actually grabbed. */
+.sidebar__content::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--scrollbar-thumb) 70%, transparent);
+}
+
 .editor-pane::-webkit-scrollbar-thumb:hover,
 .sidebar__content::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);

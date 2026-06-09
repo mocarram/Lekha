@@ -72,8 +72,8 @@
   --statusbar-text: #7b8085;
 
   /* Translucent-white scrollbar thumb so it stays visible on the dark surface. */
-  --scrollbar-thumb:       rgba(255, 255, 255, 0.24);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
 
   /* --- Find highlights --- */
   --find-match:         #3d3817;
@@ -100,15 +100,4 @@
   --hljs-tag:       #4ec9b0;
   --hljs-attribute: #9cdcfe;
   --hljs-section:   #569cd6;
-}
-
-/* Scrollbar thumbs: white-tinted on the dark surface (mirrors Night). */
-[data-theme="graphite"] .editor-pane::-webkit-scrollbar-thumb,
-[data-theme="graphite"] .sidebar__content::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.14);
-}
-
-[data-theme="graphite"] .editor-pane::-webkit-scrollbar-thumb:hover,
-[data-theme="graphite"] .sidebar__content::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.26);
 }

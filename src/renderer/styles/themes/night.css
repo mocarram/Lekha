@@ -69,8 +69,8 @@
   --statusbar-text: #858585;
 
   /* Translucent-white scrollbar thumb so it stays visible on the dark surface. */
-  --scrollbar-thumb:       rgba(255, 255, 255, 0.24);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
 
   /* --- Find highlights --- */
   /* Warm yellow works in dark too; slightly more saturated current match */
@@ -99,15 +99,4 @@
   --hljs-tag:       #4ec9b0;   /* teal - HTML tags */
   --hljs-attribute: #9cdcfe;   /* light blue - attributes/variables */
   --hljs-section:   #569cd6;   /* blue - section headers */
-}
-
-/* Scrollbar overrides: use white-tinted thumbs in dark mode */
-[data-theme="night"] .editor-pane::-webkit-scrollbar-thumb,
-[data-theme="night"] .sidebar__content::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.12);
-}
-
-[data-theme="night"] .editor-pane::-webkit-scrollbar-thumb:hover,
-[data-theme="night"] .sidebar__content::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.22);
 }

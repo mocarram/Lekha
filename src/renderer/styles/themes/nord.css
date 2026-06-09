@@ -60,8 +60,8 @@
   --statusbar-text: #616e88;
 
   /* Translucent-white scrollbar thumb so it stays visible on the dark surface. */
-  --scrollbar-thumb:       rgba(255, 255, 255, 0.24);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.14);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.26);
 
   /* --- Find highlights --- */
   --find-match:         #3d4a3a;
@@ -88,15 +88,4 @@
   --hljs-tag:       #bf616a;   /* aurora red - HTML tags */
   --hljs-attribute: #d08770;   /* aurora orange - attributes */
   --hljs-section:   #5e81ac;   /* frost deep blue - sections */
-}
-
-/* Scrollbar overrides: white-tinted thumbs for dark surface */
-[data-theme="nord"] .editor-pane::-webkit-scrollbar-thumb,
-[data-theme="nord"] .sidebar__content::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.12);
-}
-
-[data-theme="nord"] .editor-pane::-webkit-scrollbar-thumb:hover,
-[data-theme="nord"] .sidebar__content::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.22);
 }
