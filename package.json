@@ -26,7 +26,7 @@
     "test:watch": "vitest",
     "pretest:e2e": "npm run build",
     "test:e2e": "playwright test",
-    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
     "dist:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {

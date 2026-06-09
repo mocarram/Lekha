@@ -51,10 +51,14 @@ publish:
 
 mac:
   category: public.app-category.productivity
-  # identity: null disables ad-hoc/Developer ID code signing for local builds.
-  # To sign for release, set CSC_LINK + CSC_KEY_PASSWORD env vars.
-  identity: null
-  hardenedRuntime: false
+  # Signing is conditional: with no CSC_LINK env (and CSC_IDENTITY_AUTO_DISCOVERY
+  # off for local builds) electron-builder skips signing and produces an unsigned
+  # build; in CI, CSC_LINK + CSC_KEY_PASSWORD make it sign with the Developer ID.
+  # hardenedRuntime + entitlements are required for notarization (ignored on
+  # unsigned builds since no signing occurs).
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   gatekeeperAssess: false
   # Custom app icon (build/icon.icns). Regenerate with:
   #   python3 scripts/make-icon.py && bash scripts/make-icon.sh
