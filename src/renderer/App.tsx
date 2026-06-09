@@ -578,7 +578,6 @@ export default function App() {
 
   return (
     <div className={`app${sidebarVisible ? '' : ' app--sidebar-hidden'}`}>
-      <SidebarToggle />
       <Sidebar
         onSelectFile={(path) => { void fileOps.openPath(path) }}
         onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
@@ -782,6 +781,14 @@ export default function App() {
           }}
         />
       ) : null}
+
+      {/* Sidebar toggle: rendered LAST inside .app so its -webkit-app-region:
+          no-drag is subtracted AFTER the sidebar/tab-bar drag regions in DOM
+          order. Chromium computes draggable regions in layout-tree order, not
+          paint order, so a no-drag element that precedes an overlapping drag
+          region gets re-covered by it and stops receiving clicks (the click
+          becomes a window drag). Keeping it last keeps the button clickable. */}
+      <SidebarToggle />
     </div>
   )
 }
