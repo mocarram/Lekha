@@ -515,7 +515,10 @@ body,
      reads as connected to the content card below. */
   height: 34px;
   gap: 5px;
-  padding: 0 4px;
+  /* No horizontal padding: the leftmost tab sits flush with the strip's left
+     edge (which lines up with the content card below). The surface still frames
+     the pills vertically. */
+  padding: 0;
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);
   /* The empty strip is a window drag region; interactive children (tabs, +,
