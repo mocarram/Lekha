@@ -50,9 +50,12 @@ No new hardcoded colors; the lone window chrome already token-driven.
   title now lives in the tab pill, the dirty state is already shown by the tab
   (italic + dot) and the OS edited-dot, and the window drag region moves to
   `.sidebar__chrome` + `.tab-strip`. macOS traffic lights are reserved by
-  `.sidebar__chrome` (keep `titleBarStyle: 'hiddenInset'`; reserve ~34px top).
-- **`TabBar`**: render whenever ≥1 document is open (was: hidden at ≤1). Styling
-  becomes rounded pills via CSS only; component logic unchanged otherwise.
+  `.sidebar__chrome`. (Implementation note: `titleBarStyle` became `'hidden'`
+  with an explicit `trafficLightPosition` so the lights align to the floating
+  sidebar strip; when the sidebar is hidden the tab strip reserves that width.)
+- **`TabBar`**: a persistent shell element - always rendered, even with zero or
+  one document open, so the layout never shifts and the new-tab button is always
+  available. Styling becomes rounded pills via CSS only.
 - **`StatusBar`**: unchanged component; only its container moves into the content
   column and gets the rounded panel styling. Class names/selectors preserved.
 - **`Sidebar`**: add the `.sidebar__chrome` top strip; everything else unchanged.

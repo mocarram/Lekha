@@ -2,7 +2,9 @@
  * Tests for the TabBar component.
  *
  * TabBar reads open documents from documentsStore and forwards select/close/new
- * intent to the parent via callbacks. The strip is hidden when <= 1 doc is open.
+ * intent to the parent via callbacks. The strip is a persistent shell element:
+ * it always renders (even with zero or one document open) so the layout never
+ * shifts and the new-tab button is always available.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup, fireEvent } from '@testing-library/react'

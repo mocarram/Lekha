@@ -64,6 +64,27 @@ body,
 }
 
 /* ---------------------------------------------------------------------------
+ * Sidebar-hidden state (Cmd+\ toggles the sidebar off). The content column then
+ * becomes the leftmost panel, so two things the sidebar otherwise provided must
+ * be compensated:
+ *   1. Traffic-light clearance - normally reserved by .sidebar__chrome inside
+ *      the sidebar. Without it the OS window buttons (fixed at x:16) overlap the
+ *      tab strip's first tab, so reserve that width on the tab strip instead.
+ *   2. The word-count popover anchors off --sidebar-width; with no sidebar that
+ *      value is stale, so collapse its offset to the content column's edge.
+ * --------------------------------------------------------------------------- */
+.app--sidebar-hidden .tab-bar {
+  /* Clear the OS traffic lights (x:16 + three buttons) on the now-leftmost
+     strip. The padding stays a drag region; the lights sit over empty space. */
+  padding-left: 72px;
+}
+
+.app--sidebar-hidden .wc-panel {
+  /* No sidebar: anchor to the content column's left edge (window gutter only). */
+  left: 12px;
+}
+
+/* ---------------------------------------------------------------------------
  * Content column: the right side of the shell. Stacks the tab strip, the
  * rounded editor card, and the status bar as floating panels with --shell-gap
  * between them.

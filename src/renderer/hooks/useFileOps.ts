@@ -437,12 +437,16 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     })
   }, [editorRef, editorStore, recompute])
 
-  /** Reset the editor to a blank Untitled document (no tab bookkeeping). */
-  const blankEditor = useCallback((): void => {
+  /**
+   * Reset the editor to a blank document (no tab bookkeeping). `title` drives the
+   * OS window title: 'Untitled' for a fresh blank doc (default), or '' when the
+   * last tab was closed and the editor shows its empty state (no document).
+   */
+  const blankEditor = useCallback((title = 'Untitled'): void => {
     editorRef.current?.setMarkdown('')
     editorStore.getState().newFile()
     recompute('')
-    window.lekha.setDocumentState({ title: 'Untitled', dirty: false, path: null })
+    window.lekha.setDocumentState({ title, dirty: false, path: null })
   }, [editorRef, editorStore, recompute])
 
   // -------------------------------------------------------------------------
@@ -640,9 +644,9 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     } else {
       // No tabs remain: show the editor empty state (App renders a placeholder
       // when documents.length === 0) instead of spawning a replacement document.
-      // Clear the editor surface underneath and drop the OS window title.
-      blankEditor()
-      window.lekha.setDocumentState({ title: '', dirty: false, path: null })
+      // Clear the editor surface underneath and drop the OS window title (''),
+      // which blankEditor pushes to the OS in a single setDocumentState call.
+      blankEditor('')
     }
   }, [documentsStore, selectTab, editorStore, guardUnsaved, loadTab, blankEditor])
 

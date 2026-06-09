@@ -222,6 +222,11 @@ export default function App() {
   const fileTree = useWorkspaceStore((s) => s.fileTree)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
   const showStatusBar = useWorkspaceStore((s) => s.showStatusBar)
+  // Whether the sidebar panel is shown. When hidden the content column becomes
+  // the leftmost panel, so the shell must reserve traffic-light space on the tab
+  // strip and re-anchor the word-count popover (both handled in CSS via the
+  // `app--sidebar-hidden` modifier below).
+  const sidebarVisible = useWorkspaceStore((s) => s.sidebarVisible)
   // Number of open documents; drives the editor empty state (zero tabs).
   const documentCount = useDocumentsStore((s) => s.documents.length)
   const paletteFiles = useMemo(
@@ -571,7 +576,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app">
+    <div className={`app${sidebarVisible ? '' : ' app--sidebar-hidden'}`}>
       <Sidebar
         onSelectFile={(path) => { void fileOps.openPath(path) }}
         onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}

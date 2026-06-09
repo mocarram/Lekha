@@ -131,7 +131,6 @@
   --sidebar-bg:      var(--gh-surface);
   --sidebar-active:  color-mix(in srgb, var(--accent) 14%, transparent);
   --sidebar-hover:   var(--gh-row-hover-bg);
-  --titlebar-bg:     var(--gh-surface);
   --statusbar-text:  var(--gh-text-muted);
   /* Font size for the sidebar list rows (file tree, outline, articles). */
   --sidebar-font-size: 16px;

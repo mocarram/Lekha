@@ -4,8 +4,12 @@
  * A maximum-legibility dark theme: pure-black background, white text, a bright
  * accent, strong borders, and a deliberately SQUARE UI (every --radius* set to
  * 0). It doubles as the reference for the structural radius tokens - proof that
- * a theme can change shape, not just color. Like every theme, it only
- * re-assigns design tokens (styles/tokens.css); no component CSS is redeclared.
+ * a theme can change shape, not just color. It re-assigns design tokens
+ * (styles/tokens.css) and - uniquely - adds explicit panel borders: the shared
+ * shell is borderless and relies on the window-bg gutter to separate its
+ * floating panels, but on pure black that contrast is too low, so this theme
+ * restores crisp 1px borders for accessible separation (in keeping with its
+ * "strong borders, square UI" design).
  *
  * Activation: applyTheme('high-contrast') sets data-theme="high-contrast".
  */
@@ -43,7 +47,6 @@
   /* --- Chrome --- */
   --sidebar-bg:     #0a0a0a;
   --sidebar-hover:  #242424;
-  --titlebar-bg:    #0a0a0a;
   --statusbar-text: #d4d4d4;
 
   /* --- Find / highlight --- */
@@ -76,4 +79,14 @@
 
   /* --- Strong, solid focus ring (not a soft glow) for keyboard visibility --- */
   --focus-ring: 0 0 0 3px var(--accent);
+}
+
+/* Explicit panel borders (see header): on pure black the gutter alone can't
+   separate the floating panels, so give each a crisp 1px outline. box-sizing is
+   border-box app-wide, so this adds no layout shift. */
+[data-theme="high-contrast"] .sidebar,
+[data-theme="high-contrast"] .editor-area,
+[data-theme="high-contrast"] .tab-bar,
+[data-theme="high-contrast"] .status-bar {
+  border: 1px solid var(--border);
 }

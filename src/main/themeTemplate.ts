@@ -71,7 +71,6 @@ export const DEFAULT_TEMPLATE_CSS = `/*
   /* --- Chrome --- */
   --sidebar-bg:        #fafafa;   /* sidebar panel background */
   --sidebar-hover:     #efefef;   /* hovered file/outline row */
-  --titlebar-bg:       #fafafa;   /* titlebar background */
   --statusbar-text:    #9b9b9b;   /* status bar text */
   --sidebar-font-size: 16px;      /* file-tree / outline / articles row text */
 
