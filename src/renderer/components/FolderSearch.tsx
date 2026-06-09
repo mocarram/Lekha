@@ -44,9 +44,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
   // collapsing (which unmounts this panel). The mount-time debounced effect
   // below re-runs the search from the restored query, so results come back too.
   const query = useWorkspaceStore((s) => s.searchQuery)
-  const setQuery = useWorkspaceStore((s) => s.setSearchQuery)
   const caseSensitive = useWorkspaceStore((s) => s.searchCaseSensitive)
-  const setCaseSensitive = useWorkspaceStore((s) => s.setSearchCaseSensitive)
   const [results, setResults] = useState<FolderSearchResult[]>([])
   const [searching, setSearching] = useState(false)
 
@@ -111,14 +109,14 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
           type="text"
           placeholder="Search in folder..."
           value={query}
-          onChange={(e) => { setQuery(e.target.value) }}
+          onChange={(e) => { useWorkspaceStore.getState().setSearchQuery(e.target.value) }}
           aria-label="Search query"
           spellCheck={false}
         />
         <button
           type="button"
           className={`folder-search__case-btn${caseSensitive ? ' active' : ''}`}
-          onClick={() => { setCaseSensitive(!caseSensitive) }}
+          onClick={() => { useWorkspaceStore.getState().setSearchCaseSensitive(!caseSensitive) }}
           title={caseSensitive ? 'Case-sensitive: on' : 'Match case (case-sensitive)'}
           aria-label="Match case"
           aria-pressed={caseSensitive}
