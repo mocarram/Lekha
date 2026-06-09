@@ -555,3 +555,28 @@ test('document tabs: nextTab/previousTab/closeTab commands cycle and close', asy
   await sendCommand(sharedApp, 'closeTab')
   await expect(win.locator('.tab')).toHaveCount(1)
 })
+
+// ---------------------------------------------------------------------------
+// Test: sidebar toggle button hides and re-shows the sidebar
+// ---------------------------------------------------------------------------
+
+test('sidebar toggle button collapses and restores the sidebar', async () => {
+  const win = sharedWin
+
+  // Baseline: the sidebar and the toggle button are both present.
+  await expect(win.locator('.sidebar')).toBeVisible()
+  const toggle = win.locator('.sidebar-toggle')
+  await expect(toggle).toBeVisible()
+
+  // Click to hide: the sidebar unmounts and the root gains the modifier class.
+  await toggle.click()
+  await expect(win.locator('.sidebar')).toHaveCount(0)
+  await expect(win.locator('.app.app--sidebar-hidden')).toHaveCount(1)
+  // The button itself stays put and is still clickable.
+  await expect(toggle).toBeVisible()
+
+  // Click to show: the sidebar comes back and the modifier class is removed.
+  await toggle.click()
+  await expect(win.locator('.sidebar')).toBeVisible()
+  await expect(win.locator('.app.app--sidebar-hidden')).toHaveCount(0)
+})
