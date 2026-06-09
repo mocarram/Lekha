@@ -580,3 +580,24 @@ test('sidebar toggle button collapses and restores the sidebar', async () => {
   await expect(win.locator('.sidebar')).toBeVisible()
   await expect(win.locator('.app.app--sidebar-hidden')).toHaveCount(0)
 })
+
+// ---------------------------------------------------------------------------
+// Test: folder search panel exposes whole-word + replace controls
+// ---------------------------------------------------------------------------
+
+test('folder search panel exposes whole-word and replace controls', async () => {
+  const win = sharedWin
+
+  // Open the Search tab via its bottom sidebar button.
+  await win.locator('.sidebar__tab-btn', { hasText: 'Search' }).click()
+  await expect(win.locator('.folder-search__input')).toBeVisible()
+
+  // Whole-word toggle ("ab") is present alongside case ("Aa").
+  await expect(win.locator('.folder-search__case-btn', { hasText: 'ab' })).toBeVisible()
+
+  // Replace is collapsed by default; expand it.
+  await expect(win.locator('.folder-search__replace-all')).toHaveCount(0)
+  await win.locator('.folder-search__replace-toggle').click()
+  await expect(win.locator('.folder-search__replace-all')).toBeVisible()
+  await expect(win.locator('input[aria-label="Replace with"]')).toBeVisible()
+})
