@@ -11,40 +11,41 @@
  */
 
 [data-theme="midnight"] {
-  /* --- Surfaces (deep midnight navy, clearly blue not black) --- */
-  --bg:           #0b1a31;
-  --surface:      #10213c;
-  --border:       #233556;
-  --border-light: #2c4063;
+  /* --- Surfaces (Etherscan-style midnight: a lighter blue-navy editor,
+   *     with chrome + code recessed a touch darker) --- */
+  --bg:           #1e2938;
+  --surface:      #19222f;
+  --border:       #303c4d;
+  --border-light: #3a4759;
 
-  /* --- Text (softened blue-grays, dimmer than white to ease the eyes) --- */
-  --text:       #c2cee2;
-  --text-muted: #8a98b5;
-  --text-sub:   #a2b0cc;
-  --text-dark:  #d8e2f0;
-  --text-file:  #b8c5db;
-  --heading:    #d8e2f0;
+  /* --- Text (Etherscan light blue-white; the lighter bg keeps it gentle) --- */
+  --text:       #e3e9f1;
+  --text-muted: #8d99ab;
+  --text-sub:   #aab5c5;
+  --text-dark:  #f1f5fb;
+  --text-file:  #c6cfdc;
+  --heading:    #f1f5fb;
 
   /* --- Accent (vivid, properly-visible midnight blue) --- */
   --link:   #5aa0ff;
   --accent: #4a8bff;
 
   /* --- Editor content --- */
-  --selection:         #1f3f70;
-  --code-bg:           #0e1d36;
-  --code-bg-inline:    #142540;
-  --code-text:         #c2cee2;
-  --blockquote-text:   #aab8d4;
-  --blockquote-border: #2c4063;
-  --table-border:      #2c4063;
-  --table-header-bg:   #142540;
-  --hr-color:          #233556;
+  --selection:         #30456a;
+  --code-bg:           #182230;
+  --code-bg-inline:    #182230;
+  --code-text:         #e3e9f1;
+  --blockquote-text:   #aab5c5;
+  --blockquote-border: #3a4759;
+  --table-border:      #3a4759;
+  --table-header-bg:   #19222f;
+  --hr-color:          #303c4d;
 
   /* --- Chrome --- */
-  --sidebar-bg:     #0d1d37;
-  --sidebar-hover:  #19294a;
-  --titlebar-bg:    #0d1d37;
-  --statusbar-text: #93a3c0;
+  --sidebar-bg:     #19222f;
+  --sidebar-hover:  #283442;
+  --titlebar-bg:    #19222f;
+  --statusbar-text: #8d99ab;
 
   /* --- Find / highlight (warm amber stands out against the blue) --- */
   --find-match:         #5c4a12;
