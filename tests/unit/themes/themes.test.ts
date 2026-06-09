@@ -79,6 +79,13 @@ describe('THEMES registry', () => {
     expect(t!.type).toBe('dark')
   })
 
+  it('includes midnight theme with label "Midnight"', () => {
+    const t = THEMES.find((x) => x.id === 'midnight')
+    expect(t).toBeDefined()
+    expect(t!.label).toBe('Midnight')
+    expect(t!.type).toBe('dark')
+  })
+
   it('has at least 6 themes after adding the 3 new ones', () => {
     expect(THEMES.length).toBeGreaterThanOrEqual(6)
   })
@@ -156,6 +163,11 @@ describe('applyTheme', () => {
   it('sets data-theme="high-contrast" when called with "high-contrast"', () => {
     applyTheme('high-contrast')
     expect(document.documentElement.dataset['theme']).toBe('high-contrast')
+  })
+
+  it('sets data-theme="midnight" when called with "midnight"', () => {
+    applyTheme('midnight')
+    expect(document.documentElement.dataset['theme']).toBe('midnight')
   })
 })
 

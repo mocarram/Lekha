@@ -1,0 +1,74 @@
+/*
+ * themes/midnight.css - "Midnight" theme for Lekha
+ *
+ * A clean, minimalist dark theme built around a midnight-blue palette
+ * (inspired by Etherscan's dark mode): a clearly-blue navy background, a vivid
+ * blue accent, soft blue-tinted text, and a deliberately LARGER, airier reading
+ * size. Like every theme it only re-assigns design tokens (styles/tokens.css);
+ * no component CSS is redeclared.
+ *
+ * Activation: applyTheme('midnight') sets data-theme="midnight".
+ */
+
+[data-theme="midnight"] {
+  /* --- Surfaces (deep midnight navy, clearly blue not black) --- */
+  --bg:           #0b1a31;
+  --surface:      #10213c;
+  --border:       #233556;
+  --border-light: #2c4063;
+
+  /* --- Text (soft, blue-tinted whites for a calm read) --- */
+  --text:       #e7eef8;
+  --text-muted: #93a3c0;
+  --text-sub:   #aab8d4;
+  --text-dark:  #f3f7fc;
+  --text-file:  #d3deef;
+  --heading:    #f3f7fc;
+
+  /* --- Accent (vivid, properly-visible midnight blue) --- */
+  --link:   #5aa0ff;
+  --accent: #4a8bff;
+
+  /* --- Editor content --- */
+  --selection:         #1f3f70;
+  --code-bg:           #0e1d36;
+  --code-bg-inline:    #142540;
+  --code-text:         #e7eef8;
+  --blockquote-text:   #aab8d4;
+  --blockquote-border: #2c4063;
+  --table-border:      #2c4063;
+  --table-header-bg:   #142540;
+  --hr-color:          #233556;
+
+  /* --- Chrome --- */
+  --sidebar-bg:     #0d1d37;
+  --sidebar-hover:  #19294a;
+  --titlebar-bg:    #0d1d37;
+  --statusbar-text: #93a3c0;
+
+  /* --- Find / highlight (warm amber stands out against the blue) --- */
+  --find-match:         #5c4a12;
+  --find-match-current: #bf8a1f;
+  --highlight-bg:       #294063;
+  --highlight-text:     #eaf1fb;
+
+  /* --- Syntax highlighting (bright, blue-leaning palette) --- */
+  --hljs-keyword:   #6cb6ff;
+  --hljs-string:    #9ece6a;
+  --hljs-comment:   #5f7595;
+  --hljs-function:  #c0a6ff;
+  --hljs-number:    #ff9e64;
+  --hljs-tag:       #9ece6a;
+  --hljs-attribute: #ffcb6b;
+  --hljs-section:   #6cb6ff;
+
+  /* --- Semantic --- */
+  --danger:          #ff6b6b;
+  --on-accent:       #ffffff;
+  --on-accent-muted: rgba(255, 255, 255, 0.82);
+
+  /* --- Bigger, airier reading size (the headline of this theme) --- */
+  --editor-font-scale:  1.1;     /* ~10% larger editor body text */
+  --editor-line-height: 1.8;     /* looser line spacing for calm reading */
+  --sidebar-font-size:  15px;    /* larger file-tree / outline rows */
+}
