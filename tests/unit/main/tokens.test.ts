@@ -61,7 +61,7 @@ describe('github.css - component rules only (no token declarations)', () => {
 
   it('still contains token-driven component rules', () => {
     expect(github).toContain('var(--bg)')
-    expect(github).toContain('.title-bar')
+    expect(github).toContain('.status-bar')
   })
 })
 

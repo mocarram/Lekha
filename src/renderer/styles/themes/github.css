@@ -29,24 +29,6 @@
  * 3. App Chrome
  * =========================================================================== */
 
-/* --- Title bar --- */
-.title-bar {
-  background-color: var(--titlebar-bg);
-  border-bottom: 1px solid var(--border);
-}
-
-.title-bar__title {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-muted);
-  font-family: var(--font-ui);
-}
-
-.title-bar__dirty {
-  color: var(--text-muted);
-  opacity: 0.6;
-}
-
 /* --- Status bar --- */
 .status-bar {
   background-color: var(--surface);

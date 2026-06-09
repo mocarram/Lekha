@@ -136,6 +136,14 @@
   /* Font size for the sidebar list rows (file tree, outline, articles). */
   --sidebar-font-size: 16px;
 
+  /* App-shell ("floating panels") chrome:
+   *   --window-bg  the gutter backdrop the rounded sidebar/content panels sit on.
+   *                Derived a touch darker than --surface so it reads on every
+   *                theme without per-theme edits; themes may override it.
+   *   --shell-gap  the padding/gutter + gap between the panels. */
+  --window-bg: color-mix(in srgb, var(--surface) 92%, #000);
+  --shell-gap: 6px;
+
   /* Find highlights */
   --find-match:         var(--gh-find-match);
   --find-match-current: var(--gh-find-match-current);

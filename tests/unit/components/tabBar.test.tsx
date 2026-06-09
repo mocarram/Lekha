@@ -40,12 +40,12 @@ describe('TabBar', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders nothing when only one document is open', () => {
+  it('renders a single tab when one document is open (persistent tab strip)', () => {
     openTabs(1)
-    const { container } = render(
+    const { getAllByRole } = render(
       <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
     )
-    expect(container.firstChild).toBeNull()
+    expect(getAllByRole('tab')).toHaveLength(1)
   })
 
   it('renders one tab per open document when multiple are open', () => {

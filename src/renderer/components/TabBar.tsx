@@ -17,15 +17,15 @@ interface TabBarProps {
  * forwards user intent (select / close / new) to the parent via callbacks, so
  * App owns the editor-integration logic (loading content, the save guard).
  *
- * The strip is hidden when zero or one document is open (a
- * "show tabs when multiple documents" behaviour) to avoid wasting vertical
- * space in the common single-file case.
+ * The strip is hidden only when zero documents are open; a single open document
+ * still shows its tab, so the shell's persistent browser-style tab strip is
+ * always present whenever there is something to edit.
  */
 export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
   const documents = useDocumentsStore((s) => s.documents)
   const activeId = useDocumentsStore((s) => s.activeId)
 
-  if (documents.length <= 1) return null
+  if (documents.length === 0) return null
 
   // Roving-tabindex keyboard navigation for the tab strip (WAI-ARIA tabs
   // pattern). Left/Right (and Home/End) move focus between tabs and activate

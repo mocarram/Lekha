@@ -15,7 +15,6 @@ import { parseMarkdown } from '@renderer/editor/parser'
 import type { Node as ProseMirrorNode } from 'prosemirror-model'
 import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
-import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { TabBar } from '@renderer/components/TabBar'
 import { Sidebar } from '@renderer/components/Sidebar'
@@ -570,58 +569,57 @@ export default function App() {
 
   return (
     <div className="app">
-      <TitleBar />
+      <Sidebar
+        onSelectFile={(path) => { void fileOps.openPath(path) }}
+        onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
+        onOpenSearchResult={(filePath, query, caseSensitive) => {
+          // Open-then-find: open the file, then use the in-document find to
+          // highlight and navigate to the query. Line-to-position mapping in
+          // WYSIWYG is unreliable; reusing the editor's own find is robust.
+          void fileOps.openPath(filePath).then(() => {
+            editorRef.current?.setFind(query, { caseSensitive })
+            editorRef.current?.findNext()
+          })
+        }}
+        onNewFile={(dir) => { void fileOps.createFileEntry(dir) }}
+        onNewFolder={(dir) => { void fileOps.createFolderEntry(dir) }}
+        onRenameEntry={(oldPath, newName) => { void fileOps.renameEntry(oldPath, newName) }}
+        onDeleteEntry={(path) => { void fileOps.deleteEntry(path) }}
+        onRevealEntry={(path) => { fileOps.revealEntry(path) }}
+        onOpenFolderPath={(dir) => { void fileOps.openFolderPath(dir) }}
+        onNotify={notifyDrop}
+        sidebarWidth={sidebarWidth}
+        onSidebarWidthChange={setSidebarWidth}
+      />
 
-      {externalNotice !== null && (
-        <div className="external-notice" role="status">
-          <span className="external-notice__text">{externalNotice}</span>
-          <button
-            type="button"
-            className="external-notice__dismiss no-drag"
-            aria-label="Dismiss"
-            onClick={() => setExternalNotice(null)}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      <RecoveryNotice onSave={() => { void fileOps.save() }} />
-
-      <div className="workspace">
-        <Sidebar
-          onSelectFile={(path) => { void fileOps.openPath(path) }}
-          onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
-          onOpenSearchResult={(filePath, query, caseSensitive) => {
-            // Open-then-find: open the file, then use the in-document find to
-            // highlight and navigate to the query. Line-to-position mapping in
-            // WYSIWYG is unreliable; reusing the editor's own find is robust.
-            void fileOps.openPath(filePath).then(() => {
-              editorRef.current?.setFind(query, { caseSensitive })
-              editorRef.current?.findNext()
-            })
-          }}
-          onNewFile={(dir) => { void fileOps.createFileEntry(dir) }}
-          onNewFolder={(dir) => { void fileOps.createFolderEntry(dir) }}
-          onRenameEntry={(oldPath, newName) => { void fileOps.renameEntry(oldPath, newName) }}
-          onDeleteEntry={(path) => { void fileOps.deleteEntry(path) }}
-          onRevealEntry={(path) => { fileOps.revealEntry(path) }}
-          onOpenFolderPath={(dir) => { void fileOps.openFolderPath(dir) }}
-          onNotify={notifyDrop}
-          sidebarWidth={sidebarWidth}
-          onSidebarWidthChange={setSidebarWidth}
+      <div className="content-col">
+        <TabBar
+          onSelect={(id) => { void fileOps.selectTab(id) }}
+          onClose={(id) => { void fileOps.closeTab(id) }}
+          onNew={() => { void fileOps.newFile() }}
         />
+
+        {externalNotice !== null && (
+          <div className="external-notice" role="status">
+            <span className="external-notice__text">{externalNotice}</span>
+            <button
+              type="button"
+              className="external-notice__dismiss no-drag"
+              aria-label="Dismiss"
+              onClick={() => setExternalNotice(null)}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <RecoveryNotice onSave={() => { void fileOps.save() }} />
 
         <EditorDropZone
           onOpenFolder={(dir) => { void fileOps.openFolderPath(dir) }}
           onOpenFiles={(paths) => { for (const p of paths) void fileOps.openPath(p) }}
           onNotify={notifyDrop}
         >
-          <TabBar
-            onSelect={(id) => { void fileOps.selectTab(id) }}
-            onClose={(id) => { void fileOps.closeTab(id) }}
-            onNew={() => { void fileOps.newFile() }}
-          />
           <EditorPane
             ref={editorRef}
             initialMarkdown={WELCOME_MARKDOWN}
@@ -633,11 +631,11 @@ export default function App() {
             className="editor-pane"
           />
         </EditorDropZone>
-      </div>
 
-      {showStatusBar && (
-        <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
-      )}
+        {showStatusBar && (
+          <StatusBar onToggleSource={handleToggleSource} onShowStats={toggleStatsPanel} />
+        )}
+      </div>
 
       {dropToast !== null && (
         <div className="drop-toast" role="status">{dropToast}</div>

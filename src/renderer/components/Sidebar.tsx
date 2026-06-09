@@ -122,6 +122,9 @@ export function Sidebar({
 
   return (
     <aside className="sidebar" style={{ width: sidebarWidth }}>
+      {/* Top strip: reserves room for the macOS traffic lights (drawn by the OS
+          over the sidebar's top-left) and serves as a window drag region. */}
+      <div className="sidebar__chrome" />
       <div className="sidebar__header">{headerLabel}</div>
       <div className="sidebar__content">
         {sidebarTab === 'files' ? (

@@ -483,10 +483,11 @@ test('clicking a task checkbox toggles the tick glyph, not just the text', async
 test('document tabs: new creates tabs, switching swaps content, close removes a tab', async () => {
   const win = sharedWin
 
-  // Baseline: a single document -> the tab bar is hidden.
-  await expect(win.locator('.tab-bar')).toHaveCount(0)
+  // Baseline: a single document still shows the persistent tab strip (one tab).
+  await expect(win.locator('.tab-bar')).toHaveCount(1)
+  await expect(win.locator('.tab')).toHaveCount(1)
 
-  // Create a second document -> the tab bar appears with two tabs.
+  // Create a second document -> two tabs in the strip.
   await sendCommand(sharedApp, 'new')
   await expect(win.locator('.tab-bar')).toHaveCount(1)
   await expect(win.locator('.tab')).toHaveCount(2)
@@ -507,10 +508,11 @@ test('document tabs: new creates tabs, switching swaps content, close removes a 
   // The blank second tab is clean (no unsaved-changes prompt on close).
   await expect(tabs.nth(1)).not.toHaveClass(/tab--dirty/)
 
-  // Close the blank tab via its close button -> back to a single document,
-  // so the tab bar hides again.
+  // Close the blank tab via its close button -> back to a single document; the
+  // persistent tab strip stays visible with its one remaining tab.
   await tabs.nth(1).locator('.tab__close').click()
-  await expect(win.locator('.tab-bar')).toHaveCount(0)
+  await expect(win.locator('.tab-bar')).toHaveCount(1)
+  await expect(win.locator('.tab')).toHaveCount(1)
 })
 
 // ---------------------------------------------------------------------------
@@ -544,11 +546,12 @@ test('document tabs: nextTab/previousTab/closeTab commands cycle and close', asy
   await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true')
 
   // closeTab closes the active blank tab (clean -> no prompt) -> 2 remain,
-  // then close the other blank tab -> a single document remains, bar hides.
+  // then close the other blank tab -> a single document remains; the strip
+  // stays visible with its one tab.
   // The first tab is the welcome doc (possibly dirty from earlier tests); we
   // never close it here so no native save dialog appears.
   await sendCommand(sharedApp, 'closeTab')
   await expect(win.locator('.tab')).toHaveCount(2)
   await sendCommand(sharedApp, 'closeTab')
-  await expect(win.locator('.tab-bar')).toHaveCount(0)
+  await expect(win.locator('.tab')).toHaveCount(1)
 })

@@ -42,6 +42,7 @@
   --hr-color:          #303c4d;
 
   /* --- Chrome --- */
+  --window-bg:      #10151d;   /* gutter backdrop behind the floating panels */
   --sidebar-bg:     #19222f;
   --sidebar-hover:  #283442;
   --titlebar-bg:    #19222f;
