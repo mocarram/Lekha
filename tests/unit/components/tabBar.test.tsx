@@ -33,11 +33,13 @@ function openTabs(n: number): string[] {
 }
 
 describe('TabBar', () => {
-  it('renders nothing when zero documents are open', () => {
-    const { container } = render(
+  it('renders the persistent strip (new-tab button, no tabs) when zero documents are open', () => {
+    const { container, getByLabelText, queryAllByRole } = render(
       <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
     )
-    expect(container.firstChild).toBeNull()
+    expect(container.querySelector('.tab-bar')).not.toBeNull()
+    expect(queryAllByRole('tab')).toHaveLength(0)
+    expect(getByLabelText('New document')).toBeTruthy()
   })
 
   it('renders a single tab when one document is open (persistent tab strip)', () => {
