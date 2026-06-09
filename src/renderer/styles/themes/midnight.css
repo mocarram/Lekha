@@ -68,7 +68,7 @@
   --on-accent-muted: rgba(255, 255, 255, 0.82);
 
   /* --- Bigger, airier reading size (the headline of this theme) --- */
-  --editor-font-scale:  1.1;     /* ~10% larger editor body text */
+  --editor-font-scale:  1.16;    /* ~16% larger editor body text for clarity */
   --editor-line-height: 1.8;     /* looser line spacing for calm reading */
-  --sidebar-font-size:  15px;    /* larger file-tree / outline rows */
+  --sidebar-font-size:  16px;    /* larger file-tree / outline rows */
 }
