@@ -1064,8 +1064,12 @@ body,
 
 .wc-panel {
   position: fixed;
-  left: 12px;
-  bottom: calc(var(--statusbar-height) + 8px);
+  /* Anchor to the content column's bottom-left (above the status-bar counters),
+     not the window edge: clear of the full-height sidebar and lifted off the
+     bottom switcher. --sidebar-width + window gutter (6) + shell gap (6); the
+     bottom clears the status bar + the gutter below it. */
+  left: calc(var(--sidebar-width) + 12px);
+  bottom: calc(var(--statusbar-height) + 14px);
   z-index: 101;
   width: 240px;
   max-width: calc(100vw - 24px);
