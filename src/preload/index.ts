@@ -236,6 +236,21 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.searchFolder, args) as Promise<FolderSearchResult[]>
   },
 
+  replaceInFolder(args: {
+    root: string
+    query: string
+    replacement: string
+    caseSensitive: boolean
+    wholeWord: boolean
+    skipPaths: string[]
+  }): Promise<{ filesChanged: number; replacements: number; changedPaths: string[] }> {
+    return ipcRenderer.invoke(IPC.replaceInFolder, args) as Promise<{
+      filesChanged: number
+      replacements: number
+      changedPaths: string[]
+    }>
+  },
+
   // --- Templates ---
   listTemplates(): Promise<Template[]> {
     return ipcRenderer.invoke(IPC.listTemplates) as Promise<Template[]>

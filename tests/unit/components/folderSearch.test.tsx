@@ -80,6 +80,7 @@ function makeMockLekha(
     writeClipboard: vi.fn(() => Promise.resolve()),
     readClipboardText: vi.fn(() => Promise.resolve('')),
     searchFolder: vi.fn(searchFolder),
+    replaceInFolder: vi.fn(() => Promise.resolve({ filesChanged: 0, replacements: 0, changedPaths: [] })),
     listTemplates: vi.fn(() => Promise.resolve([])),
     listThemes: vi.fn(() => Promise.resolve([])),
     reloadThemes: vi.fn(() => Promise.resolve([])),

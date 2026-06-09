@@ -207,6 +207,20 @@ export interface LekhaAPI {
     wholeWord: boolean
   }): Promise<FolderSearchResult[]>
 
+  /**
+   * Replace `query` with `replacement` across every Markdown file under `root`,
+   * skipping `skipPaths` (e.g. files open with unsaved edits). Writes changed
+   * files atomically and resolves with counts plus the absolute changed paths.
+   */
+  replaceInFolder(args: {
+    root: string
+    query: string
+    replacement: string
+    caseSensitive: boolean
+    wholeWord: boolean
+    skipPaths: string[]
+  }): Promise<{ filesChanged: number; replacements: number; changedPaths: string[] }>
+
   // --- Templates ---
   /**
    * List user-defined templates from the userData/templates directory.

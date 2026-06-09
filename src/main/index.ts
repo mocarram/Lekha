@@ -6,6 +6,7 @@ import { registerExportHandlers } from '@main/ipc/export'
 import { registerImageHandlers } from '@main/ipc/images'
 import { registerShellHandlers } from '@main/ipc/shell'
 import { registerSearchHandlers } from '@main/ipc/search'
+import { registerReplaceHandlers } from '@main/ipc/replace'
 import { registerTemplateHandlers } from '@main/ipc/templates'
 import { registerThemeHandlers } from '@main/ipc/themes'
 import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
@@ -501,6 +502,7 @@ void app.whenReady().then(async () => {
 
   // Register folder-wide Markdown search handler.
   registerSearchHandlers()
+  registerReplaceHandlers()
 
   // Register the user-templates listing handler. Pass a thunk so the userData
   // path is resolved at call time (consistent with the image handler pattern).
