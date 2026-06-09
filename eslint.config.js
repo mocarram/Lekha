@@ -5,7 +5,17 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default tseslint.config(
   {
-    ignores: ['out/**', 'dist/**', 'node_modules/**', 'coverage/**', '*.config.js', 'scripts/**'],
+    ignores: [
+      'out/**',
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      '*.config.js',
+      'scripts/**',
+      // Plain-JS build hooks (e.g. build/notarize.cjs) are CommonJS tooling, not
+      // part of the typed TS source tree.
+      'build/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

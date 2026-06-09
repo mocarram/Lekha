@@ -15,6 +15,10 @@ files:
 
 npmRebuild: false
 
+# Conditional notarization (see build/notarize.cjs): notarizes only when Apple
+# credentials are present in the environment, otherwise no-ops.
+afterSign: build/notarize.cjs
+
 # File associations: declare which document types Lekha can open so the OS shows
 # it in "Open With" and routes double-clicked files to the app. On macOS this
 # generates CFBundleDocumentTypes in Info.plist (delivered via the `open-file`
