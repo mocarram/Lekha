@@ -429,7 +429,7 @@ body,
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  height: 30px;
+  height: 32px;
   gap: 5px;
   padding: 0 2px;
   /* The tab strip sits on the window-bg gutter (no fill); the pills float on it.
@@ -459,11 +459,11 @@ body,
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 26px;
+  height: 30px;
   min-width: 0;
   max-width: 180px;
-  padding: 0 11px;
-  font-size: 12px;
+  padding: 0 12px;
+  font-size: 13px;
   color: var(--color-text-muted);
   background-color: transparent;
   /* Fully-rounded pill (radius on all sides). */
@@ -563,14 +563,14 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
   border: none;
   border-radius: var(--radius);
   background: none;
   color: var(--color-text-muted);
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
 }
 
