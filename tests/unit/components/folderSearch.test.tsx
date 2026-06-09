@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup, fireEvent, screen, act } from '@testing-library/react'
 import { FolderSearch } from '../../../src/renderer/components/FolderSearch'
+import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
 import type { LekhaAPI } from '../../../src/preload/api'
 import type { FolderSearchResult } from '../../../src/shared/types'
 
@@ -109,12 +110,16 @@ const SAMPLE_RESULTS: FolderSearchResult[] = [
 
 beforeEach(() => {
   vi.useFakeTimers()
+  // Query + case flag now live in the workspace store; reset so a typed query
+  // from one test doesn't bleed into the next (the panel reads it on mount).
+  useWorkspaceStore.setState({ searchQuery: '', searchCaseSensitive: false })
 })
 
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
   cleanup()
+  useWorkspaceStore.setState({ searchQuery: '', searchCaseSensitive: false })
 })
 
 // ---------------------------------------------------------------------------

@@ -15,6 +15,13 @@ interface WorkspaceState {
   showStatusBar: boolean
   /** Whether the window floats above others (View ▸ Always on Top). */
   alwaysOnTop: boolean
+  /**
+   * Folder-search query + case flag. Held here (not in FolderSearch's local
+   * state) so they survive the sidebar being collapsed - which unmounts the
+   * panel - and the query is restored (and re-run) when it reopens.
+   */
+  searchQuery: string
+  searchCaseSensitive: boolean
 }
 
 interface WorkspaceActions {
@@ -26,6 +33,8 @@ interface WorkspaceActions {
   setSidebarTab(tab: 'files' | 'outline' | 'articles' | 'search'): void
   toggleStatusBar(): void
   setAlwaysOnTop(v: boolean): void
+  setSearchQuery(q: string): void
+  setSearchCaseSensitive(v: boolean): void
 }
 
 export type WorkspaceStore = WorkspaceState & WorkspaceActions
@@ -43,6 +52,8 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   sidebarTab: 'files',
   showStatusBar: true,
   alwaysOnTop: false,
+  searchQuery: '',
+  searchCaseSensitive: false,
 
   setRootFolder(path) {
     set({ rootFolder: path })
@@ -74,5 +85,13 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
   setAlwaysOnTop(v) {
     set({ alwaysOnTop: v })
+  },
+
+  setSearchQuery(q) {
+    set({ searchQuery: q })
+  },
+
+  setSearchCaseSensitive(v) {
+    set({ searchCaseSensitive: v })
   },
 }))

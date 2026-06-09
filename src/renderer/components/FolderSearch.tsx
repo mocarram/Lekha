@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { FolderSearchResult } from '@shared/types'
+import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 
 /** Extract the last path segment (file name) from an absolute file path. */
 function getFileName(filePath: string): string {
@@ -39,8 +40,13 @@ const DEBOUNCE_MS = 250
  * Debounced 250ms to avoid IPC spam on every keystroke.
  */
 export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
-  const [query, setQuery] = useState('')
-  const [caseSensitive, setCaseSensitive] = useState(false)
+  // Query + case flag live in the workspace store so they survive the sidebar
+  // collapsing (which unmounts this panel). The mount-time debounced effect
+  // below re-runs the search from the restored query, so results come back too.
+  const query = useWorkspaceStore((s) => s.searchQuery)
+  const setQuery = useWorkspaceStore((s) => s.setSearchQuery)
+  const caseSensitive = useWorkspaceStore((s) => s.searchCaseSensitive)
+  const setCaseSensitive = useWorkspaceStore((s) => s.setSearchCaseSensitive)
   const [results, setResults] = useState<FolderSearchResult[]>([])
   const [searching, setSearching] = useState(false)
 
@@ -112,7 +118,7 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
         <button
           type="button"
           className={`folder-search__case-btn${caseSensitive ? ' active' : ''}`}
-          onClick={() => { setCaseSensitive((v) => !v) }}
+          onClick={() => { setCaseSensitive(!caseSensitive) }}
           title={caseSensitive ? 'Case-sensitive: on' : 'Match case (case-sensitive)'}
           aria-label="Match case"
           aria-pressed={caseSensitive}
