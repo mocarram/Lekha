@@ -32,7 +32,10 @@
 /* --- Status bar --- */
 .status-bar {
   background-color: var(--surface);
-  border-top: 1px solid var(--border);
+  /* No top border: in the floating-panel shell the status bar is a detached
+     rounded card (like the tab bar), so a divider line would read as a stray
+     groove on its top edge. The shell gap already separates it from the editor
+     card above. */
   font-size: 11px;
   color: var(--statusbar-text);
   font-family: var(--font-ui);
@@ -63,7 +66,10 @@
 /* --- Sidebar --- */
 .sidebar {
   background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--border);
+  /* No right border: in the floating-panel shell the sidebar is a detached
+     rounded card, so an edge border draws a straight line that ignores the
+     rounded corners and reads as a groove. The shell gap already separates it
+     from the content. */
 }
 
 /* Bottom tab bar */

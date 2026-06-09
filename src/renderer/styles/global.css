@@ -762,6 +762,9 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   border-radius: var(--radius-sm);
+  /* Tiny vertical gap so an active row and a hovered neighbour stay visually
+     separated instead of their filled backgrounds merging into one block. */
+  margin-bottom: 2px;
 }
 
 .file-tree__row:hover {
@@ -1181,7 +1184,9 @@ body,
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--color-border);
+  /* No divider line: the input has its own box border, so a full-width row
+     separator just reads as a stray groove across the panel (matching the
+     clean, borderless shell chrome). */
   flex-shrink: 0;
 }
 
@@ -1855,6 +1860,9 @@ select.dialog-input {
 .articles {
   display: flex;
   flex-direction: column;
+  /* Tiny gap so an active card and a hovered neighbour stay visually separated
+     instead of their filled backgrounds merging into one block. */
+  gap: 2px;
   padding: 2px 0;
 }
 
