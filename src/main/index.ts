@@ -169,11 +169,14 @@ if (process.platform !== 'darwin') {
  * @param currentTheme - The currently active theme id for the radio check.
  * @param autoSave - The current autosave setting for the File ▸ Auto Save check
  *   mark (read from settings, the same way currentTheme drives the Theme radio).
+ * @param sidebarVisible - Current sidebar visibility, for the View ▸ Toggle
+ *   Sidebar check mark (read from settings, same pattern as autoSave).
  */
 async function applyMenu(
   recentFiles: string[],
   currentTheme: string = 'github',
   autoSave: boolean = false,
+  sidebarVisible: boolean = true,
 ): Promise<void> {
   const send = (cmd: AppCommand): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, cmd)
@@ -208,7 +211,7 @@ async function applyMenu(
   // AND tell the focused renderer to re-scan + re-inject the user CSS.
   const onReloadThemes = (): void => {
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, 'reloadThemes')
-    void applyMenu(recentFiles, currentTheme, autoSave)
+    void applyMenu(recentFiles, currentTheme, autoSave, sidebarVisible)
   }
 
   Menu.setApplicationMenu(
@@ -233,6 +236,7 @@ async function applyMenu(
         onReloadThemes,
         autoSave,
         setAutoSave,
+        sidebarVisible,
       ),
     ),
   )
@@ -467,14 +471,14 @@ void app.whenReady().then(async () => {
         settings.getRecentFiles(),
         settings.get(),
       ])
-      void applyMenu(recents, allSettings.theme, allSettings.autoSave)
+      void applyMenu(recents, allSettings.theme, allSettings.autoSave, allSettings.sidebarVisible)
     },
     async (updated) => {
       // Rebuild menu after any settings change so the native Theme radio and the
       // Auto Save check mark reflect the newly persisted values without an extra
       // IPC round-trip (covers Preferences toggling autoSave too).
       const recents = await settings.getRecentFiles()
-      void applyMenu(recents, updated.theme, updated.autoSave)
+      void applyMenu(recents, updated.theme, updated.autoSave, updated.sidebarVisible)
       // Re-apply spell-check settings whenever the user changes them in Preferences.
       applySpellCheck(session.defaultSession, {
         spellCheck: updated.spellCheck,
@@ -582,7 +586,7 @@ void app.whenReady().then(async () => {
 
   // Set up the native application menu with the persisted recent files, theme,
   // and autosave setting (so the File ▸ Auto Save check mark renders correctly).
-  void applyMenu(initialSettings.recentFiles, initialSettings.theme, initialSettings.autoSave)
+  void applyMenu(initialSettings.recentFiles, initialSettings.theme, initialSettings.autoSave, initialSettings.sidebarVisible)
 
   // Configure auto-update and kick off a background check. NO-OP in dev
   // (!app.isPackaged) and never throws, so this is safe to always call.

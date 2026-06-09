@@ -687,3 +687,45 @@ describe('buildMenuTemplate - Auto Save checkable item', () => {
     expect(setAutoSaveOn).toHaveBeenCalledWith(false)
   })
 })
+
+describe('buildMenuTemplate - Toggle Sidebar checkable item', () => {
+  // sidebarVisible is the 12th positional arg; earlier optional args default.
+  function buildWith(sidebarVisible: boolean) {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    return buildMenuTemplate(
+      send,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined, // autoSave
+      undefined, // setAutoSave
+      sidebarVisible,
+    )
+  }
+
+  it('renders the View "Toggle Sidebar" item as a checkbox', () => {
+    const item = findItem(buildWith(true), (i) => i.label === 'Toggle Sidebar')
+    expect(item).toBeDefined()
+    expect(item!.type).toBe('checkbox')
+  })
+
+  it('checked reflects the passed sidebarVisible value (true and false)', () => {
+    const shown = findItem(buildWith(true), (i) => i.label === 'Toggle Sidebar')
+    const hidden = findItem(buildWith(false), (i) => i.label === 'Toggle Sidebar')
+    expect(shown!.checked).toBe(true)
+    expect(hidden!.checked).toBe(false)
+  })
+
+  it('still dispatches send("toggleSidebar") on click and keeps its accelerator', () => {
+    const send = vi.fn<(cmd: AppCommand) => void>()
+    const item = findItem(buildMenuTemplate(send), (i) => i.label === 'Toggle Sidebar')
+    expect(item!.accelerator).toBe('CmdOrCtrl+\\')
+    clickItem(item!)
+    expect(send).toHaveBeenCalledWith('toggleSidebar')
+  })
+})

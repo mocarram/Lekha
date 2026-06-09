@@ -149,6 +149,9 @@ function buildOpenRecentSubmenu(
  * @param setAutoSave - Called with the toggled boolean when the user clicks the
  *   File ▸ Auto Save item. In production this sends IPC.setAutoSave to the
  *   focused renderer (mirroring setTheme). Defaults to a no-op.
+ * @param sidebarVisible - Current sidebar visibility. Drives the check mark on
+ *   the View ▸ Toggle Sidebar checkbox item so the menu reflects the live state
+ *   (same pattern as autoSave/themeMenu.current). Defaults to true.
  */
 export function buildMenuTemplate(
   send: (cmd: AppCommand) => void,
@@ -162,6 +165,7 @@ export function buildMenuTemplate(
   onReloadThemes: () => void = () => { /* no-op - no theme-reload caller */ },
   autoSave = false,
   setAutoSave: (value: boolean) => void = () => { /* no-op - no autosave caller */ },
+  sidebarVisible = true,
 ): MenuItemConstructorOptions[] {
   const template: MenuItemConstructorOptions[] = []
 
@@ -386,7 +390,18 @@ export function buildMenuTemplate(
     submenu: [
       item('Command Palette…',   'CmdOrCtrl+Shift+P', 'commandPalette', send),
       sep,
-      item('Toggle Sidebar',     'CmdOrCtrl+\\',    'toggleSidebar', send),
+      // Checkbox so the check mark reflects whether the sidebar is currently
+      // shown (driven by the persisted sidebarVisible, the same way Auto Save
+      // reads autoSave). Clicking still dispatches the toggleSidebar command;
+      // the renderer toggles + persists, and the next setSettings-triggered
+      // menu rebuild refreshes the check mark.
+      {
+        label: 'Toggle Sidebar',
+        type: 'checkbox',
+        checked: sidebarVisible,
+        accelerator: 'CmdOrCtrl+\\',
+        click: () => { send('toggleSidebar') },
+      },
       item('Toggle Status Bar',  undefined,         'toggleStatusBar', send),
       item('Always on Top',      undefined,         'toggleAlwaysOnTop', send),
       item('Toggle Source Mode', 'CmdOrCtrl+Alt+S', 'toggleSource',  send),
