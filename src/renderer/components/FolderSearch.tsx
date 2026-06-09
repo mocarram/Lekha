@@ -101,8 +101,22 @@ export function FolderSearch({ rootFolder, onOpenResult }: FolderSearchProps) {
 
   return (
     <div className="folder-search">
-      {/* Search input row */}
+      {/* Search input row - a native-style capsule: magnifier + input + Aa. */}
       <div className="folder-search__input-row">
+        <svg
+          className="folder-search__icon"
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <circle cx="7" cy="7" r="4.25" />
+          <line x1="10.4" y1="10.4" x2="14" y2="14" />
+        </svg>
         <input
           ref={inputRef}
           className="folder-search__input"

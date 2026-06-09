@@ -1255,54 +1255,76 @@ body,
   overflow: hidden;
 }
 
+/* Search field: a native-style rounded "capsule" that holds the magnifier
+   glyph, the (borderless) input, and the Aa toggle, so the whole thing reads as
+   one cohesive field - and focus rings the capsule, not a bare box with a
+   button stranded beside it. */
 .folder-search__input-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  /* No divider line: the input has its own box border, so a full-width row
-     separator just reads as a stray groove across the panel (matching the
-     clean, borderless shell chrome). */
+  gap: 6px;
   flex-shrink: 0;
+  margin: 8px 8px 4px;
+  padding: 0 8px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.folder-search__input-row:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+/* Leading magnifier glyph - the native search-field cue. Inherits the muted
+   row color; sits left of the input. */
+.folder-search__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
 }
 
 .folder-search__input {
   flex: 1;
-  padding: 4px 6px;
-  font-size: 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg);
+  min-width: 0;
+  padding: 0;
+  font-size: 13px;
+  /* Borderless: the capsule is the visual field. */
+  border: none;
+  background: none;
   color: var(--color-text);
   font-family: var(--font-ui);
   outline: none;
 }
 
-.folder-search__input:focus {
-  border-color: var(--color-accent);
-}
-
+/* "Aa" case toggle: a ghost button inside the capsule (macOS toolbar-toggle
+   feel) - muted by default, accent-filled when active. */
 .folder-search__case-btn {
   flex-shrink: 0;
-  /* Stretch to the input's height so the two line up exactly (the input drives
-     the row height; "Aa" stays centered via flex). */
-  align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 7px;
-  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
   background: none;
   color: var(--color-text-muted);
   cursor: pointer;
   font-family: var(--font-mono);
+  font-size: 11px;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+.folder-search__case-btn:hover {
+  color: var(--color-text);
+  background-color: var(--sidebar-hover);
 }
 
 .folder-search__case-btn.active {
   background-color: var(--color-accent);
-  border-color: var(--color-accent);
   color: var(--on-accent);
 }
 
@@ -1894,7 +1916,6 @@ input[type="checkbox"]:focus-visible {
 .dialog-input:focus,
 .cmdk__input:focus,
 .find-replace-input:focus,
-.folder-search__input:focus,
 .file-tree__rename-input:focus {
   border-color: var(--color-accent);
   box-shadow: var(--focus-ring);
