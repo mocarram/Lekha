@@ -25,14 +25,28 @@ import type { BrowserWindow } from 'electron'
 // Fake BrowserWindow for the WindowController state-machine tests.
 //
 // The controller only touches win.webContents.send (to dispatch the close
-// command) and win.close (to complete the close once the renderer reports the
-// window clean). We model exactly those, with vi.fn() spies so the tests can
+// command), win.close (to complete the close once the renderer reports the
+// window clean), and the isDestroyed() guards on the window and its
+// webContents. We model exactly those, with vi.fn() spies so the tests can
 // assert on the dispatched command and the close call.
+//
+// When `destroyed` is set, win.isDestroyed()/webContents.isDestroyed() report
+// true and send() throws the exact error Electron raises once the render frame
+// has been disposed (GPU crash / force-kill), so a test can prove the
+// close-guard does not call into a dead frame.
 // ---------------------------------------------------------------------------
-function makeFakeWindow() {
-  const send = vi.fn()
+function makeFakeWindow({ destroyed = false }: { destroyed?: boolean } = {}) {
+  const send = vi.fn(() => {
+    if (destroyed) {
+      throw new Error('Render frame was disposed before WebFrameMain could be accessed')
+    }
+  })
   const close = vi.fn()
-  const win = { webContents: { send }, close } as unknown as BrowserWindow
+  const win = {
+    webContents: { send, isDestroyed: () => destroyed },
+    close,
+    isDestroyed: () => destroyed,
+  } as unknown as BrowserWindow
   return { win, send, close }
 }
 
@@ -172,6 +186,25 @@ describe('WindowController - window-level close-guard state machine', () => {
 
     expect(send).toHaveBeenCalledOnce()
     expect(send).toHaveBeenCalledWith('app:command', 'discardAllAndClose')
+  })
+
+  it('beginSaveAndClose is inert (no throw, no send) when the renderer frame is gone', () => {
+    // Abnormal teardown (GPU crash / force-kill): webContents.send throws
+    // "Render frame was disposed...". The guard must short-circuit so the close
+    // path does not spam that error.
+    const { win, send } = makeFakeWindow({ destroyed: true })
+    const controller = new WindowController(win)
+
+    expect(() => controller.beginSaveAndClose()).not.toThrow()
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('beginDiscardAndClose is inert (no throw, no send) when the renderer frame is gone', () => {
+    const { win, send } = makeFakeWindow({ destroyed: true })
+    const controller = new WindowController(win)
+
+    expect(() => controller.beginDiscardAndClose()).not.toThrow()
+    expect(send).not.toHaveBeenCalled()
   })
 
   it('does NOT close while pendingClose is unset (a stray clean report is inert)', () => {

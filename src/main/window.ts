@@ -220,6 +220,11 @@ export class WindowController {
    * when the window goes clean.
    */
   beginSaveAndClose(): void {
+    // If the renderer frame is gone (GPU crash / force-kill), there is nothing
+    // to save via IPC and webContents.send would throw "Render frame was
+    // disposed...". Short-circuit so the close path stays quiet; the window is
+    // already tearing down.
+    if (this.win.isDestroyed() || this.win.webContents.isDestroyed()) return
     this.pendingClose = true
     this.win.webContents.send(IPC.command, 'saveAllAndClose')
   }
@@ -232,6 +237,9 @@ export class WindowController {
    * exit, whether via Save or Don't Save, leaves no backup behind.
    */
   beginDiscardAndClose(): void {
+    // Same teardown guard as beginSaveAndClose: a disposed renderer frame has no
+    // backup to discard via IPC, and send would throw. Short-circuit quietly.
+    if (this.win.isDestroyed() || this.win.webContents.isDestroyed()) return
     this.pendingClose = true
     this.win.webContents.send(IPC.command, 'discardAllAndClose')
   }
@@ -383,6 +391,10 @@ export function runCloseGuard(
   e: Electron.Event,
   quitGuardDisabled: boolean,
 ): void {
+  // If the window is already torn down (abnormal teardown), there is nothing to
+  // guard and showMessageBoxSync would throw on a destroyed window. Let it close.
+  if (controller.win.isDestroyed()) return
+
   // Allow the close if clean, already-confirmed "Don't Save", or test bypass.
   if (controller.canCloseWithout(quitGuardDisabled)) return
 
