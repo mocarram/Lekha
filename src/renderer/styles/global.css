@@ -65,8 +65,8 @@ body,
  * --------------------------------------------------------------------------- */
 .sidebar-toggle {
   position: absolute;
-  /* Vertically center the 24px button on the macOS traffic lights
-     (trafficLightPosition y:16, ~13px tall -> center ~y22). */
+  /* Vertically center the 24px button on the title-bar row - the macOS traffic
+     lights (trafficLightPosition y:15) and the tab labels, all centered ~y21. */
   top: 10px;
   left: var(--sidebar-toggle-left);
   z-index: 50;

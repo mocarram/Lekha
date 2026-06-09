@@ -332,7 +332,10 @@ export function createWindow(
     // lights with breathing room inside the sidebar's top strip (.sidebar__chrome)
     // instead of the cramped default inset.
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 16, y: 16 },
+    // y:15 (1px up from the old 16) lines the traffic lights' optical center up
+    // with the tab row + sidebar-toggle icon, which both center ~21px below the
+    // window top.
+    trafficLightPosition: { x: 16, y: 15 },
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
