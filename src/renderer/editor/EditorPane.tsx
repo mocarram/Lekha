@@ -82,10 +82,14 @@ export interface EditorPaneHandle {
 
   /** Set the active search query. Returns the number of matches. */
   setFind(query: string, opts: FindOptions): number
+  /** Refresh highlights for `query` in place, without scrolling. */
+  refreshFind(query: string, opts: FindOptions): number
   /** Advance to the next match (wraps around). */
   findNext(): void
   /** Go to the previous match (wraps around). */
   findPrev(): void
+  /** Jump to a specific match by index (clamped). No-op when no matches. */
+  gotoMatch(index: number): void
   /** Replace the current match, then advance to next. */
   replaceCurrent(replacement: string): void
   /**
@@ -388,6 +392,10 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           if (mode !== 'wysiwyg') return 0
           return wysiwygRef.current?.setFind(query, opts) ?? 0
         },
+        refreshFind(query: string, opts: FindOptions): number {
+          if (mode !== 'wysiwyg') return 0
+          return wysiwygRef.current?.refreshFind(query, opts) ?? 0
+        },
         findNext() {
           if (mode !== 'wysiwyg') return
           wysiwygRef.current?.findNext()
@@ -395,6 +403,10 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
         findPrev() {
           if (mode !== 'wysiwyg') return
           wysiwygRef.current?.findPrev()
+        },
+        gotoMatch(index: number) {
+          if (mode !== 'wysiwyg') return
+          wysiwygRef.current?.gotoMatch(index)
         },
         replaceCurrent(replacement: string) {
           if (mode !== 'wysiwyg') return

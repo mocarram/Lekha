@@ -24,6 +24,7 @@ import {
   setFindQuery,
   findNext as _findNext,
   findPrev as _findPrev,
+  gotoMatch as _gotoMatch,
   replaceCurrent as _replaceCurrent,
   clearFind as _clearFind,
   findHighlightKey,
@@ -206,10 +207,18 @@ export interface EditorHandle {
 
   /** Set the active search query. Returns the number of matches. */
   setFind(query: string, opts: FindOptions): number
+  /**
+   * Refresh the highlights for `query` in place WITHOUT scrolling/selecting.
+   * Used to keep highlights in sync with the sidebar search query.
+   * Returns the number of matches.
+   */
+  refreshFind(query: string, opts: FindOptions): number
   /** Advance to the next match (wraps around). */
   findNext(): void
   /** Go to the previous match (wraps around). */
   findPrev(): void
+  /** Jump to a specific match by index (clamped). No-op when no matches. */
+  gotoMatch(index: number): void
   /** Replace the current match with `replacement`, then advance to next. */
   replaceCurrent(replacement: string): void
   /**
@@ -536,6 +545,11 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           if (!view) return 0
           return setFindQuery(view, query, opts)
         },
+        refreshFind(query: string, opts: FindOptions): number {
+          const view = viewRef.current
+          if (!view) return 0
+          return setFindQuery(view, query, opts, false)
+        },
         findNext() {
           const view = viewRef.current
           if (!view) return
@@ -545,6 +559,11 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           const view = viewRef.current
           if (!view) return
           _findPrev(view)
+        },
+        gotoMatch(index: number) {
+          const view = viewRef.current
+          if (!view) return
+          _gotoMatch(view, index)
         },
         replaceCurrent(replacement: string) {
           const view = viewRef.current

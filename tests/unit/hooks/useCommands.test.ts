@@ -85,6 +85,8 @@ function makeMockEditor(): MockEditorResult {
     scrollToPos,
     setFind,
     findNext,
+    gotoMatch: vi.fn(),
+    refreshFind: vi.fn(),
     findPrev,
     replaceCurrent,
     replaceAll,

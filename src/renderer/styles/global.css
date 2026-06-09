@@ -1328,6 +1328,15 @@ body,
   color: var(--on-accent);
 }
 
+/* Whole-word toggle: the conventional "ab" glyph with an underline bar beneath,
+   matching the VS Code whole-word icon. The bar is part of the glyph (shown in
+   every state); active vs inactive is conveyed by the button fill above. */
+.folder-search__case-btn--ww {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
 /* Replace expand toggle: a quiet ghost row that opens the replace input. */
 .folder-search__replace-toggle {
   display: block;

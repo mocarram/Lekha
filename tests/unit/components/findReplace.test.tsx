@@ -40,6 +40,8 @@ function makeMockHandle() {
     getTableState: vi.fn(() => ({ inTable: false })),
     setFind,
     findNext,
+    gotoMatch: vi.fn(),
+    refreshFind: vi.fn(),
     findPrev,
     replaceCurrent,
     replaceAll,

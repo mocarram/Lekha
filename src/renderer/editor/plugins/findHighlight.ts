@@ -32,6 +32,7 @@ export const findHighlightKey = new PluginKey<FindHighlightState>('findHighlight
 interface SetQueryMeta {
   query: string
   caseSensitive: boolean
+  wholeWord: boolean
 }
 
 interface SetCurrentMeta {
@@ -45,6 +46,7 @@ interface SetCurrentMeta {
 export interface FindHighlightState {
   query: string
   caseSensitive: boolean
+  wholeWord: boolean
   matches: FindMatch[]
   current: number
 }
@@ -52,6 +54,7 @@ export interface FindHighlightState {
 const INITIAL_STATE: FindHighlightState = {
   query: '',
   caseSensitive: false,
+  wholeWord: false,
   matches: [],
   current: -1,
 }
@@ -98,11 +101,12 @@ export function findHighlightPlugin(): Plugin<FindHighlightState> {
 
         // Handle a query update
         if (queryMeta && 'query' in queryMeta) {
-          const { query, caseSensitive } = queryMeta
-          const matches = findMatches(newState.doc, query, { caseSensitive })
+          const { query, caseSensitive, wholeWord } = queryMeta
+          const matches = findMatches(newState.doc, query, { caseSensitive, wholeWord })
           return {
             query,
             caseSensitive,
+            wholeWord,
             matches,
             current: matches.length > 0 ? 0 : -1,
           }
@@ -117,6 +121,7 @@ export function findHighlightPlugin(): Plugin<FindHighlightState> {
         if (tr.docChanged && pluginState.query) {
           const matches = findMatches(newState.doc, pluginState.query, {
             caseSensitive: pluginState.caseSensitive,
+            wholeWord: pluginState.wholeWord,
           })
           // Try to keep the same "current" index, clamping if matches shrunk.
           const current =
@@ -150,21 +155,31 @@ export function findHighlightPlugin(): Plugin<FindHighlightState> {
  * Set the active search query. Dispatches a transaction with the query meta,
  * triggering state update and decoration recompute.
  * Returns the number of matches found.
+ *
+ * `jumpToFirst` (default true) scrolls the first/nearest match into view - the
+ * right behavior for Cmd+F and clicking a result. Pass false to only refresh
+ * the highlights in place (used to keep an open file's highlights in sync with
+ * the sidebar search query without yanking the user's scroll position).
  */
 export function setFindQuery(
   view: EditorView,
   query: string,
   opts: FindOptions,
+  jumpToFirst = true,
 ): number {
-  const meta: SetQueryMeta = { query, caseSensitive: opts.caseSensitive }
+  const meta: SetQueryMeta = {
+    query,
+    caseSensitive: opts.caseSensitive,
+    wholeWord: opts.wholeWord ?? false,
+  }
   const tr = view.state.tr.setMeta(findHighlightKey, meta)
   view.dispatch(tr)
   const pluginState = findHighlightKey.getState(view.state)
   const count = pluginState?.matches.length ?? 0
   // Scroll the current match into view as soon as a query is set (jump
   // to the first/nearest match while you type), without changing which match is
-  // current. Skip when there are no matches.
-  if (pluginState && count > 0) {
+  // current. Skip when there are no matches or when refreshing in place.
+  if (jumpToFirst && pluginState && count > 0) {
     const idx = pluginState.current >= 0 ? pluginState.current : 0
     _jumpToMatch(view, idx)
   }
@@ -218,9 +233,22 @@ export function replaceCurrent(view: EditorView, replacement: string): void {
  * Clear the active query and all highlights.
  */
 export function clearFind(view: EditorView): void {
-  const meta: SetQueryMeta = { query: '', caseSensitive: false }
+  const meta: SetQueryMeta = { query: '', caseSensitive: false, wholeWord: false }
   const tr = view.state.tr.setMeta(findHighlightKey, meta)
   view.dispatch(tr)
+}
+
+/**
+ * Jump to a specific match by index (clamped into range), scrolling it into
+ * view and marking it current. Used by the folder-search "open result" flow to
+ * land on the clicked line's occurrence rather than always the first match.
+ * No-op when there are no matches.
+ */
+export function gotoMatch(view: EditorView, index: number): void {
+  const pluginState = findHighlightKey.getState(view.state)
+  if (!pluginState || pluginState.matches.length === 0) return
+  const clamped = Math.max(0, Math.min(index, pluginState.matches.length - 1))
+  _jumpToMatch(view, clamped)
 }
 
 // ---------------------------------------------------------------------------

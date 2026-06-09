@@ -271,7 +271,7 @@ describe('FolderSearch', () => {
     expect(container.textContent).toContain('No matches')
   })
 
-  it('calls onOpenResult with filePath, query, and caseSensitive when a match is clicked', async () => {
+  it('calls onOpenResult with filePath, query, caseSensitive, wholeWord, occurrence=0 for the first match', async () => {
     const searchFolder = vi.fn(() => Promise.resolve(SAMPLE_RESULTS))
     const onOpenResult = vi.fn()
     vi.stubGlobal('lekha', makeMockLekha(searchFolder))
@@ -291,7 +291,30 @@ describe('FolderSearch', () => {
     fireEvent.click(matchButtons[0] as HTMLButtonElement)
 
     expect(onOpenResult).toHaveBeenCalledOnce()
-    expect(onOpenResult).toHaveBeenCalledWith('/docs/notes.md', 'hello', false)
+    // First match in the file -> occurrence index 0.
+    expect(onOpenResult).toHaveBeenCalledWith('/docs/notes.md', 'hello', false, false, 0)
+  })
+
+  it('passes occurrence = count of matches in preceding lines (clicking the second match in a file)', async () => {
+    const searchFolder = vi.fn(() => Promise.resolve(SAMPLE_RESULTS))
+    const onOpenResult = vi.fn()
+    vi.stubGlobal('lekha', makeMockLekha(searchFolder))
+
+    render(<FolderSearch rootFolder="/docs" onOpenResult={onOpenResult} onReplaced={vi.fn()} />)
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } })
+    await act(async () => {
+      vi.advanceTimersByTime(250)
+      await Promise.resolve()
+    })
+
+    // Click the SECOND match in notes.md (line 5 "hello again"). One "hello"
+    // occurs in the preceding line ("hello world"), so occurrence index is 1.
+    const matchButtons = screen.getAllByRole('button', { name: /5\s+hello again/i })
+    expect(matchButtons.length).toBeGreaterThan(0)
+    fireEvent.click(matchButtons[0] as HTMLButtonElement)
+
+    expect(onOpenResult).toHaveBeenCalledWith('/docs/notes.md', 'hello', false, false, 1)
   })
 
   it('highlights the query substring inside match line text', async () => {

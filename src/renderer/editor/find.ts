@@ -23,6 +23,7 @@
 
 import type { Node } from 'prosemirror-model'
 import type { EditorState, Transaction } from 'prosemirror-state'
+import { findMatchRanges } from '@shared/textSearch'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,6 +36,12 @@ export interface FindMatch {
 
 export interface FindOptions {
   caseSensitive: boolean
+  /**
+   * When true, only matches bounded by a non-word character (or string edge)
+   * on both sides count. Optional - defaults to false (plain substring) so the
+   * Cmd+F find UI, which has no whole-word toggle, keeps its existing behavior.
+   */
+  wholeWord?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -57,29 +64,22 @@ export function findMatches(
   if (!query) return []
 
   const matches: FindMatch[] = []
-  const needle = opts.caseSensitive ? query : query.toLowerCase()
+  const matchOpts = {
+    caseSensitive: opts.caseSensitive,
+    wholeWord: opts.wholeWord ?? false,
+  }
 
   doc.descendants((node, pos) => {
     // Only scan leaf text blocks (paragraphs, headings, list items, etc.)
     if (!node.isTextblock) return true
 
-    const blockText = node.textContent
-    const haystack = opts.caseSensitive ? blockText : blockText.toLowerCase()
-
-    // Scan the text for all non-overlapping occurrences.
+    // Reuse the shared matcher so the in-document find uses EXACTLY the same
+    // semantics (case + whole-word) as the folder search; otherwise highlights
+    // and jump targets would disagree with the sidebar results.
     // The first character of the block's content is at pos + 1 in the document.
-    let searchFrom = 0
-    while (searchFrom <= haystack.length - needle.length) {
-      const idx = haystack.indexOf(needle, searchFrom)
-      if (idx === -1) break
-
-      // Convert block-relative index to absolute document position.
-      const from = pos + 1 + idx
-      const to = from + needle.length
-      matches.push({ from, to })
-
-      // Advance past this match (non-overlapping: start after the match end).
-      searchFrom = idx + needle.length
+    const ranges = findMatchRanges(node.textContent, query, matchOpts)
+    for (const [start, end] of ranges) {
+      matches.push({ from: pos + 1 + start, to: pos + 1 + end })
     }
 
     // Don't recurse into textblock children (they're just text nodes).

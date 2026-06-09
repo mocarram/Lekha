@@ -228,12 +228,42 @@ export default function App() {
   // strip and re-anchor the word-count popover (both handled in CSS via the
   // `app--sidebar-hidden` modifier below).
   const sidebarVisible = useWorkspaceStore((s) => s.sidebarVisible)
+  // Folder-search query + match options. Mirrored here so the open file's find
+  // highlights can track the live search query (see the sync effect below).
+  const sidebarTab = useWorkspaceStore((s) => s.sidebarTab)
+  const searchQuery = useWorkspaceStore((s) => s.searchQuery)
+  const searchCaseSensitive = useWorkspaceStore((s) => s.searchCaseSensitive)
+  const searchWholeWord = useWorkspaceStore((s) => s.searchWholeWord)
   // Number of open documents; drives the editor empty state (zero tabs).
   const documentCount = useDocumentsStore((s) => s.documents.length)
   const paletteFiles = useMemo(
     () => flattenFiles(fileTree, rootFolder),
     [fileTree, rootFolder],
   )
+
+  // Keep the open file's find highlights in sync with the LIVE folder-search
+  // query. The highlight is otherwise only applied when a result is clicked, so
+  // editing the query afterwards left the open file showing stale highlights
+  // until the next click. While the Search tab is active, refresh (or clear)
+  // the highlights in place as the query/options change - WITHOUT scrolling, so
+  // navigation stays an explicit result-click action. Debounced to match the
+  // search and avoid recomputing matches on every keystroke.
+  useEffect(() => {
+    if (!sidebarVisible || sidebarTab !== 'search') return undefined
+    const editor = editorRef.current
+    if (!editor) return undefined
+    const t = setTimeout(() => {
+      if (searchQuery.length < 1) {
+        editor.clearFind()
+      } else {
+        editor.refreshFind(searchQuery, {
+          caseSensitive: searchCaseSensitive,
+          wholeWord: searchWholeWord,
+        })
+      }
+    }, 200)
+    return () => { clearTimeout(t) }
+  }, [sidebarVisible, sidebarTab, searchQuery, searchCaseSensitive, searchWholeWord])
 
   // Floating table toolbar state: shown while the cursor is inside a table,
   // anchored to the table's reported client rect. Updated on every selection
@@ -608,13 +638,17 @@ export default function App() {
         onSelectFile={(path) => { void fileOps.openPath(path) }}
         onJumpToHeading={(pos) => { editorRef.current?.scrollToPos(pos) }}
         onReplaced={handleFolderReplaced}
-        onOpenSearchResult={(filePath, query, caseSensitive) => {
+        onOpenSearchResult={(filePath, query, caseSensitive, wholeWord, occurrence) => {
           // Open-then-find: open the file, then use the in-document find to
           // highlight and navigate to the query. Line-to-position mapping in
           // WYSIWYG is unreliable; reusing the editor's own find is robust.
+          // Pass wholeWord so highlights match the search semantics (no partial
+          // hits), and gotoMatch(occurrence) lands on the clicked line's match
+          // rather than always the first (setFind already selects match 0, so a
+          // bare findNext() would wrongly skip to the second match).
           void fileOps.openPath(filePath).then(() => {
-            editorRef.current?.setFind(query, { caseSensitive })
-            editorRef.current?.findNext()
+            editorRef.current?.setFind(query, { caseSensitive, wholeWord })
+            editorRef.current?.gotoMatch(occurrence)
           })
         }}
         onNewFile={(dir) => { void fileOps.createFileEntry(dir) }}

@@ -19,7 +19,13 @@ interface SidebarProps {
    * Opens the file and triggers the in-document find so the editor highlights
    * and navigates to the matching text (open-then-find approach).
    */
-  onOpenSearchResult: (filePath: string, query: string, caseSensitive: boolean) => void
+  onOpenSearchResult: (
+    filePath: string,
+    query: string,
+    caseSensitive: boolean,
+    wholeWord: boolean,
+    occurrence: number,
+  ) => void
   /**
    * Called after a folder-wide replace with the absolute paths of files that
    * changed on disk, so the parent can reload any open in a clean tab.

@@ -19,9 +19,19 @@ interface FolderSearchProps {
   /**
    * Called when the user clicks a match result.
    * The consumer opens the file and triggers the in-document find so the
-   * editor highlights and navigates to the matching text.
+   * editor highlights and navigates to the matching text. `wholeWord` mirrors
+   * the active toggle so the editor find uses the same semantics as the search;
+   * `occurrence` is the 0-based index of the clicked line's first match among
+   * all matches in that file (document order), so the editor lands on the
+   * clicked line rather than always the first match.
    */
-  onOpenResult: (filePath: string, query: string, caseSensitive: boolean) => void
+  onOpenResult: (
+    filePath: string,
+    query: string,
+    caseSensitive: boolean,
+    wholeWord: boolean,
+    occurrence: number,
+  ) => void
   /** Called with paths changed on disk by a folder replace, so the parent can
    *  reload any open in a clean tab. */
   onReplaced: (changedPaths: string[]) => void
@@ -185,7 +195,7 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
           type="button"
           className={`folder-search__case-btn${caseSensitive ? ' active' : ''}`}
           onClick={() => { useWorkspaceStore.getState().setSearchCaseSensitive(!caseSensitive) }}
-          title={caseSensitive ? 'Case-sensitive: on' : 'Match case (case-sensitive)'}
+          title={`Match case - only matches with the same capitalization${caseSensitive ? ' (on)' : ''}`}
           aria-label="Match case"
           aria-pressed={caseSensitive}
         >
@@ -193,9 +203,9 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
         </button>
         <button
           type="button"
-          className={`folder-search__case-btn${wholeWord ? ' active' : ''}`}
+          className={`folder-search__case-btn folder-search__case-btn--ww${wholeWord ? ' active' : ''}`}
           onClick={() => { useWorkspaceStore.getState().setSearchWholeWord(!wholeWord) }}
-          title={wholeWord ? 'Whole word: on' : 'Match whole word'}
+          title={`Match whole word - skip matches inside longer words${wholeWord ? ' (on)' : ''}`}
           aria-label="Match whole word"
           aria-pressed={wholeWord}
         >
@@ -263,12 +273,25 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
               <div className="folder-search__file-header" title={file.filePath}>
                 {getFileName(file.filePath)}
               </div>
-              {file.matches.map((match) => (
+              {file.matches.map((match, mi) => (
                 <button
                   key={`${file.filePath}:${match.lineNumber}`}
                   type="button"
                   className="folder-search__match"
-                  onClick={() => { onOpenResult(file.filePath, query, caseSensitive) }}
+                  onClick={() => {
+                    // Occurrence index = number of matches in this file's lines
+                    // BEFORE the clicked one (document order), so the editor jumps
+                    // to the clicked line's first match rather than always match 0.
+                    const occurrence = file.matches
+                      .slice(0, mi)
+                      .reduce(
+                        (acc, m) =>
+                          acc +
+                          findMatchRanges(m.lineText, query, { caseSensitive, wholeWord }).length,
+                        0,
+                      )
+                    onOpenResult(file.filePath, query, caseSensitive, wholeWord, occurrence)
+                  }}
                   title={`Line ${match.lineNumber}: ${match.lineText}`}
                 >
                   <span className="folder-search__line-num">{match.lineNumber}</span>

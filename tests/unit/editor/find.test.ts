@@ -56,6 +56,41 @@ describe('findMatches - basic', () => {
 })
 
 // ---------------------------------------------------------------------------
+// findMatches — whole word
+// ---------------------------------------------------------------------------
+
+describe('findMatches - whole word', () => {
+  it('whole-word off (default): "agent" matches inside "Agentic"', () => {
+    const doc = parseMarkdown('Agentic agent')
+    // Two hits: the partial inside "Agentic" and the standalone word.
+    const matches = findMatches(doc, 'agent', { caseSensitive: false })
+    expect(matches).toHaveLength(2)
+  })
+
+  it('whole-word on: skips the partial match inside "Agentic"', () => {
+    const doc = parseMarkdown('Agentic agent')
+    const matches = findMatches(doc, 'agent', { caseSensitive: false, wholeWord: true })
+    expect(matches).toHaveLength(1)
+    expect(doc.textBetween(matches[0]!.from, matches[0]!.to)).toBe('agent')
+    // The surviving match is the standalone word, not the title prefix.
+    expect(doc.textBetween(matches[0]!.from - 1, matches[0]!.from)).toBe(' ')
+  })
+
+  it('whole-word on: treats hyphen as a boundary ("Multi-agent")', () => {
+    const doc = parseMarkdown('Multi-agent role')
+    const matches = findMatches(doc, 'agent', { caseSensitive: false, wholeWord: true })
+    expect(matches).toHaveLength(1)
+    expect(doc.textBetween(matches[0]!.from, matches[0]!.to)).toBe('agent')
+  })
+
+  it('whole-word on: no match when query is only ever a substring', () => {
+    const doc = parseMarkdown('Agentic agency')
+    const matches = findMatches(doc, 'agent', { caseSensitive: false, wholeWord: true })
+    expect(matches).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // findMatches — case sensitivity
 // ---------------------------------------------------------------------------
 
