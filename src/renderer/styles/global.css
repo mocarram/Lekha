@@ -75,7 +75,10 @@ body,
   border: none;
   border-radius: var(--radius-sm, 5px);
   background: transparent;
-  color: var(--color-text-muted);
+  /* Use full --color-text (not --text-muted): this is a standalone icon-only
+     control, so it must clear the WCAG 1.4.11 3:1 contrast floor on every
+     theme - a muted glyph drops below that on the light themes. */
+  color: var(--color-text);
   cursor: pointer;
   transition: color 0.12s ease, background-color 0.12s ease;
 }
