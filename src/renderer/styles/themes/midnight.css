@@ -17,13 +17,13 @@
   --border:       #233556;
   --border-light: #2c4063;
 
-  /* --- Text (soft, blue-tinted whites for a calm read) --- */
-  --text:       #e7eef8;
-  --text-muted: #93a3c0;
-  --text-sub:   #aab8d4;
-  --text-dark:  #f3f7fc;
-  --text-file:  #d3deef;
-  --heading:    #f3f7fc;
+  /* --- Text (softened blue-grays, dimmer than white to ease the eyes) --- */
+  --text:       #c2cee2;
+  --text-muted: #8a98b5;
+  --text-sub:   #a2b0cc;
+  --text-dark:  #d8e2f0;
+  --text-file:  #b8c5db;
+  --heading:    #d8e2f0;
 
   /* --- Accent (vivid, properly-visible midnight blue) --- */
   --link:   #5aa0ff;
@@ -33,7 +33,7 @@
   --selection:         #1f3f70;
   --code-bg:           #0e1d36;
   --code-bg-inline:    #142540;
-  --code-text:         #e7eef8;
+  --code-text:         #c2cee2;
   --blockquote-text:   #aab8d4;
   --blockquote-border: #2c4063;
   --table-border:      #2c4063;
