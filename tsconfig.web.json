@@ -25,6 +25,9 @@
     "tests/unit/components/**/*.tsx",
     "tests/unit/commands/**/*.ts",
     "tests/unit/smoke.test.ts",
+    // Shared pure-text matcher tests: dependency-free, no DOM/Node, grouped
+    // with the shared source they exercise.
+    "tests/unit/shared/**/*.ts",
     // Export tests run in happy-dom (renderer-side buildExportHtml).
     "tests/unit/export/**/*.ts",
     // Theme tests: themes.test.ts uses happy-dom (document.documentElement).
