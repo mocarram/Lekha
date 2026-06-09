@@ -68,6 +68,10 @@
   --sidebar-hover:  #2a2d2e;
   --statusbar-text: #858585;
 
+  /* Translucent-white scrollbar thumb so it stays visible on the dark surface. */
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.24);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
+
   /* --- Find highlights --- */
   /* Warm yellow works in dark too; slightly more saturated current match */
   --find-match:         #3d3817;

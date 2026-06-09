@@ -73,6 +73,9 @@ export const DEFAULT_TEMPLATE_CSS = `/*
   --sidebar-hover:     #efefef;   /* hovered file/outline row */
   --statusbar-text:    #9b9b9b;   /* status bar text */
   --sidebar-font-size: 16px;      /* file-tree / outline / articles row text */
+  /* Scrollbar thumb (sidebar + editor). Use translucent white on dark themes. */
+  --scrollbar-thumb:       rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.32);
 
   /* --- Find / highlight --- */
   --find-match:         #fff3b0;  /* non-current find highlight */

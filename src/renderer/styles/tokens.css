@@ -184,6 +184,12 @@
   --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.14);   /* small elevation (toolbars) */
   --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.28); /* large elevation (palette) */
 
+  /* Scrollbar thumb (sidebar + editor). Light default = translucent black, which
+   * dark themes override to translucent white so the thumb stays visible against
+   * a dark surface. */
+  --scrollbar-thumb:       rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.32);
+
   /* Soft accent focus ring shared by inputs, checkboxes, and switches. Derived
    * from --accent so every theme gets a coherent glow. */
   --focus-ring:          0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);

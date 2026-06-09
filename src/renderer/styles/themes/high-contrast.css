@@ -49,6 +49,10 @@
   --sidebar-hover:  #242424;
   --statusbar-text: #d4d4d4;
 
+  /* Strong scrollbar thumb to match the theme's maximum-legibility intent. */
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.5);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.75);
+
   /* --- Find / highlight --- */
   --find-match:         #6b5800;
   --find-match-current: #ffd400;

@@ -45,6 +45,10 @@
   --sidebar-hover:  #0d3d4e;
   --statusbar-text: #586e75;
 
+  /* Translucent-white scrollbar thumb so it stays visible on the dark surface. */
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.24);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.42);
+
   /* --- Find highlights --- */
   --find-match:         #2a3810;
   --find-match-current: #6b5b00;
