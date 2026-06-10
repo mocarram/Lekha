@@ -81,8 +81,8 @@ export function dragHasFiles(dt: DataTransfer | null): boolean {
  * phase while letting image drops fall through to the editor's image insertion.
  */
 export function dragIsOpenType(dt: DataTransfer | null): boolean {
-  if (!dragHasFiles(dt)) return false
-  const items = dt!.items
+  if (dt === null || !dragHasFiles(dt)) return false
+  const items = dt.items
   if (!items || items.length === 0) return true // unknown -> assume open
   for (let i = 0; i < items.length; i++) {
     const item = items[i]!
@@ -100,8 +100,8 @@ export function dragIsOpenType(dt: DataTransfer | null): boolean {
  * not perfectly detect, because the OS does not expose isDirectory until drop.
  */
 export function dragMaybeFolder(dt: DataTransfer | null): boolean {
-  if (!dragHasFiles(dt)) return false
-  const items = dt!.items
+  if (dt === null || !dragHasFiles(dt)) return false
+  const items = dt.items
   if (!items || items.length === 0) return true
   for (let i = 0; i < items.length; i++) {
     const item = items[i]!

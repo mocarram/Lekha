@@ -171,7 +171,7 @@ const api: LekhaAPI = {
   // window existed ("Open With"/double-click on macOS, a CLI arg on Win/Linux).
   // Called once on mount; the queue is cleared by the read.
   takePendingOpen(): Promise<string[]> {
-    return ipcRenderer.invoke(IPC.takePendingOpen)
+    return ipcRenderer.invoke(IPC.takePendingOpen) as Promise<string[]>
   },
 
   // Subscribes to set-theme messages from main (Theme menu).
