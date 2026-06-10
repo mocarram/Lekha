@@ -130,6 +130,12 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
           )
         })}
       </div>
+      {/* Guaranteed window-drag space: with enough tabs the strip's leftover
+          background (the usual drag region) shrinks to nothing, leaving no way
+          to move the window from the tab bar. This zone never shrinks, so a
+          grabbable area always sits between the tabs and the + button; the
+          tabs scroll within the remaining width. */}
+      <div className="tab-bar__drag-zone" aria-hidden="true" />
       <button
         type="button"
         className="tab-bar__new"

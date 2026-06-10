@@ -761,6 +761,16 @@ body,
   display: block;
 }
 
+/* Guaranteed window-drag zone between the tabs and the + button: invisible
+   plain strip that never shrinks, so the window stays movable from the tab bar
+   even when tabs fill it (the usual leftover-background drag space is gone).
+   Explicit app-region so the guarantee doesn't depend on region inheritance. */
+.tab-bar__drag-zone {
+  -webkit-app-region: drag;
+  flex: 0 0 70px;
+  align-self: stretch;
+}
+
 .tab-bar__new {
   -webkit-app-region: no-drag;
   display: inline-flex;

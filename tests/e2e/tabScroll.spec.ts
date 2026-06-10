@@ -94,6 +94,24 @@ test('activating an off-screen tab scrolls it into view', async () => {
     .toBe(true)
 })
 
+test('a packed tab bar still reserves a real window-drag zone', async () => {
+  const zone = await win.evaluate(() => {
+    const el = document.querySelector('.tab-bar__drag-zone')!
+    const box = el.getBoundingClientRect()
+    const center = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+    return {
+      width: box.width,
+      height: box.height,
+      appRegion: getComputedStyle(el).getPropertyValue('-webkit-app-region').trim(),
+      centerIsZone: center === el, // nothing (tab/button) overlaps the zone
+    }
+  })
+  expect(zone.width).toBeGreaterThanOrEqual(70)
+  expect(zone.height).toBeGreaterThan(0)
+  expect(zone.appRegion).toBe('drag')
+  expect(zone.centerIsZone).toBe(true)
+})
+
 test('wheel scrolling moves the strip horizontally', async () => {
   // Reset to the far left, then wheel over the strip.
   await win.evaluate(() => {

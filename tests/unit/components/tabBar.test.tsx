@@ -264,3 +264,20 @@ describe('TabBar - active tab auto-reveal', () => {
     expect(revealed.getAttribute('aria-selected')).toBe('true')
   })
 })
+
+describe('TabBar - guaranteed drag zone', () => {
+  it('renders a never-shrinking drag zone between the tabs and the + button', () => {
+    openTabs(3)
+    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const bar = container.querySelector('.tab-bar')!
+    const children = Array.from(bar.children).map((c) => c.className)
+    // Order matters: tabs strip, then the drag zone, then the + button - the
+    // zone is what keeps the window movable when tabs fill the strip.
+    expect(children.indexOf('tab-bar__drag-zone')).toBeGreaterThan(
+      children.indexOf('tab-bar__tabs'),
+    )
+    expect(children.indexOf('tab-bar__drag-zone')).toBeLessThan(
+      children.findIndex((c) => c.includes('tab-bar__new')),
+    )
+  })
+})
