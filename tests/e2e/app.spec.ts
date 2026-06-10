@@ -581,6 +581,24 @@ test('sidebar toggle button collapses and restores the sidebar', async () => {
   await expect(win.locator('.app.app--sidebar-hidden')).toHaveCount(0)
 })
 
+test('sidebar toggle is vertically centered on the title-bar row', async () => {
+  const win = sharedWin
+  // The macOS traffic lights (trafficLightPosition y:15, 12px tall) and the
+  // tab strip both center at y=21; the toggle must sit on the same line or it
+  // reads as misaligned next to the lights.
+  const centers = await win.evaluate(() => {
+    const toggleBox = document.querySelector('.sidebar-toggle')!.getBoundingClientRect()
+    const tabBarBox = document.querySelector('.tab-bar')!.getBoundingClientRect()
+    return {
+      toggle: toggleBox.top + toggleBox.height / 2,
+      tabBar: tabBarBox.top + tabBarBox.height / 2,
+      trafficLights: 15 + 12 / 2,
+    }
+  })
+  expect(Math.abs(centers.toggle - centers.trafficLights)).toBeLessThanOrEqual(0.5)
+  expect(Math.abs(centers.toggle - centers.tabBar)).toBeLessThanOrEqual(0.5)
+})
+
 // ---------------------------------------------------------------------------
 // Test: folder search panel exposes whole-word + replace controls
 // ---------------------------------------------------------------------------

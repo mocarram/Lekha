@@ -65,9 +65,11 @@ body,
  * --------------------------------------------------------------------------- */
 .sidebar-toggle {
   position: absolute;
-  /* Vertically center the 24px button on the title-bar row - the macOS traffic
-     lights (trafficLightPosition y:15) and the tab labels, all centered ~y21. */
-  top: 10px;
+  /* Vertically center the 24px button on the title-bar row: the macOS traffic
+     lights (trafficLightPosition y:15, 12px tall -> center y21) and the tab
+     strip (top 6px gutter + 30px bar -> center y21). 9 + 24/2 = 21 exactly -
+     at 10px the button sat 1px low and read as misaligned at some zooms. */
+  top: 9px;
   left: var(--sidebar-toggle-left);
   z-index: 50;
   display: flex;
@@ -98,7 +100,7 @@ body,
  * Lives at the very top of the full-height sidebar panel.
  * --------------------------------------------------------------------------- */
 .sidebar__chrome {
-  /* Tall enough to clear the OS traffic lights (positioned at y:16 in
+  /* Tall enough to clear the OS traffic lights (positioned at y:15 in
      window.ts) with padding before the panel header. */
   height: 36px;
   flex-shrink: 0;
