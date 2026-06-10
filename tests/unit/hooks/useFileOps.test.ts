@@ -1556,7 +1556,7 @@ describe('useFileOps - restoreTabs', () => {
 describe('useFileOps - bulk tab closes', () => {
   function setupTabs(opts?: { confirmChoice?: 'save' | 'dontSave' | 'cancel' }) {
     const { handle, setMarkdown } = makeMockEditor('# Active')
-    const confirmUnsaved = vi.fn(() => Promise.resolve((opts?.confirmChoice ?? 'cancel') as 'save' | 'dontSave' | 'cancel'))
+    const confirmUnsaved = vi.fn(() => Promise.resolve(opts?.confirmChoice ?? 'cancel'))
     vi.stubGlobal('lekha', makeMockLekha({ confirmUnsaved }))
     const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
     const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B' })

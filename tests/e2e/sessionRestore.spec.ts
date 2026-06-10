@@ -93,6 +93,38 @@ test('dragging a tab reorders it within the strip', async () => {
     .toEqual(['third.md', 'first.md', 'second.md'])
 })
 
+test('dropping a tab PAST the last one (on the bar background) moves it to the end', async () => {
+  // Order here: [third, first, second]. Drag the MIDDLE tab and release it to
+  // the RIGHT of the last tab - that area is bare tab-bar background (a window
+  // drag region), the spot a "move it after the last tab" gesture naturally
+  // ends on. The bar-level drop handler must catch it and map it to the end
+  // slot; this also proves DnD events deliver over -webkit-app-region: drag.
+  const source = win.locator('.tab', { hasText: 'first.md' })
+  const bar = win.locator('.tab-bar')
+  const lastBox = (await win.locator('.tab').last().boundingBox())!
+  const barBox = (await bar.boundingBox())!
+  await source.dragTo(bar, {
+    targetPosition: {
+      x: lastBox.x + lastBox.width + 30 - barBox.x,
+      y: Math.floor(barBox.height / 2),
+    },
+  })
+  await expect
+    .poll(async () => win.locator('.tab .tab__title').allTextContents())
+    .toEqual(['third.md', 'second.md', 'first.md'])
+
+  // Drag it back into the middle (left half of second.md) so the later tests
+  // see the order they expect.
+  const target = win.locator('.tab', { hasText: 'second.md' })
+  const targetBox = (await target.boundingBox())!
+  await source.dragTo(target, {
+    targetPosition: { x: Math.floor(targetBox.width * 0.2), y: Math.floor(targetBox.height / 2) },
+  })
+  await expect
+    .poll(async () => win.locator('.tab .tab__title').allTextContents())
+    .toEqual(['third.md', 'first.md', 'second.md'])
+})
+
 test('File > New Window opens BLANK instead of replaying the session', async () => {
   // Trigger New Window through the same IPC the menu/command uses.
   const [newWin] = await Promise.all([

@@ -38,8 +38,10 @@ export interface FileOps {
    * restoring tabs through openPath sequentially visibly flipped the editor
    * through every document at startup. Missing/unreadable files are skipped.
    * `pinnedPaths` re-pins the listed tabs (in order) after creation.
+   * (Property-style so tests can pass the extracted mock to expect() without
+   * tripping unbound-method.)
    */
-  restoreTabs(paths: string[], activePath: string | null, pinnedPaths?: string[]): Promise<void>
+  restoreTabs: (paths: string[], activePath: string | null, pinnedPaths?: string[]) => Promise<void>
   /** Save to the current path; falls through to saveAs when no path exists. */
   save(): Promise<void>
   /**

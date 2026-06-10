@@ -406,27 +406,50 @@ describe('TabBar - drag-to-reorder', () => {
     }
   }
 
+  /**
+   * Lay the tabs out as adjacent 100px rects (tab i spans [i*100, i*100+100])
+   * so slotFromPoint's geometry works in happy-dom (whose default rects are
+   * all zeros - every midpoint 0 would resolve to the end slot).
+   */
+  function stubRects(tabs: HTMLElement[]) {
+    tabs.forEach((el, i) => {
+      const left = i * 100
+      Object.defineProperty(el, 'getBoundingClientRect', {
+        configurable: true,
+        value: () =>
+          ({ left, width: 100, right: left + 100, top: 0, bottom: 26, height: 26, x: left, y: 0, toJSON: () => ({}) }) as DOMRect,
+      })
+    })
+  }
+
+  /**
+   * Fire a DnD event carrying clientX. happy-dom's DragEvent drops MouseEvent
+   * coords, so clientX is assigned onto the event instance instead of passed
+   * as init.
+   */
+  function fireDnd(
+    type: 'drop' | 'dragOver',
+    el: Element,
+    dataTransfer: unknown,
+    clientX: number,
+  ) {
+    const ev = createEvent[type](el)
+    Object.assign(ev, { dataTransfer, clientX })
+    fireEvent(el, ev)
+  }
+
   it('dropping a tab on the left half of a later tab inserts it before that tab', () => {
     const ids = openTabs(3) // [a, b, c]
     const { getAllByRole } = render(
       <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
-    // Give the target tab a geometry so the slot math works in happy-dom.
-    Object.defineProperty(tabs[2]!, 'getBoundingClientRect', {
-      configurable: true,
-      value: () =>
-        ({ left: 200, width: 100, right: 300, top: 0, bottom: 26, height: 26, x: 200, y: 0, toJSON: () => ({}) }) as DOMRect,
-    })
+    stubRects(tabs)
 
     const dataTransfer = makeDataTransfer()
     fireEvent.dragStart(tabs[0]!, { dataTransfer })
     // clientX 220 = left half of tab 2 -> slot 2; minus the vacated origin = 1.
-    // (happy-dom's DragEvent drops MouseEvent coords, so clientX is assigned
-    // onto the event instance instead of passed as init.)
-    const dropEv = createEvent.drop(tabs[2]!)
-    Object.assign(dropEv, { dataTransfer, clientX: 220 })
-    fireEvent(tabs[2]!, dropEv)
+    fireDnd('drop', tabs[2]!, dataTransfer, 220)
 
     expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
       '/doc1.md', '/doc0.md', '/doc2.md',
@@ -440,21 +463,78 @@ describe('TabBar - drag-to-reorder', () => {
       <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
-    Object.defineProperty(tabs[2]!, 'getBoundingClientRect', {
-      configurable: true,
-      value: () =>
-        ({ left: 200, width: 100, right: 300, top: 0, bottom: 26, height: 26, x: 200, y: 0, toJSON: () => ({}) }) as DOMRect,
-    })
+    stubRects(tabs)
 
     const dataTransfer = makeDataTransfer()
     fireEvent.dragStart(tabs[0]!, { dataTransfer })
-    const dropEv = createEvent.drop(tabs[2]!)
-    Object.assign(dropEv, { dataTransfer, clientX: 280 }) // right half -> end slot
-    fireEvent(tabs[2]!, dropEv)
-
+    fireDnd('drop', tabs[2]!, dataTransfer, 280) // right half -> end slot
     expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
       '/doc1.md', '/doc2.md', '/doc0.md',
     ])
+  })
+
+  it('dropping PAST the last tab (on the bar background) moves the tab to the end', () => {
+    // The strip wrapper shrinks to the tabs' width, so the area right of the
+    // last tab is bare .tab-bar background - dropping a middle tab "after the
+    // last one" naturally lands there. The bar-level handler must catch it.
+    openTabs(3)
+    const { getAllByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    stubRects(getAllByRole('tab'))
+    const bar = getByRole('tablist')
+
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(getAllByRole('tab')[1]!, { dataTransfer }) // the MIDDLE tab
+    fireDnd('drop', bar, dataTransfer, 450) // well past tab 2's right edge (300)
+
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/doc0.md', '/doc2.md', '/doc1.md',
+    ])
+  })
+
+  it('dragging over the empty bar area marks the drop-after indicator on the last tab', () => {
+    openTabs(3)
+    const { getAllByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    stubRects(tabs)
+
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(tabs[0]!, { dataTransfer })
+    fireDnd('dragOver', getByRole('tablist'), dataTransfer, 450)
+    expect(tabs[2]!.className).toContain('tab--drop-after')
+  })
+
+  it('a drag never crosses the pinned boundary (slot clamps to the tab\'s group)', () => {
+    const ids = openTabs(3) // [a, b, c]
+    useDocumentsStore.getState().setPinned(ids[0]!, true) // pinned: [a] | unpinned: [b, c]
+    const { getAllByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    stubRects(tabs)
+    const bar = getByRole('tablist')
+
+    // Drag unpinned c onto the pinned tab's left half: slot 0 clamps to the
+    // unpinned group's start (1) - the indicator shows there, not before a.
+    let dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(tabs[2]!, { dataTransfer })
+    fireDnd('dragOver', bar, dataTransfer, 10)
+    expect(tabs[1]!.className).toContain('tab--drop-before')
+    expect(tabs[0]!.className).not.toContain('tab--drop-before')
+    fireDnd('drop', bar, dataTransfer, 10)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/doc0.md', '/doc2.md', '/doc1.md',
+    ])
+
+    // Drag the pinned tab past the end: clamps back to the pinned group.
+    dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(tabs[0]!, { dataTransfer })
+    fireDnd('drop', bar, dataTransfer, 450)
+    expect(useDocumentsStore.getState().documents[0]!.path).toBe('/doc0.md')
+    expect(useDocumentsStore.getState().documents[0]!.isPinned).toBe(true)
   })
 
   it('ignores foreign drags (no tab MIME type) for the indicator and the drop', () => {

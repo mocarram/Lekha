@@ -196,7 +196,7 @@ export function useStartup(
       // PREFERENCES (theme, font, sidebar width, ...) restored above apply to
       // every window. An unreachable bridge defaults to restoring (single-
       // window startup must never lose the session).
-      let ownsSession = true
+      let ownsSession: boolean
       try {
         ownsSession = await window.lekha.shouldRestoreSession()
       } catch {

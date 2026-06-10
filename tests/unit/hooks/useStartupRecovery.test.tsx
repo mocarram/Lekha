@@ -136,11 +136,16 @@ let listBackups: ReturnType<typeof vi.fn<() => Promise<BackupRecord[]>>>
 let readFile: ReturnType<typeof vi.fn<(path: string) => Promise<string>>>
 let deleteBackup: ReturnType<typeof vi.fn<(id: string) => Promise<void>>>
 
-function stubLekha(settings: Settings, ownsSession = true): void {
-  vi.stubGlobal('lekha', {
+/**
+ * Stub window.lekha and return the stub: assertions go through the returned
+ * vi.fn properties (plain function-valued properties), not window.lekha,
+ * whose method-style api.d.ts signatures trip unbound-method in expect().
+ */
+function stubLekha(settings: Settings, ownsSession = true) {
+  const stub = {
     getSettings: vi.fn(() => Promise.resolve(settings)),
     shouldRestoreSession: vi.fn(() => Promise.resolve(ownsSession)),
-    setSettings: vi.fn(() => Promise.resolve(settings)),
+    setSettings: vi.fn((_patch: Partial<Settings>) => Promise.resolve(settings)),
     listThemes: vi.fn(() => Promise.resolve([])),
     setDocumentState: vi.fn(),
     addRecentFile: vi.fn(() => Promise.resolve()),
@@ -151,7 +156,9 @@ function stubLekha(settings: Settings, ownsSession = true): void {
     readFile,
     deleteBackup,
     takePendingOpen: vi.fn(() => Promise.resolve([])),
-  })
+  }
+  vi.stubGlobal('lekha', stub)
+  return stub
 }
 
 beforeEach(() => {
@@ -322,7 +329,7 @@ describe('useStartup - session ownership (File > New Window)', () => {
     // A persisted session + a pending crash backup exist...
     listBackups.mockResolvedValue([backup({ content: '# recovered' })])
     readFile.mockResolvedValue('# on disk')
-    stubLekha(
+    const lekha = stubLekha(
       makeSettings({ openTabPaths: ['/a.md', '/b.md'], activeTabPath: '/a.md' }),
       false, // ...but this is a second window: main denied the claim.
     )
@@ -333,9 +340,7 @@ describe('useStartup - session ownership (File > New Window)', () => {
 
     // Let the startup promise chain settle, then assert NOTHING was replayed.
     await waitFor(() => {
-      expect(
-        (window.lekha.shouldRestoreSession as ReturnType<typeof vi.fn>).mock.calls.length,
-      ).toBe(1)
+      expect(lekha.shouldRestoreSession).toHaveBeenCalledTimes(1)
     })
     await new Promise((r) => setTimeout(r, 0))
     expect(fileOps.restoreTabs).not.toHaveBeenCalled()
@@ -363,19 +368,17 @@ describe('useStartup - session ownership (File > New Window)', () => {
 describe('useStartup - secondary window workspace isolation', () => {
   it('a non-owning window does not inherit the last folder', async () => {
     useWorkspaceStore.setState({ rootFolder: null, fileTree: [] })
-    stubLekha(makeSettings({ lastFolder: '/vault' }), false)
+    const lekha = stubLekha(makeSettings({ lastFolder: '/vault' }), false)
 
     const fileOps = makeFileOps((p) => readFile(p))
     const { ref } = makeEditorRef()
     renderHook(() => useStartup(fileOps, ref))
 
     await waitFor(() => {
-      expect(
-        (window.lekha.shouldRestoreSession as ReturnType<typeof vi.fn>).mock.calls.length,
-      ).toBe(1)
+      expect(lekha.shouldRestoreSession).toHaveBeenCalledTimes(1)
     })
     await new Promise((r) => setTimeout(r, 0))
-    expect(window.lekha.readDir).not.toHaveBeenCalled()
+    expect(lekha.readDir).not.toHaveBeenCalled()
     expect(useWorkspaceStore.getState().rootFolder).toBeNull()
   })
 
@@ -394,15 +397,13 @@ describe('useStartup - secondary window workspace isolation', () => {
 
   it('a non-owning window never persists its tabs or folder over the session', async () => {
     useWorkspaceStore.setState({ rootFolder: null, fileTree: [] })
-    stubLekha(makeSettings({ openTabPaths: ['/real.md'], lastFolder: '/vault' }), false)
+    const lekha = stubLekha(makeSettings({ openTabPaths: ['/real.md'], lastFolder: '/vault' }), false)
 
     const fileOps = makeFileOps((p) => readFile(p))
     const { ref } = makeEditorRef()
     renderHook(() => useStartup(fileOps, ref))
     await waitFor(() => {
-      expect(
-        (window.lekha.shouldRestoreSession as ReturnType<typeof vi.fn>).mock.calls.length,
-      ).toBe(1)
+      expect(lekha.shouldRestoreSession).toHaveBeenCalledTimes(1)
     })
     await new Promise((r) => setTimeout(r, 0))
 
@@ -413,8 +414,7 @@ describe('useStartup - secondary window workspace isolation', () => {
     // Let the debounced persisters (if wrongly armed) fire.
     await new Promise((r) => setTimeout(r, 700))
 
-    const setSettings = window.lekha.setSettings as ReturnType<typeof vi.fn>
-    const persistedKeys = setSettings.mock.calls.flatMap((c) => Object.keys(c[0] as object))
+    const persistedKeys = lekha.setSettings.mock.calls.flatMap(([patch]) => Object.keys(patch))
     expect(persistedKeys).not.toContain('openTabPaths')
     expect(persistedKeys).not.toContain('lastFolder')
   })

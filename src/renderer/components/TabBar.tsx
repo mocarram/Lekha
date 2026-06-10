@@ -120,10 +120,33 @@ export function TabBar({
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
 
-  /** Insertion slot for a dragover at `clientX` over the tab at `index`. */
-  const slotFor = (e: React.DragEvent, index: number): number => {
-    const box = e.currentTarget.getBoundingClientRect()
-    return e.clientX < box.left + box.width / 2 ? index : index + 1
+  /**
+   * Insertion slot (0..N) for a drag at `clientX`: before the first tab whose
+   * midpoint lies past the pointer, or the end slot when the pointer is past
+   * every tab. Computed from tab geometry rather than the hovered element so
+   * the whole bar is a drop target - the gaps between tabs and the empty area
+   * after the last tab (where "drop at the end" naturally lands) included.
+   */
+  const slotFromPoint = (clientX: number): number => {
+    const tabEls = tabsRef.current?.querySelectorAll<HTMLElement>('[role="tab"]')
+    if (!tabEls) return documents.length
+    for (let i = 0; i < tabEls.length; i++) {
+      const box = tabEls[i]!.getBoundingClientRect()
+      if (clientX < box.left + box.width / 2) return i
+    }
+    return documents.length
+  }
+
+  /**
+   * Pinned tabs group left of the rest and a drag never crosses the boundary
+   * (moveDocument clamps the move the same way); clamping the slot here too
+   * keeps the indicator honest - it always marks where the tab will land.
+   */
+  const clampSlot = (slot: number, id: string | null): number => {
+    const dragged = documents.find((d) => d.id === id)
+    if (!dragged) return slot
+    const pinnedCount = documents.filter((d) => d.isPinned).length
+    return dragged.isPinned ? Math.min(slot, pinnedCount) : Math.max(slot, pinnedCount)
   }
 
   const onTabDragStart = (e: React.DragEvent, id: string): void => {
@@ -132,11 +155,11 @@ export function TabBar({
     setDraggingId(id)
   }
 
-  const onTabDragOver = (e: React.DragEvent, index: number): void => {
+  const onBarDragOver = (e: React.DragEvent): void => {
     if (!e.dataTransfer.types.includes(TAB_DRAG_TYPE)) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
-    setDropIndex(slotFor(e, index))
+    setDropIndex(clampSlot(slotFromPoint(e.clientX), draggingId))
     // Auto-scroll the strip when dragging near its clipped edges, so a tab
     // can be carried to targets that are currently scrolled out of view.
     const strip = tabsRef.current
@@ -147,11 +170,11 @@ export function TabBar({
     }
   }
 
-  const onTabDrop = (e: React.DragEvent, index: number): void => {
+  const onBarDrop = (e: React.DragEvent): void => {
     const id = e.dataTransfer.getData(TAB_DRAG_TYPE)
     if (!id) return
     e.preventDefault()
-    const slot = slotFor(e, index)
+    const slot = clampSlot(slotFromPoint(e.clientX), id)
     const from = documents.findIndex((d) => d.id === id)
     // Dropping into a slot AFTER the dragged tab's own position shifts the
     // target left by one once the tab is removed from its origin.
@@ -251,6 +274,11 @@ export function TabBar({
       role="tablist"
       aria-label="Open documents"
       onKeyDown={onTablistKeyDown}
+      // Tab-reorder drops land anywhere on the bar (slotFromPoint maps the
+      // pointer to a slot): between tabs, past the last tab, on the drag zone.
+      // Foreign drags (OS files) fail the MIME check and fall through.
+      onDragOver={onBarDragOver}
+      onDrop={onBarDrop}
     >
       {/* Non-scrolling wrapper: hosts the edge-fade overlays (CSS ::before/
           ::after) so they stay pinned over the strip's edges while the inner
@@ -287,8 +315,6 @@ export function TabBar({
               title={doc.path ?? doc.title}
               draggable
               onDragStart={(e) => onTabDragStart(e, doc.id)}
-              onDragOver={(e) => onTabDragOver(e, i)}
-              onDrop={(e) => onTabDrop(e, i)}
               onDragEnd={onTabDragEnd}
               onClick={() => onSelect(doc.id)}
               onAuxClick={(e) => {
