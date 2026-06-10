@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc-channels'
-import { writeFileAtomic } from '@main/fs-helpers'
-import { collectMarkdownPaths, readScannableFile, mapPool } from '@main/ipc/search'
+import { writeFileAtomic, mapPool } from '@main/fs-helpers'
+import { collectMarkdownPaths, readScannableFile } from '@main/ipc/search'
 import { replaceAllInText } from '@shared/textSearch'
 
 export interface ReplaceInFolderArgs {

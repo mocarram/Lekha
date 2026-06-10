@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, unlink, readdir, stat } from 'node:fs/promises'
+import { readFile, writeFile, rename, unlink, readdir, stat, open } from 'node:fs/promises'
 import { basename, join, extname, dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { FileNode, FileStat, ArticleEntry, OpenFileStatus } from '@shared/types'
@@ -10,6 +10,34 @@ import { OPENABLE_EXT_SET } from '@shared/openable'
 /** Returns true for dotfiles / dotdirs (names starting with "."). */
 function isDotEntry(name: string): boolean {
   return name.startsWith('.')
+}
+
+/**
+ * Map `items` through async `fn` with at most `limit` in flight, preserving
+ * input order in the result. `shouldStop` lets a scan stop scheduling new work
+ * once enough results were collected (already-started items still finish, so
+ * everything before the stop point completes deterministically). Used by the
+ * folder scans (search / replace / articles) so a big vault never opens an
+ * unbounded number of files at once.
+ */
+export async function mapPool<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+  shouldStop?: () => boolean,
+): Promise<Array<R | undefined>> {
+  const out = new Array<R | undefined>(items.length)
+  let nextIndex = 0
+  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    for (;;) {
+      if (shouldStop?.()) return
+      const i = nextIndex++
+      if (i >= items.length) return
+      out[i] = await fn(items[i] as T)
+    }
+  })
+  await Promise.all(workers)
+  return out
 }
 
 /**
@@ -175,20 +203,48 @@ export function deriveArticlePreview(content: string): string {
 }
 
 /**
+ * How much of each file the Articles listing reads. Title (first `# ` heading)
+ * and the ~140-char preview both come from the head of the file, so reading
+ * the whole body is wasted I/O - and on a big vault, reading every file fully
+ * AND concurrently spiked memory and file descriptors.
+ */
+const ARTICLE_HEAD_BYTES = 4096
+
+/** How many files the Articles listing opens concurrently. */
+const ARTICLE_READ_CONCURRENCY = 16
+
+/** Read the first `maxBytes` of a file as UTF-8 (the whole file when smaller). */
+async function readFileHead(path: string, maxBytes: number): Promise<string> {
+  const fh = await open(path, 'r')
+  try {
+    const buf = Buffer.alloc(maxBytes)
+    const { bytesRead } = await fh.read(buf, 0, maxBytes, 0)
+    return buf.toString('utf8', 0, bytesRead)
+  } finally {
+    await fh.close()
+  }
+}
+
+/**
  * List every markdown file under `root` as an ArticleEntry (title, preview,
  * size, mtime), sorted most-recently-modified first. Powers the Articles view.
+ *
+ * Reads only each file's head (title + preview live there; a heading past the
+ * first 4KB falls back to the basename) with bounded concurrency.
  */
 export async function listArticles(root: string): Promise<ArticleEntry[]> {
   const paths = await collectMarkdownFiles(root)
-  const settled = await Promise.all(
-    paths.map(async (path): Promise<ArticleEntry | null> => {
+  const settled = await mapPool(
+    paths,
+    ARTICLE_READ_CONCURRENCY,
+    async (path): Promise<ArticleEntry | null> => {
       // Guard each entry: a file enumerated above may be deleted before we stat
       // it (TOCTOU). Returning null drops that one entry rather than rejecting
-      // Promise.all and blanking the entire list. readFile failures still
-      // degrade to an empty title/preview via its own .catch.
+      // the scan and blanking the entire list. Read failures still degrade to
+      // an empty title/preview via their own .catch.
       try {
         const [content, s] = await Promise.all([
-          readFile(path, 'utf8').catch(() => ''),
+          readFileHead(path, ARTICLE_HEAD_BYTES).catch(() => ''),
           stat(path),
         ])
         return {
@@ -201,9 +257,9 @@ export async function listArticles(root: string): Promise<ArticleEntry[]> {
       } catch {
         return null
       }
-    }),
+    },
   )
-  const entries = settled.filter((e): e is ArticleEntry => e !== null)
+  const entries = settled.filter((e): e is ArticleEntry => e !== null && e !== undefined)
   entries.sort((a, b) => b.mtimeMs - a.mtimeMs)
   return entries
 }

@@ -164,6 +164,16 @@ describe('listArticles (IO)', () => {
     }
   })
 
+  it('derives title + preview from the head of a large file (head-only read)', async () => {
+    // 100KB body after the heading: the listing must NOT need the full file.
+    const body = 'lorem ipsum '.repeat(9000)
+    writeFileSync(join(tmpDir, 'big.md'), `# Big Title\n\nfirst words here. ${body}`, 'utf8')
+    const list = await listArticles(tmpDir)
+    const big = list.find((a) => a.path.endsWith('big.md'))!
+    expect(big.title).toBe('Big Title')
+    expect(big.preview).toContain('first words here')
+    expect(big.sizeBytes).toBeGreaterThan(100_000)
+  })
 })
 
 // ---------------------------------------------------------------------------

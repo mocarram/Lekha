@@ -3,7 +3,7 @@ import { basename } from 'node:path'
 import { stat } from 'node:fs/promises'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult, FolderSearchMatch } from '@shared/types'
-import { buildFileTree, readTextFile } from '@main/fs-helpers'
+import { buildFileTree, readTextFile, mapPool } from '@main/fs-helpers'
 import { findMatchRanges } from '@shared/textSearch'
 
 // ---------------------------------------------------------------------------
@@ -29,32 +29,6 @@ export const MAX_SEARCH_FILE_BYTES = 2 * 1024 * 1024
 
 /** How many files are read concurrently during a folder scan. */
 const READ_CONCURRENCY = 8
-
-/**
- * Map `items` through async `fn` with at most `limit` in flight, preserving
- * input order in the result. `shouldStop` lets the scan stop scheduling new
- * work once enough results were collected (already-started items still
- * finish, so everything before the stop point completes deterministically).
- */
-export async function mapPool<T, R>(
-  items: readonly T[],
-  limit: number,
-  fn: (item: T) => Promise<R>,
-  shouldStop?: () => boolean,
-): Promise<Array<R | undefined>> {
-  const out = new Array<R | undefined>(items.length)
-  let nextIndex = 0
-  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
-    for (;;) {
-      if (shouldStop?.()) return
-      const i = nextIndex++
-      if (i >= items.length) return
-      out[i] = await fn(items[i] as T)
-    }
-  })
-  await Promise.all(workers)
-  return out
-}
 
 // ---------------------------------------------------------------------------
 // Pure helper (exported for unit testing without fs)
