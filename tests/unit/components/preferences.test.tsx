@@ -50,6 +50,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     smartPunctuation: true,
     sidebarWidth: 240,
     openTabPaths: [],
+    pinnedTabPaths: [],
     activeTabPath: null,
     ...overrides,
   }

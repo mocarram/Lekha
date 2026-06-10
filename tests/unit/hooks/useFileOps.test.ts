@@ -109,6 +109,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
         smartPunctuation: true,
         sidebarWidth: 240,
         openTabPaths: [],
+    pinnedTabPaths: [],
         activeTabPath: null,
       }),
     ),
@@ -129,6 +130,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
         smartPunctuation: true,
         sidebarWidth: 240,
         openTabPaths: [],
+    pinnedTabPaths: [],
         activeTabPath: null,
       }),
     ),
@@ -624,7 +626,7 @@ describe('useFileOps - openFolder()', () => {
     const tree: FileNode[] = []
     const openFolderDialog = vi.fn(() => Promise.resolve('/proj' as string | null))
     const readDir = vi.fn((_d: string) => Promise.resolve(tree))
-    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const, theme: 'github', focusMode: false, typewriterMode: false, equationNumbering: true, fontSize: 16, autoSave: true, spellCheck: true, spellCheckLanguage: 'en-US', smartPunctuation: true, sidebarWidth: 240, openTabPaths: [], activeTabPath: null }))
+    const setSettings = vi.fn(() => Promise.resolve({ recentFiles: [], lastFolder: null, sidebarVisible: true, sidebarTab: 'files' as const, theme: 'github', focusMode: false, typewriterMode: false, equationNumbering: true, fontSize: 16, autoSave: true, spellCheck: true, spellCheckLanguage: 'en-US', smartPunctuation: true, sidebarWidth: 240, openTabPaths: [], activeTabPath: null, pinnedTabPaths: [] }))
     const mockLekha = makeMockLekha({ openFolderDialog, readDir, setSettings })
     vi.stubGlobal('lekha', mockLekha)
 
@@ -1604,5 +1606,52 @@ describe('useFileOps - bulk tab closes', () => {
     const { result } = setupTabs()
     await act(async () => { await result.current.closeAllTabs() })
     expect(useDocumentsStore.getState().documents).toHaveLength(0)
+  })
+})
+
+describe('useFileOps - bulk closes skip pinned tabs', () => {
+  it('Close Others / Close Saved / Close All all keep pinned tabs open', async () => {
+    const { handle } = makeMockEditor('# B')
+    vi.stubGlobal('lekha', makeMockLekha({}))
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B' })
+    useDocumentsStore.getState().openDocument({ path: '/c.md', markdown: '# C' })
+    useDocumentsStore.getState().setPinned(a, true)
+    useDocumentsStore.getState().activateDocument(b)
+    useEditorStore.getState().openFile('/b.md', '# B')
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    await act(async () => { await result.current.closeOtherTabs(b) })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual(['/a.md', '/b.md'])
+
+    await act(async () => { await result.current.closeSavedTabs() })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual(['/a.md'])
+
+    await act(async () => { await result.current.closeAllTabs() })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual(['/a.md'])
+  })
+})
+
+describe('useFileOps - restoreTabs re-pins persisted pinned tabs', () => {
+  it('applies pinnedPaths in order, regrouped at the front of the strip', async () => {
+    const { handle } = makeMockEditor()
+    const readFile = vi.fn((p: string) => Promise.resolve(`# ${p}`))
+    vi.stubGlobal('lekha', makeMockLekha({ readFile }))
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+
+    await act(async () => {
+      await result.current.restoreTabs(
+        ['/a.md', '/b.md', '/c.md'],
+        '/b.md',
+        ['/c.md', '/a.md'], // persisted pin order
+      )
+    })
+    expect(useDocumentsStore.getState().documents.map((d) => `${d.path}${d.isPinned ? '*' : ''}`))
+      .toEqual(['/c.md*', '/a.md*', '/b.md'])
+    expect(useDocumentsStore.getState().activeDocument()?.path).toBe('/b.md')
   })
 })

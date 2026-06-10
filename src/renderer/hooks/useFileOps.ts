@@ -37,8 +37,9 @@ export interface FileOps {
    * paint), and loads ONLY the remembered active tab into the live editor -
    * restoring tabs through openPath sequentially visibly flipped the editor
    * through every document at startup. Missing/unreadable files are skipped.
+   * `pinnedPaths` re-pins the listed tabs (in order) after creation.
    */
-  restoreTabs(paths: string[], activePath: string | null): Promise<void>
+  restoreTabs(paths: string[], activePath: string | null, pinnedPaths?: string[]): Promise<void>
   /** Save to the current path; falls through to saveAs when no path exists. */
   save(): Promise<void>
   /**
@@ -110,16 +111,17 @@ export interface FileOps {
    */
   closeTab(id: string): Promise<void>
   /**
-   * Tab-menu bulk closes. Clean background tabs close in place (the editor
-   * never flips through them); dirty/active tabs run the closeTab save guard,
-   * and a cancelled guard aborts the remaining closes (VS Code semantics).
+   * Tab-menu bulk closes. PINNED tabs are always skipped. Clean background
+   * tabs close in place (the editor never flips through them); dirty/active
+   * tabs run the closeTab save guard, and a cancelled guard aborts the
+   * remaining closes (VS Code semantics).
    */
   closeOtherTabs(keepId: string): Promise<void>
-  /** Close every tab AFTER `fromId` in the strip order. */
+  /** Close every unpinned tab AFTER `fromId` in the strip order. */
   closeTabsToRight(fromId: string): Promise<void>
-  /** Close every clean (saved) tab; dirty tabs stay open. */
+  /** Close every clean (saved) unpinned tab; dirty tabs stay open. */
   closeSavedTabs(): Promise<void>
-  /** Close every tab (guarded per dirty tab; ends on a blank Untitled). */
+  /** Close every unpinned tab (guarded per dirty tab). */
   closeAllTabs(): Promise<void>
   /**
    * Handle the main-process window-close guard's "Save" choice: save EVERY dirty
@@ -661,7 +663,11 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // no per-file live-editor load, no recents updates (restoring is not the
   // user "opening" anything - recents already reflect those opens).
   const restoreTabs = useCallback(
-    async (paths: string[], activePath: string | null): Promise<void> => {
+    async (
+      paths: string[],
+      activePath: string | null,
+      pinnedPaths: string[] = [],
+    ): Promise<void> => {
       // Read everything in parallel; a missing/unreadable file restores as
       // nothing rather than failing the session.
       const entries = await Promise.all(
@@ -696,6 +702,13 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
           documentsStore.getState().openDocument({ path: e.path, markdown: e.markdown })
         }
         first = false
+      }
+
+      // Re-pin the persisted pinned tabs in order; setPinned regroups them at
+      // the front of the strip, preserving their relative pin order.
+      for (const p of pinnedPaths) {
+        const tab = documentsStore.getState().documents.find((d) => d.path === p)
+        if (tab) documentsStore.getState().setPinned(tab.id, true)
       }
 
       // Activate the remembered tab (falling back to the last restored, which
@@ -845,27 +858,37 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // order, then funnels through closeManyTabs (guard + cancel semantics above).
   const closeOtherTabs = useCallback(async (keepId: string): Promise<void> => {
     const ids = documentsStore.getState().documents
+      .filter((d) => d.id !== keepId && !d.isPinned)
       .map((d) => d.id)
-      .filter((id) => id !== keepId)
     await closeManyTabs(ids)
-  }, [documentsStore, closeManyTabs])
+    // The kept tab is the user's expressed focus: activate it if the close
+    // cascade moved activation elsewhere (closing the previously-active tab
+    // hands activation to a neighbour, e.g. a surviving pinned tab).
+    const keep = documentsStore.getState().documents.find((d) => d.id === keepId)
+    if (keep !== undefined && documentsStore.getState().activeId !== keepId) {
+      await selectTab(keepId)
+    }
+  }, [documentsStore, closeManyTabs, selectTab])
 
   const closeTabsToRight = useCallback(async (fromId: string): Promise<void> => {
     const docs = documentsStore.getState().documents
     const idx = docs.findIndex((d) => d.id === fromId)
     if (idx === -1) return
-    await closeManyTabs(docs.slice(idx + 1).map((d) => d.id))
+    await closeManyTabs(docs.slice(idx + 1).filter((d) => !d.isPinned).map((d) => d.id))
   }, [documentsStore, closeManyTabs])
 
   const closeSavedTabs = useCallback(async (): Promise<void> => {
     const ids = documentsStore.getState().documents
-      .filter((d) => !d.isDirty)
+      .filter((d) => !d.isDirty && !d.isPinned)
       .map((d) => d.id)
     await closeManyTabs(ids)
   }, [documentsStore, closeManyTabs])
 
   const closeAllTabs = useCallback(async (): Promise<void> => {
-    await closeManyTabs(documentsStore.getState().documents.map((d) => d.id))
+    const ids = documentsStore.getState().documents
+      .filter((d) => !d.isPinned)
+      .map((d) => d.id)
+    await closeManyTabs(ids)
   }, [documentsStore, closeManyTabs])
 
   // "Save" from the main-process window-close guard: save EVERY dirty tab so the

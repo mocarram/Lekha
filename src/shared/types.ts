@@ -149,6 +149,12 @@ export interface Settings {
   openTabPaths: string[]
   /** Path of the tab that was active at last close (null when none/Untitled). */
   activeTabPath: string | null
+  /**
+   * Paths of the PINNED tabs (a subset of openTabPaths). Pinned tabs sit at
+   * the left of the strip and are skipped by bulk closes; unsaved tabs cannot
+   * persist a pin (no path).
+   */
+  pinnedTabPaths: string[]
 }
 
 /** Default editor font size (px). Shared by the settings store and the renderer. */

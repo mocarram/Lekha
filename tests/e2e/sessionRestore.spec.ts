@@ -116,19 +116,31 @@ test('File > New Window opens BLANK instead of replaying the session', async () 
   await newWin.close()
 })
 
-test('right-click tab menu: Close Others keeps only the clicked tab', async () => {
+test('pinning moves a tab to the front and protects it from Close Others', async () => {
+  // Pin third.md via its context menu: it jumps to the FRONT of the strip
+  // with the pin glyph in place of the close button.
+  await win.locator('.tab', { hasText: 'third.md' }).click({ button: 'right' })
+  await win.locator('.tab-menu').getByRole('menuitem', { name: 'Pin Tab', exact: true }).click()
+  await expect
+    .poll(async () => win.locator('.tab .tab__title').allTextContents())
+    .toEqual(['third.md', 'first.md', 'second.md'])
+  await expect(win.locator('.tab--pinned .tab__pin')).toBeVisible()
+
+  // Close Others on second.md: the pinned tab survives alongside the target.
   await win.locator('.tab', { hasText: 'second.md' }).click({ button: 'right' })
   const menu = win.locator('.tab-menu')
   await expect(menu).toBeVisible()
-  // The simple curated set is present.
-  for (const label of ['Close', 'Close Others', 'Close Saved', 'Close All', 'Reveal in Finder']) {
+  // The curated set is present (plus the pin toggle).
+  for (const label of ['Pin Tab', 'Close', 'Close Others', 'Close Saved', 'Close All', 'Reveal in Finder']) {
     await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible()
   }
   await menu.getByRole('menuitem', { name: 'Close Others', exact: true }).click()
 
-  await expect(win.locator('.tab')).toHaveCount(1)
-  await expect(win.locator('.tab .tab__title')).toHaveText('second.md')
+  await expect(win.locator('.tab')).toHaveCount(2)
+  await expect
+    .poll(async () => win.locator('.tab .tab__title').allTextContents())
+    .toEqual(['third.md', 'second.md'])
   await expect(win.locator('.tab-menu')).toHaveCount(0)
-  // The surviving tab's document is still loaded.
+  // The surviving target's document is still loaded.
   await expect(win.locator('.ProseMirror h1', { hasText: 'Second Doc 777' })).toBeVisible()
 })

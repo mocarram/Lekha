@@ -29,6 +29,7 @@ const DEFAULTS: Settings = {
   sidebarWidth: 240,
   openTabPaths: [],
   activeTabPath: null,
+  pinnedTabPaths: [],
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

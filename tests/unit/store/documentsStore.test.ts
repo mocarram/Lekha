@@ -231,6 +231,7 @@ describe('pickNeighbourId (pure)', () => {
     inode: null,
     backupId: null,
     recovered: false,
+    isPinned: false,
   })
 
   it('returns the left neighbour for a middle tab', () => {
@@ -260,6 +261,7 @@ describe('nextTabId (pure)', () => {
     inode: null,
     backupId: null,
     recovered: false,
+    isPinned: false,
   })
 
   it('cycles forward (+1) to the right neighbour', () => {
@@ -332,5 +334,41 @@ describe('documentsStore - moveDocument (drag-to-reorder)', () => {
     useDocumentsStore.getState().moveDocument('nope', 0)
     useDocumentsStore.getState().moveDocument(a, 0) // already there
     expect(useDocumentsStore.getState().documents).toBe(before)
+  })
+})
+
+describe('documentsStore - setPinned (tab pinning)', () => {
+  it('pinning moves the tab to the END of the pinned group; unpinning to its front', () => {
+    const s = useDocumentsStore.getState()
+    s.openDocument({ path: '/a.md', markdown: '' })
+    const b = s.openDocument({ path: '/b.md', markdown: '' })
+    const c = s.openDocument({ path: '/c.md', markdown: '' })
+
+    useDocumentsStore.getState().setPinned(c, true) // -> [c*, a, b]
+    useDocumentsStore.getState().setPinned(b, true) // -> [c*, b*, a]
+    expect(useDocumentsStore.getState().documents.map((d) => `${d.path}${d.isPinned ? '*' : ''}`))
+      .toEqual(['/c.md*', '/b.md*', '/a.md'])
+
+    useDocumentsStore.getState().setPinned(c, false) // -> [b*, c, a]
+    expect(useDocumentsStore.getState().documents.map((d) => `${d.path}${d.isPinned ? '*' : ''}`))
+      .toEqual(['/b.md*', '/c.md', '/a.md'])
+  })
+
+  it('moveDocument cannot drag a tab across the pinned/unpinned boundary', () => {
+    const s = useDocumentsStore.getState()
+    const a = s.openDocument({ path: '/a.md', markdown: '' })
+    const b = s.openDocument({ path: '/b.md', markdown: '' })
+    s.openDocument({ path: '/c.md', markdown: '' })
+    useDocumentsStore.getState().setPinned(a, true) // [a*, b, c]
+
+    // Unpinned tab dragged to slot 0 clamps to the boundary (slot 1).
+    useDocumentsStore.getState().moveDocument(b, 0)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path))
+      .toEqual(['/a.md', '/b.md', '/c.md'])
+
+    // Pinned tab dragged to the end clamps inside the pinned group (slot 0).
+    useDocumentsStore.getState().moveDocument(a, 2)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path))
+      .toEqual(['/a.md', '/b.md', '/c.md'])
   })
 })

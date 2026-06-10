@@ -41,6 +41,12 @@ export interface DocumentTab {
    * recovery banner. Defaults false for normally-opened/new tabs.
    */
   recovered: boolean
+  /**
+   * Pinned tabs sit at the LEFT of the strip (before every unpinned tab),
+   * are skipped by bulk closes, and swap their close button for a pin glyph.
+   * The pinned-first invariant is enforced by setPinned + moveDocument.
+   */
+  isPinned: boolean
 }
 
 interface DocumentsState {
@@ -68,10 +74,18 @@ interface DocumentsActions {
   activateDocument(id: string): void
   /**
    * Move the tab with `id` to `toIndex` in the strip order (drag-to-reorder).
-   * The index is clamped; the active tab stays active (activation is
+   * The index is clamped to the tab's OWN group (pinned tabs reorder within
+   * the pinned region, unpinned within the unpinned region - dragging never
+   * crosses the boundary); the active tab stays active (activation is
    * id-based, not order-based). No-op for unknown ids.
    */
   moveDocument(id: string, toIndex: number): void
+  /**
+   * Pin or unpin a tab. Pinning moves it to the END of the pinned group (the
+   * boundary); unpinning moves it to the FRONT of the unpinned group, so the
+   * pinned-first strip invariant always holds. No-op for unknown ids.
+   */
+  setPinned(id: string, pinned: boolean): void
   /** Patch the active tab in place (id cannot be changed). */
   updateActive(patch: Partial<Omit<DocumentTab, 'id'>>): void
   /**
@@ -182,6 +196,7 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       inode: null,
       backupId: null,
       recovered: false,
+      isPinned: false,
     }
     set((s) => ({ documents: [...s.documents, tab], activeId: tab.id }))
     return tab.id
@@ -199,6 +214,7 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
       inode: null,
       backupId: null,
       recovered: false,
+      isPinned: false,
     }
     set((s) => ({ documents: [...s.documents, tab], activeId: tab.id }))
     return tab.id
@@ -223,11 +239,31 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
     const docs = get().documents
     const from = docs.findIndex((d) => d.id === id)
     if (from === -1) return
-    const to = Math.max(0, Math.min(toIndex, docs.length - 1))
+    // Clamp the target inside the tab's own group so a drag can never carry a
+    // tab across the pinned/unpinned boundary.
+    const pinnedCount = docs.filter((d) => d.isPinned).length
+    const [min, max] = docs[from]!.isPinned
+      ? [0, pinnedCount - 1]
+      : [pinnedCount, docs.length - 1]
+    const to = Math.max(min, Math.min(toIndex, max))
     if (to === from) return
     const next = [...docs]
     const [moved] = next.splice(from, 1)
     next.splice(to, 0, moved!)
+    set({ documents: next })
+  },
+
+  setPinned(id, pinned) {
+    const docs = get().documents
+    const from = docs.findIndex((d) => d.id === id)
+    if (from === -1 || docs[from]!.isPinned === pinned) return
+    const next = [...docs]
+    const [tab] = next.splice(from, 1)
+    const updated = { ...tab!, isPinned: pinned }
+    // Pinning appends to the pinned group; unpinning prepends to the unpinned
+    // group - both land the tab AT the boundary, keeping pinned-first intact.
+    const boundary = next.filter((d) => d.isPinned).length
+    next.splice(boundary, 0, updated)
     set({ documents: next })
   },
 

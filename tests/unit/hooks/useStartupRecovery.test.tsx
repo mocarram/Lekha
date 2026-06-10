@@ -43,6 +43,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     smartPunctuation: true,
     sidebarWidth: 240,
     openTabPaths: [],
+    pinnedTabPaths: [],
     activeTabPath: null,
     ...overrides,
   }
@@ -353,7 +354,7 @@ describe('useStartup - session ownership (File > New Window)', () => {
     renderHook(() => useStartup(fileOps, ref))
 
     await waitFor(() => {
-      expect(fileOps.restoreTabs).toHaveBeenCalledWith(['/a.md'], '/a.md')
+      expect(fileOps.restoreTabs).toHaveBeenCalledWith(['/a.md'], '/a.md', [])
     })
     expect(listBackups).toHaveBeenCalled()
   })

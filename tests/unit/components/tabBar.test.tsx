@@ -472,3 +472,49 @@ describe('TabBar - drag-to-reorder', () => {
     ])
   })
 })
+
+describe('TabBar - pinned tabs', () => {
+  it('a pinned tab shows the pin glyph instead of the close button; clicking it unpins', () => {
+    const ids = openTabs(2)
+    useDocumentsStore.getState().setPinned(ids[0]!, true)
+    const { getByRole, queryByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    expect(getByRole('button', { name: 'Unpin doc0.md' })).toBeTruthy()
+    expect(queryByRole('button', { name: 'Close doc0.md' })).toBeNull()
+    // The other (unpinned) tab keeps its close button.
+    expect(getByRole('button', { name: 'Close doc1.md' })).toBeTruthy()
+
+    fireEvent.click(getByRole('button', { name: 'Unpin doc0.md' }))
+    expect(useDocumentsStore.getState().documents[0]!.isPinned).toBe(false)
+  })
+
+  it('middle-click does NOT close a pinned tab', () => {
+    const ids = openTabs(1)
+    useDocumentsStore.getState().setPinned(ids[0]!, true)
+    const onClose = vi.fn()
+    const { getAllByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={onClose} onNew={noop} />,
+    )
+    fireEvent(
+      getAllByRole('tab')[0]!,
+      new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }),
+    )
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('the context menu toggles between Pin Tab and Unpin Tab', () => {
+    const ids = openTabs(1)
+    const { getAllByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    fireEvent.click(getByRole('menuitem', { name: 'Pin Tab' }))
+    expect(useDocumentsStore.getState().documents[0]!.isPinned).toBe(true)
+
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    fireEvent.click(getByRole('menuitem', { name: 'Unpin Tab' }))
+    expect(useDocumentsStore.getState().documents[0]!.isPinned).toBe(false)
+    void ids
+  })
+})

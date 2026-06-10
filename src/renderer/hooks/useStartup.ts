@@ -224,7 +224,7 @@ export function useStartup(
       // document at startup.) Missing/unreadable files are skipped.
       if (ownsSession && s.openTabPaths.length > 0) {
         try {
-          await fileOpsRef.current.restoreTabs(s.openTabPaths, s.activeTabPath)
+          await fileOpsRef.current.restoreTabs(s.openTabPaths, s.activeTabPath, s.pinnedTabPaths)
         } catch {
           // Restore is best-effort: a failure leaves the welcome tab in place.
         }
@@ -342,7 +342,9 @@ export function useStartup(
     // persisted, and only when that signature actually changes - markdown
     // edits (which fire updateActive on every keystroke) are ignored.
     const tabsSignature = (s: ReturnType<typeof useDocumentsStore.getState>): string => {
-      const paths = s.documents.map((d) => d.path ?? '').join('|')
+      // Pin markers are part of the signature so toggling a pin persists even
+      // though it does not change the path set or the active tab.
+      const paths = s.documents.map((d) => `${d.isPinned ? '*' : ''}${d.path ?? ''}`).join('|')
       const active = s.documents.find((d) => d.id === s.activeId)?.path ?? ''
       return `${paths}::${active}`
     }
@@ -360,7 +362,10 @@ export function useStartup(
           .map((d) => d.path)
           .filter((p): p is string => p !== null)
         const activeTabPath = s.documents.find((d) => d.id === s.activeId)?.path ?? null
-        void window.lekha.setSettings({ openTabPaths, activeTabPath })
+        const pinnedTabPaths = s.documents
+          .filter((d) => d.isPinned && d.path !== null)
+          .map((d) => d.path as string)
+        void window.lekha.setSettings({ openTabPaths, activeTabPath, pinnedTabPaths })
       }, PERSIST_DEBOUNCE_MS)
     })
 

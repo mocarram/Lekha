@@ -26,8 +26,24 @@ interface TabBarProps {
 interface TabMenuState {
   id: string
   path: string | null
+  isPinned: boolean
   x: number
   y: number
+}
+
+/** Small push-pin glyph shown in a pinned tab's close slot (12x12). */
+function PinIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M9.5 1.5a1 1 0 0 1 1.7-.7l4 4a1 1 0 0 1-.7 1.7h-.8l-2.6 2.6.4 2.6a1 1 0 0 1-1.7.9L7.5 10.3l-4.1 4.1a.75.75 0 0 1-1.1-1.1l4.1-4.1-2.3-2.3a1 1 0 0 1 .9-1.7l2.6.4L10.3 3v-.8a1 1 0 0 1-.8-.7Z" />
+    </svg>
+  )
 }
 
 /**
@@ -264,6 +280,7 @@ export function TabBar({
               tabIndex={isActive ? 0 : -1}
               className={
                 `tab${isActive ? ' tab--active' : ''}${doc.isDirty ? ' tab--dirty' : ''}` +
+                `${doc.isPinned ? ' tab--pinned' : ''}` +
                 `${doc.id === draggingId ? ' tab--dragging' : ''}` +
                 `${dropBefore ? ' tab--drop-before' : ''}${dropAfter ? ' tab--drop-after' : ''}`
               }
@@ -275,35 +292,54 @@ export function TabBar({
               onDragEnd={onTabDragEnd}
               onClick={() => onSelect(doc.id)}
               onAuxClick={(e) => {
-                // Middle-click closes the tab (standard tab UX).
-                if (e.button === 1) {
+                // Middle-click closes the tab (standard tab UX) - except a
+                // pinned one: pins exist to prevent exactly this accident.
+                if (e.button === 1 && !doc.isPinned) {
                   e.preventDefault()
                   onClose(doc.id)
                 }
               }}
               onContextMenu={(e) => {
                 e.preventDefault()
-                setMenu({ id: doc.id, path: doc.path, x: e.clientX, y: e.clientY })
+                setMenu({ id: doc.id, path: doc.path, isPinned: doc.isPinned, x: e.clientX, y: e.clientY })
               }}
             >
               <span className="tab__title">{doc.title}</span>
-              <button
-                type="button"
-                className="tab__close"
-                aria-label={`Close ${doc.title}`}
-                title="Close"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onClose(doc.id)
-                }}
-              >
-                {/* The dirty dot occupies the close slot until hovered, when
-                    the × is revealed (CSS-driven). */}
-                <span className="tab__dirty-dot" aria-hidden="true" />
-                <span className="tab__close-x" aria-hidden="true">
-                  ×
-                </span>
-              </button>
+              {doc.isPinned ? (
+                // Pinned: the close slot shows the pin glyph instead of the x;
+                // clicking it UNPINS (closing needs the context menu). The
+                // dirty state stays visible via the italic title.
+                <button
+                  type="button"
+                  className="tab__pin"
+                  aria-label={`Unpin ${doc.title}`}
+                  title="Unpin"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    useDocumentsStore.getState().setPinned(doc.id, false)
+                  }}
+                >
+                  <PinIcon />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="tab__close"
+                  aria-label={`Close ${doc.title}`}
+                  title="Close"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onClose(doc.id)
+                  }}
+                >
+                  {/* The dirty dot occupies the close slot until hovered, when
+                      the × is revealed (CSS-driven). */}
+                  <span className="tab__dirty-dot" aria-hidden="true" />
+                  <span className="tab__close-x" aria-hidden="true">
+                    ×
+                  </span>
+                </button>
+              )}
             </div>
           )
         })}
@@ -337,6 +373,11 @@ export function TabBar({
           role="menu"
           style={{ left: `${menu.x}px`, top: `${menu.y}px` }}
         >
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => useDocumentsStore.getState().setPinned(menu.id, !menu.isPinned))}>
+            {menu.isPinned ? 'Unpin Tab' : 'Pin Tab'}
+          </button>
+          <div className="filetree-menu__sep" role="separator" />
           <button type="button" role="menuitem" className="filetree-menu__item"
             onClick={menuAction(() => onClose(menu.id))}>
             Close
