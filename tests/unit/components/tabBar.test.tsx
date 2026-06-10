@@ -7,7 +7,7 @@
  * shifts and the new-tab button is always available.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, cleanup, fireEvent } from '@testing-library/react'
+import { render, cleanup, fireEvent, act } from '@testing-library/react'
 import { TabBar } from '../../../src/renderer/components/TabBar'
 import { useDocumentsStore } from '../../../src/renderer/store/documentsStore'
 
@@ -15,6 +15,7 @@ const noop = () => undefined
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
   useDocumentsStore.getState().reset()
 })
 beforeEach(() => {
@@ -193,5 +194,73 @@ describe('TabBar', () => {
     const tabs = getAllByRole('tab')
     expect(tabs[1]!.classList.contains('tab--dirty')).toBe(true)
     expect(tabs[0]!.classList.contains('tab--dirty')).toBe(false)
+  })
+})
+
+/**
+ * Scrolling: with many tabs the strip overflows horizontally (tabs keep a
+ * minimum width instead of squashing). A vertical mouse wheel translates to
+ * horizontal scrolling (VS Code behavior) and the ACTIVE tab is auto-scrolled
+ * into view on activation. happy-dom computes no layout, so overflow metrics
+ * are stubbed and scrollIntoView is spied on the prototype.
+ */
+
+/** Pretend the strip overflows (happy-dom computes no layout). */
+function stubOverflow(el: Element, scrollWidth: number, clientWidth: number): void {
+  Object.defineProperty(el, 'scrollWidth', { value: scrollWidth, configurable: true })
+  Object.defineProperty(el, 'clientWidth', { value: clientWidth, configurable: true })
+}
+
+describe('TabBar - wheel scrolling', () => {
+  it('translates a vertical mouse wheel into horizontal strip scrolling', () => {
+    openTabs(3)
+    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const strip = container.querySelector('.tab-bar__tabs')!
+    stubOverflow(strip, 800, 200)
+
+    fireEvent.wheel(strip, { deltaY: 60, deltaX: 0 })
+    expect(strip.scrollLeft).toBe(60)
+    fireEvent.wheel(strip, { deltaY: -30, deltaX: 0 })
+    expect(strip.scrollLeft).toBe(30)
+  })
+
+  it('leaves trackpad horizontal pans (deltaX dominant) to native scrolling', () => {
+    openTabs(3)
+    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const strip = container.querySelector('.tab-bar__tabs')!
+    stubOverflow(strip, 800, 200)
+
+    fireEvent.wheel(strip, { deltaY: 5, deltaX: 40 })
+    expect(strip.scrollLeft).toBe(0)
+  })
+
+  it('does nothing when the tabs all fit (no overflow)', () => {
+    openTabs(2)
+    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const strip = container.querySelector('.tab-bar__tabs')!
+    stubOverflow(strip, 200, 200)
+
+    fireEvent.wheel(strip, { deltaY: 60, deltaX: 0 })
+    expect(strip.scrollLeft).toBe(0)
+  })
+})
+
+describe('TabBar - active tab auto-reveal', () => {
+  it('scrolls the newly activated tab into view', () => {
+    const spy = vi
+      .spyOn(HTMLElement.prototype, 'scrollIntoView')
+      .mockImplementation(() => undefined)
+    const ids = openTabs(3)
+    render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    spy.mockClear() // ignore the mount-time reveal
+
+    act(() => {
+      useDocumentsStore.getState().activateDocument(ids[0]!)
+    })
+
+    expect(spy).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' })
+    // It is the ACTIVE tab's element that was revealed.
+    const revealed = spy.mock.instances.at(-1) as HTMLElement
+    expect(revealed.getAttribute('aria-selected')).toBe('true')
   })
 })

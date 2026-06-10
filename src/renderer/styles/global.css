@@ -605,14 +605,32 @@ body,
   gap: 5px;
   /* Shrink to the tabs' own width (don't fill the strip): the leftover space
      stays as plain .tab-bar background, which is a reliable window drag region.
-     flex-shrink lets the row narrow + scroll once there are too many tabs. */
+     flex-shrink lets the row narrow + scroll once there are too many tabs
+     (tabs themselves never squash - see .tab's flex-shrink: 0 + min-width). */
   flex: 0 1 auto;
   overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
 }
 
+/* VS Code-style tab scrollbar: a 3px sliver under the tabs. The thumb keeps a
+   subtle constant tint - Chromium only draws it while the strip actually
+   overflows, so a fitting tab row shows nothing. (Do NOT gate the tint behind
+   the strip's :hover: Chromium does not reliably repaint scrollbar pseudo
+   styles on ancestor hover changes, leaving the sliver invisible.) */
 .tab-bar__tabs::-webkit-scrollbar {
-  display: none;
+  height: 3px;
+}
+
+.tab-bar__tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-bar__tabs::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.tab-bar__tabs::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 .tab {
@@ -622,7 +640,11 @@ body,
   align-items: center;
   gap: 7px;
   height: 26px;
-  min-width: 0;
+  /* VS Code-style sizing: a tab is content-width clamped to [100, 180]px and
+     NEVER squashes (flex-shrink: 0) - when tabs stop fitting, the strip
+     scrolls horizontally instead of crushing every title into a sliver. */
+  flex-shrink: 0;
+  min-width: 100px;
   max-width: 180px;
   padding: 0 12px;
   font-size: 13px;

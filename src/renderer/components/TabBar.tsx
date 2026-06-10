@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent, type WheelEvent } from 'react'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
 
 interface TabBarProps {
@@ -24,6 +24,29 @@ interface TabBarProps {
 export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
   const documents = useDocumentsStore((s) => s.documents)
   const activeId = useDocumentsStore((s) => s.activeId)
+
+  const tabsRef = useRef<HTMLDivElement>(null)
+
+  // Keep the ACTIVE tab visible: with enough tabs the strip scrolls, and a tab
+  // activated any way other than a direct click (Cmd+Shift+]/[, open from
+  // search/recents, close-adjacent) may sit outside the viewport. 'nearest'
+  // scrolls the minimum distance and is a no-op when already visible.
+  useEffect(() => {
+    if (activeId === null) return
+    const el = tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [activeId, documents.length])
+
+  // VS Code-style wheel handling: a mouse wheel only produces vertical deltas,
+  // so translate the dominant-vertical wheel into horizontal strip scrolling.
+  // Trackpads pan horizontally natively (deltaX dominant) - leave those alone.
+  const onTabsWheel = (e: WheelEvent<HTMLDivElement>): void => {
+    const el = e.currentTarget
+    if (el.scrollWidth <= el.clientWidth) return // nothing to scroll
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY
+    }
+  }
 
   // Roving-tabindex keyboard navigation for the tab strip (WAI-ARIA tabs
   // pattern). Left/Right (and Home/End) move focus between tabs and activate
@@ -63,7 +86,7 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
       aria-label="Open documents"
       onKeyDown={onTablistKeyDown}
     >
-      <div className="tab-bar__tabs">
+      <div className="tab-bar__tabs" ref={tabsRef} onWheel={onTabsWheel}>
         {documents.map((doc) => {
           const isActive = doc.id === activeId
           return (
