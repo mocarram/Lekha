@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type WheelEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
 
 interface TabBarProps {
@@ -27,15 +27,41 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
 
   const tabsRef = useRef<HTMLDivElement>(null)
 
+  // Which edges hide more tabs: drives the fade overlays that hint "there is
+  // more to scroll" in each direction. Updated from scroll/resize/tab-count
+  // changes; state only changes when an edge flag actually flips, so steady
+  // scrolling does not re-render the strip per scroll event.
+  const [overflow, setOverflow] = useState({ left: false, right: false })
+  const updateOverflow = (): void => {
+    const el = tabsRef.current
+    if (!el) return
+    const left = el.scrollLeft > 1
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+    setOverflow((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+  }
+
   // Keep the ACTIVE tab visible: with enough tabs the strip scrolls, and a tab
   // activated any way other than a direct click (Cmd+Shift+]/[, open from
   // search/recents, close-adjacent) may sit outside the viewport. 'nearest'
   // scrolls the minimum distance and is a no-op when already visible.
+  // Opening/closing tabs also changes what overflows, so refresh the fades.
   useEffect(() => {
-    if (activeId === null) return
-    const el = tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
-    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    if (activeId !== null) {
+      const el = tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+      el?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    }
+    updateOverflow()
   }, [activeId, documents.length])
+
+  // The strip's width changes with the window and the sidebar drag; both can
+  // reveal/hide overflow without a scroll event.
+  useEffect(() => {
+    const el = tabsRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const ro = new ResizeObserver(updateOverflow)
+    ro.observe(el)
+    return () => { ro.disconnect() }
+  }, [])
 
   // VS Code-style wheel handling: a mouse wheel only produces vertical deltas,
   // so translate the dominant-vertical wheel into horizontal strip scrolling.
@@ -86,8 +112,19 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
       aria-label="Open documents"
       onKeyDown={onTablistKeyDown}
     >
-      <div className="tab-bar__tabs" ref={tabsRef} onWheel={onTabsWheel}>
-        {documents.map((doc) => {
+      {/* Non-scrolling wrapper: hosts the edge-fade overlays (CSS ::before/
+          ::after) so they stay pinned over the strip's edges while the inner
+          container scrolls. The fade on a side appears only while more tabs
+          are hidden in that direction. */}
+      <div
+        className={
+          'tab-bar__scroll' +
+          (overflow.left ? ' tab-bar__scroll--more-left' : '') +
+          (overflow.right ? ' tab-bar__scroll--more-right' : '')
+        }
+      >
+        <div className="tab-bar__tabs" ref={tabsRef} onWheel={onTabsWheel} onScroll={updateOverflow}>
+          {documents.map((doc) => {
           const isActive = doc.id === activeId
           return (
             <div
@@ -129,6 +166,7 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
             </div>
           )
         })}
+        </div>
       </div>
       {/* Guaranteed window-drag space: with enough tabs the strip's leftover
           background (the usual drag region) shrinks to nothing, leaving no way

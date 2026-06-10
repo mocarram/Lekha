@@ -599,15 +599,62 @@ body,
   overflow: hidden;
 }
 
+/* Non-scrolling wrapper around the scrolling tabs container: shrinks to the
+   tabs' own width (don't fill the strip - the leftover space stays as plain
+   .tab-bar background, a reliable window drag region) and hosts the edge-fade
+   overlays, which must stay pinned over the strip's edges while the inner
+   container scrolls. */
+.tab-bar__scroll {
+  position: relative;
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Edge fades: hint that more tabs are hidden in that direction. A fade is a
+   short gradient from the strip's surface color, faded in/out via opacity so
+   appearing/disappearing is soft. pointer-events: none keeps the tabs under
+   them fully interactive. */
+.tab-bar__scroll::before,
+.tab-bar__scroll::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tab-bar__scroll::before {
+  left: 0;
+  background: linear-gradient(to right, var(--color-surface), transparent);
+}
+
+.tab-bar__scroll::after {
+  right: 0;
+  background: linear-gradient(to left, var(--color-surface), transparent);
+}
+
+.tab-bar__scroll--more-left::before {
+  opacity: 1;
+}
+
+.tab-bar__scroll--more-right::after {
+  opacity: 1;
+}
+
 .tab-bar__tabs {
   display: flex;
   align-items: center;
   gap: 5px;
-  /* Shrink to the tabs' own width (don't fill the strip): the leftover space
-     stays as plain .tab-bar background, which is a reliable window drag region.
-     flex-shrink lets the row narrow + scroll once there are too many tabs
-     (tabs themselves never squash - see .tab's flex-shrink: 0 + min-width). */
-  flex: 0 1 auto;
+  /* Fills the wrapper; flex-shrink + min-width let it narrow and scroll once
+     there are too many tabs (tabs themselves never squash - see .tab's
+     flex-shrink: 0 + min-width). */
+  flex: 1 1 auto;
+  min-width: 0;
   overflow-x: auto;
 }
 

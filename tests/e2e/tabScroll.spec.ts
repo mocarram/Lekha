@@ -94,6 +94,28 @@ test('activating an off-screen tab scrolls it into view', async () => {
     .toBe(true)
 })
 
+test('edge fades hint at hidden tabs in each scroll direction', async () => {
+  const wrap = win.locator('.tab-bar__scroll')
+
+  // Far left: more tabs hide to the RIGHT only.
+  await win.evaluate(() => {
+    const strip = document.querySelector('.tab-bar__tabs')!
+    strip.scrollLeft = 0
+    strip.dispatchEvent(new Event('scroll'))
+  })
+  await expect(wrap).toHaveClass(/--more-right/)
+  await expect(wrap).not.toHaveClass(/--more-left/)
+
+  // Far right: more tabs hide to the LEFT only.
+  await win.evaluate(() => {
+    const strip = document.querySelector('.tab-bar__tabs')!
+    strip.scrollLeft = strip.scrollWidth
+    strip.dispatchEvent(new Event('scroll'))
+  })
+  await expect(wrap).toHaveClass(/--more-left/)
+  await expect(wrap).not.toHaveClass(/--more-right/)
+})
+
 test('a packed tab bar still reserves a real window-drag zone', async () => {
   const zone = await win.evaluate(() => {
     const el = document.querySelector('.tab-bar__drag-zone')!

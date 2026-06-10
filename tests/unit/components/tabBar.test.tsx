@@ -281,3 +281,42 @@ describe('TabBar - guaranteed drag zone', () => {
     )
   })
 })
+
+describe('TabBar - overflow edge fades', () => {
+  /** Stub scroll metrics, then dispatch a scroll so the component re-measures. */
+  function setScroll(el: Element, scrollLeft: number, scrollWidth: number, clientWidth: number) {
+    Object.defineProperty(el, 'scrollWidth', { value: scrollWidth, configurable: true })
+    Object.defineProperty(el, 'clientWidth', { value: clientWidth, configurable: true })
+    el.scrollLeft = scrollLeft
+    fireEvent.scroll(el)
+  }
+
+  it('shows only the right fade at the start, both mid-scroll, only the left at the end', () => {
+    openTabs(5)
+    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const strip = container.querySelector('.tab-bar__tabs')!
+    const wrap = () => container.querySelector('.tab-bar__scroll')!
+
+    setScroll(strip, 0, 800, 200) // parked at the far left
+    expect(wrap().classList.contains('tab-bar__scroll--more-right')).toBe(true)
+    expect(wrap().classList.contains('tab-bar__scroll--more-left')).toBe(false)
+
+    setScroll(strip, 300, 800, 200) // mid-scroll
+    expect(wrap().classList.contains('tab-bar__scroll--more-left')).toBe(true)
+    expect(wrap().classList.contains('tab-bar__scroll--more-right')).toBe(true)
+
+    setScroll(strip, 600, 800, 200) // far right (800 - 200)
+    expect(wrap().classList.contains('tab-bar__scroll--more-left')).toBe(true)
+    expect(wrap().classList.contains('tab-bar__scroll--more-right')).toBe(false)
+  })
+
+  it('shows no fades when all tabs fit', () => {
+    openTabs(2)
+    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const strip = container.querySelector('.tab-bar__tabs')!
+    setScroll(strip, 0, 200, 200)
+    const wrap = container.querySelector('.tab-bar__scroll')!
+    expect(wrap.classList.contains('tab-bar__scroll--more-left')).toBe(false)
+    expect(wrap.classList.contains('tab-bar__scroll--more-right')).toBe(false)
+  })
+})
