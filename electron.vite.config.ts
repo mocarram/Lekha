@@ -8,6 +8,12 @@ const alias = {
   '@main': resolve('src/main'),
 }
 
+// Packaging rule: externalizeDepsPlugin keeps everything in package.json
+// "dependencies" UNBUNDLED and ships it as node_modules inside the asar. Main
+// and preload only import `electron-updater` from npm, so that is the sole
+// runtime dependency; every renderer library is bundled into out/ by vite and
+// belongs in devDependencies (listing one in "dependencies" ships it TWICE).
+
 export default defineConfig({
   main: {
     resolve: { alias },
