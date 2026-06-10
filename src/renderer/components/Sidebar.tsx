@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
+import type { OutlineItem } from '@shared/types'
 import { FileTree } from './FileTree'
 import { Outline } from './Outline'
 import { Articles } from './Articles'
@@ -51,6 +52,9 @@ interface SidebarProps {
   onSidebarWidthChange: (px: number) => void
 }
 
+/** Stable empty outline selected while the Outline tab is inactive. */
+const EMPTY_OUTLINE: OutlineItem[] = []
+
 /**
  * Sidebar renders the left panel of the app.
  *
@@ -83,7 +87,12 @@ export function Sidebar({
   const fileTree = useWorkspaceStore((s) => s.fileTree)
 
   const activePath = useEditorStore((s) => s.path)
-  const outline = useEditorStore((s) => s.outline)
+  // Outline is replaced with a FRESH array on every debounced edit; subscribing
+  // unconditionally would re-render the whole sidebar (file tree included) per
+  // typing burst. Selecting the shared empty constant while another tab is
+  // active keeps the snapshot referentially stable, so only the Outline tab
+  // pays for outline updates.
+  const outline = useEditorStore((s) => (sidebarTab === 'outline' ? s.outline : EMPTY_OUTLINE))
 
   // Drag-and-drop onto the Files panel opens a dropped FOLDER as the workspace.
   // Files are NOT opened here (the tree only shows the open folder's contents);

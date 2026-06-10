@@ -6,6 +6,8 @@
  * tab='search', and hides entirely when sidebarVisible is false.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { Profiler } from 'react'
+import { act } from '@testing-library/react'
 import { render, cleanup, fireEvent } from '@testing-library/react'
 import { Sidebar } from '../../../src/renderer/components/Sidebar'
 import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
@@ -164,5 +166,53 @@ describe('Sidebar', () => {
     )
     fireEvent.click(getByText('Introduction'))
     expect(onJump).toHaveBeenCalledWith(0)
+  })
+})
+
+describe('Sidebar - outline subscription scoped to the outline tab', () => {
+  const noop = () => {}
+  const fileOpProps = {
+    onNewFile: noop,
+    onNewFolder: noop,
+    onRenameEntry: noop,
+    onDeleteEntry: noop,
+    onRevealEntry: noop,
+    onReplaced: noop,
+    onOpenFolderPath: noop,
+    onNotify: noop,
+    sidebarWidth: 240,
+    onSidebarWidthChange: noop,
+  }
+
+  it('does NOT re-render on outline updates while the Files tab is active', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'files' })
+    const onRender = vi.fn()
+    render(
+      <Profiler id="sidebar" onRender={onRender}>
+        <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />
+      </Profiler>,
+    )
+    const commitsAfterMount = onRender.mock.calls.length
+    // Typing pushes a FRESH outline array every debounce flush; the Files tab
+    // must not pay a sidebar re-render for it.
+    act(() => {
+      useEditorStore.getState().setOutline([{ level: 1, text: 'A', pos: 0 }])
+      useEditorStore.getState().setOutline([{ level: 1, text: 'B', pos: 0 }])
+    })
+    expect(onRender.mock.calls.length).toBe(commitsAfterMount)
+  })
+
+  it('still re-renders on outline updates while the Outline tab is active', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'outline' })
+    const onRender = vi.fn()
+    const { getByText } = render(
+      <Profiler id="sidebar" onRender={onRender}>
+        <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />
+      </Profiler>,
+    )
+    act(() => {
+      useEditorStore.getState().setOutline([{ level: 1, text: 'Fresh heading', pos: 0 }])
+    })
+    expect(getByText('Fresh heading')).not.toBeNull()
   })
 })

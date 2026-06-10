@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import type { FileNode } from '@shared/types'
 import { FileTreeMenu, type FileTreeMenuTarget } from './FileTreeMenu'
 
@@ -125,8 +125,12 @@ interface FileTreeNodeProps {
  * at the FileTree root), so it persists across tree refreshes and lets the tree
  * auto-expand ancestors to reveal the active file. Files call onSelect when
  * clicked. Right-click opens the shared context menu via onContextMenu.
+ *
+ * Memoized: big flat folders render thousands of rows, and FileTree re-renders
+ * on every menu/rename state change. With the root keeping every callback prop
+ * referentially stable, unaffected rows skip re-rendering entirely.
  */
-function FileTreeNode({
+const FileTreeNode = memo(function FileTreeNode({
   node,
   activePath,
   onSelect,
@@ -213,7 +217,7 @@ function FileTreeNode({
       )}
     </div>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Public component
@@ -275,21 +279,34 @@ export function FileTree({
   // can auto-expand ancestors to reveal the active file.
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
 
-  const toggleExpand = (path: string) => {
+  // Latest handler props in a ref so the stable callbacks below never change
+  // identity even when the parent re-renders with fresh inline arrows. This is
+  // what makes the FileTreeNode memo effective: rows only re-render when their
+  // own data (node / active / expanded / renaming) changes.
+  const handlersRef = useRef({ onSelect, onRename })
+  useEffect(() => {
+    handlersRef.current = { onSelect, onRename }
+  })
+
+  const selectStable = useCallback((path: string) => {
+    handlersRef.current.onSelect(path)
+  }, [])
+
+  const toggleExpand = useCallback((path: string) => {
     setExpandedPaths((prev) => {
       const next = new Set(prev)
       if (next.has(path)) next.delete(path)
       else next.add(path)
       return next
     })
-  }
+  }, [])
 
   // Auto-reveal: the active file's ancestor folders are always shown so the
-  // highlighted row is reachable. Derived purely during render by unioning the
-  // user-toggled set with the active path's ancestor directories (its
-  // successive parent paths) - no effect/ref/setState, so it stays lint-clean
-  // and the highlighted file is always revealed wherever it lives.
-  const effectiveExpanded = (() => {
+  // highlighted row is reachable. Derived by unioning the user-toggled set with
+  // the active path's ancestor directories. Memoized so the Set's identity is
+  // stable across unrelated re-renders (a fresh Set per render would defeat the
+  // row memo above).
+  const effectiveExpanded = useMemo(() => {
     if (!activePath) return expandedPaths
     const merged = new Set(expandedPaths)
     const parts = activePath.split('/')
@@ -298,25 +315,30 @@ export function FileTree({
       if (ancestor) merged.add(ancestor)
     }
     return merged
-  })()
+  }, [activePath, expandedPaths])
 
-  const openMenu = (e: React.MouseEvent, target: FileTreeMenuTarget) => {
+  // Right-click on a node row.
+  const handleNodeContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
     e.preventDefault()
     e.stopPropagation()
-    setMenu({ target, x: e.clientX, y: e.clientY })
+    setMenu({ target: { kind: node.isDirectory ? 'folder' : 'file', node }, x: e.clientX, y: e.clientY })
+  }, [])
+
+  // Right-click on the empty tree area / root.
+  const handleRootContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenu({ target: { kind: 'root', node: null }, x: e.clientX, y: e.clientY })
   }
 
   const closeMenu = () => setMenu(null)
 
-  // Right-click on a node row.
-  const handleNodeContextMenu = (e: React.MouseEvent, node: FileNode) => {
-    openMenu(e, { kind: node.isDirectory ? 'folder' : 'file', node })
-  }
+  const renameCommit = useCallback((oldPath: string, newName: string) => {
+    setRenamingPath(null)
+    void handlersRef.current.onRename?.(oldPath, newName)
+  }, [])
 
-  // Right-click on the empty tree area / root.
-  const handleRootContextMenu = (e: React.MouseEvent) => {
-    openMenu(e, { kind: 'root', node: null })
-  }
+  const renameCancel = useCallback(() => setRenamingPath(null), [])
 
   return (
     <div className="file-tree" onContextMenu={handleRootContextMenu}>
@@ -325,17 +347,14 @@ export function FileTree({
           key={node.path}
           node={node}
           activePath={activePath}
-          onSelect={onSelect}
+          onSelect={selectStable}
           depth={0}
           expandedPaths={effectiveExpanded}
           onToggleExpand={toggleExpand}
           renamingPath={renamingPath}
           onContextMenu={handleNodeContextMenu}
-          onRenameCommit={(oldPath, newName) => {
-            setRenamingPath(null)
-            void onRename?.(oldPath, newName)
-          }}
-          onRenameCancel={() => setRenamingPath(null)}
+          onRenameCommit={renameCommit}
+          onRenameCancel={renameCancel}
         />
       ))}
 
