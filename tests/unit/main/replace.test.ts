@@ -76,3 +76,23 @@ describe('replaceInFolderFiles', () => {
     expect((await readFile(huge, 'utf8')).startsWith('cat ')).toBe(true)
   })
 })
+
+describe('replaceInFolderFiles - dryRun', () => {
+  it('counts everything that would change without writing any file', async () => {
+    const a = join(dir, 'a.md'); const b = join(dir, 'b.md')
+    await writeFile(a, 'cat cat', 'utf8')
+    await writeFile(b, 'a cat here', 'utf8')
+
+    const res = await replaceInFolderFiles({
+      root: dir, query: 'cat', replacement: 'dog',
+      caseSensitive: false, wholeWord: false, skipPaths: [], dryRun: true,
+    })
+
+    // Accurate counts (these drive the confirm dialog)...
+    expect(res.replacements).toBe(3)
+    expect(res.filesChanged).toBe(2)
+    // ...and zero disk mutation.
+    expect(await readFile(a, 'utf8')).toBe('cat cat')
+    expect(await readFile(b, 'utf8')).toBe('a cat here')
+  })
+})

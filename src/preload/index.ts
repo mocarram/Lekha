@@ -254,6 +254,8 @@ const api: LekhaAPI = {
     caseSensitive: boolean
     wholeWord: boolean
     skipPaths: string[]
+    /** Count what would change without writing (drives the confirm dialog). */
+    dryRun?: boolean
   }): Promise<{ filesChanged: number; replacements: number; changedPaths: string[] }> {
     return ipcRenderer.invoke(IPC.replaceInFolder, args) as Promise<{
       filesChanged: number

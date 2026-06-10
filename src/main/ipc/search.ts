@@ -32,6 +32,41 @@ export const MAX_SEARCH_FILE_BYTES = 2 * 1024 * 1024
 const READ_CONCURRENCY = 8
 
 // ---------------------------------------------------------------------------
+// Search-session path cache
+//
+// A search "session" is a burst of debounced keystrokes a few hundred ms
+// apart, and every one of them used to re-walk the whole directory tree
+// (sequential readdir recursion - the dominant remaining cost on big vaults).
+// Cache the enumerated path list per root for a few seconds: long enough to
+// cover the burst, short enough that an externally created file shows up in
+// search almost immediately. Folder REPLACE never uses this cache - an
+// irreversible write always enumerates fresh.
+// ---------------------------------------------------------------------------
+
+const PATH_CACHE_TTL_MS = 4000
+const pathCache = new Map<string, { paths: string[]; expires: number }>()
+
+/** Test-only: drop cached enumerations so specs stay independent. */
+export function _clearSearchPathCache(): void {
+  pathCache.clear()
+}
+
+/** Enumerate `root` for search, reusing a recent enumeration when fresh. */
+async function enumerateForSearch(root: string): Promise<string[]> {
+  const now = Date.now()
+  const hit = pathCache.get(root)
+  if (hit && hit.expires > now) return hit.paths
+  const paths = await collectMarkdownPaths(root)
+  // Bound the cache: workspaces are switched rarely; keep the last few roots.
+  if (pathCache.size >= 4) {
+    const oldest = pathCache.keys().next().value
+    if (oldest !== undefined) pathCache.delete(oldest)
+  }
+  pathCache.set(root, { paths, expires: now + PATH_CACHE_TTL_MS })
+  return paths
+}
+
+// ---------------------------------------------------------------------------
 // Pure helper (exported for unit testing without fs)
 // ---------------------------------------------------------------------------
 
@@ -155,7 +190,7 @@ export function registerSearchHandlers(): void {
     // than surfacing a raw error to the renderer.
     let filePaths: string[]
     try {
-      filePaths = await collectMarkdownPaths(root)
+      filePaths = await enumerateForSearch(root)
     } catch {
       return []
     }

@@ -3,6 +3,12 @@ import { guardedIpc } from '@main/ipcGuard'
 import { IPC } from '@shared/ipc-channels'
 import { senderWindow } from '@main/senderWindow'
 import { allowFile, allowRoot } from '@main/pathPolicy'
+import { OPENABLE_EXTENSIONS } from '@shared/openable'
+
+// The Open/Save dialogs accept the SAME set the tree/search/quick-open show
+// (shared/openable.ts) - a .txt visible in the sidebar must not be grayed out
+// in File > Open.
+const OPENABLE_FILTERS = [{ name: 'Markdown / Text', extensions: [...OPENABLE_EXTENSIONS] }]
 
 /** The three choices the user can make when there are unsaved changes. */
 export type UnsavedChoice = 'save' | 'dontSave' | 'cancel'
@@ -54,7 +60,7 @@ export function registerDialogHandlers(): void {
     const win = senderWindow(event)
     const result = await dialog.showOpenDialog(win!, {
       properties: ['openFile'],
-      filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
+      filters: OPENABLE_FILTERS,
     })
     if (result.canceled || result.filePaths.length === 0) return null
     // A dialog choice is explicit user intent: permit the path for the
@@ -78,7 +84,7 @@ export function registerDialogHandlers(): void {
     const win = senderWindow(event)
     const result = await dialog.showSaveDialog(win!, {
       ...(suggestedName !== undefined ? { defaultPath: suggestedName } : {}),
-      filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
+      filters: OPENABLE_FILTERS,
     })
     if (result.canceled || !result.filePath) return null
     allowFile(result.filePath)

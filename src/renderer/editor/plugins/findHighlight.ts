@@ -168,10 +168,11 @@ export function findHighlightPlugin(): Plugin<FindHighlightState> {
  * triggering state update and decoration recompute.
  * Returns the number of matches found.
  *
- * `jumpToFirst` (default true) scrolls the first/nearest match into view - the
- * right behavior for Cmd+F and clicking a result. Pass false to only refresh
- * the highlights in place (used to keep an open file's highlights in sync with
- * the sidebar search query without yanking the user's scroll position).
+ * `jumpToFirst` (default true) scrolls the FIRST match into view (a query
+ * update always resets `current` to 0) - the right behavior for Cmd+F and
+ * clicking a result. Pass false to only refresh the highlights in place (used
+ * to keep an open file's highlights in sync with the sidebar search query
+ * without yanking the user's scroll position).
  */
 export function setFindQuery(
   view: EditorView,

@@ -171,11 +171,10 @@ export function registerFileHandlers(
   // drop the renderer cannot forge. statSync (not async) so the permit is in
   // place before the renderer's follow-up readFile/readDir IPC is processed.
   guardedIpc.on(IPC.permitDroppedPath, (_event, rawPath: unknown) => {
-    const path = String(rawPath ?? '')
-    if (!path) return
+    if (typeof rawPath !== 'string' || rawPath.length === 0) return
     try {
-      if (statSync(path).isDirectory()) allowRoot(path)
-      else allowFile(path)
+      if (statSync(rawPath).isDirectory()) allowRoot(rawPath)
+      else allowFile(rawPath)
     } catch {
       // Nonexistent/unreadable: nothing to permit.
     }

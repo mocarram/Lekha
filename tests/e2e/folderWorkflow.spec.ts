@@ -99,8 +99,7 @@ test('Replace All rewrites matching files on disk and reloads the open clean tab
   // Auto-accept the native confirm (button 0 = "Replace All"); Playwright
   // cannot drive native dialogs. Everything else is the real path.
   await app.evaluate(({ dialog }) => {
-    dialog.showMessageBox = async () =>
-      ({ response: 0, checkboxChecked: false }) as Electron.MessageBoxReturnValue
+    dialog.showMessageBox = () => Promise.resolve({ response: 0, checkboxChecked: false })
   })
 
   await win.locator('.folder-search__replace-toggle').click()

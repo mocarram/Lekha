@@ -40,7 +40,7 @@ describe('isTrustedSender', () => {
 })
 
 describe('guardedIpc.handle', () => {
-  it('forwards trusted events and rejects subframes/destroyed frames', async () => {
+  it('forwards trusted events and rejects subframes/destroyed frames', () => {
     const impl = vi.fn(() => 'ok')
     guardedIpc.handle('test:channel', impl)
     const wrapped = handleListeners.get('test:channel')!

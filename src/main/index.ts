@@ -13,7 +13,7 @@ import { registerThemeHandlers } from '@main/ipc/themes'
 import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
 import { listUserThemes } from '@main/userThemes'
 import { markdownPathsFromArgv } from '@main/openWith'
-import { allowFile } from '@main/pathPolicy'
+import { allowFile, isPathAllowed } from '@main/pathPolicy'
 import { join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
@@ -544,6 +544,9 @@ void app.whenReady().then(async () => {
     if (process.platform !== 'darwin') return
     const path = String(filePath)
     if (!path) return
+    // Same path policy as the filesystem handlers: only share a file the user
+    // actually has open (the share sheet hands the path to other apps).
+    if (!isPathAllowed(path)) return
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
     new ShareMenu({ filePaths: [path] }).popup({ window: win })

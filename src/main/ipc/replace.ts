@@ -13,6 +13,13 @@ export interface ReplaceInFolderArgs {
   wholeWord: boolean
   /** Absolute paths to leave untouched (e.g. files open with unsaved edits). */
   skipPaths: string[]
+  /**
+   * When true: count what WOULD change, writing nothing. The confirm dialog
+   * uses this for exact numbers - the sidebar's search results are capped
+   * (200 files / 20 matches per file) while the replace itself is not, so
+   * counting from the visible results under-reported large replaces.
+   */
+  dryRun?: boolean
 }
 
 export interface ReplaceInFolderResult {
@@ -23,13 +30,14 @@ export interface ReplaceInFolderResult {
 
 /**
  * Enumerate markdown files under `root`, replace matches in each file NOT in
- * `skipPaths`, write changed files atomically. Best-effort: an unreadable or
- * unwritable file is skipped. Exported for unit testing.
+ * `skipPaths`, write changed files atomically (or, with `dryRun`, only count
+ * what would change). Best-effort: an unreadable or unwritable file is
+ * skipped. Exported for unit testing.
  */
 export async function replaceInFolderFiles(
   args: ReplaceInFolderArgs,
 ): Promise<ReplaceInFolderResult> {
-  const { root, query, replacement, caseSensitive, wholeWord, skipPaths } = args
+  const { root, query, replacement, caseSensitive, wholeWord, skipPaths, dryRun } = args
   const empty: ReplaceInFolderResult = { filesChanged: 0, replacements: 0, changedPaths: [] }
   if (!query) return empty
 
@@ -52,10 +60,12 @@ export async function replaceInFolderFiles(
     if (content === null) return null
     const { text, count } = replaceAllInText(content, query, replacement, opts)
     if (count === 0) return null
-    try {
-      await writeFileAtomic(filePath, text)
-    } catch {
-      return null
+    if (!dryRun) {
+      try {
+        await writeFileAtomic(filePath, text)
+      } catch {
+        return null
+      }
     }
     return { filePath, count }
   })

@@ -23,7 +23,11 @@ vi.mock('electron', () => ({
   },
 }))
 
-import { registerSearchHandlers, MAX_SEARCH_FILE_BYTES } from '@main/ipc/search'
+import {
+  registerSearchHandlers,
+  MAX_SEARCH_FILE_BYTES,
+  _clearSearchPathCache,
+} from '@main/ipc/search'
 import { allowRoot, _resetPathPolicy } from '@main/pathPolicy'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult } from '@shared/types'
@@ -34,6 +38,7 @@ beforeEach(() => {
   handlers.clear()
   registerSearchHandlers()
   _resetPathPolicy()
+  _clearSearchPathCache()
   tmpDir = mkdtempSync(join(tmpdir(), 'lekha-searchh-'))
   // The handler enforces the path policy; tests act as a user who opened tmpDir.
   allowRoot(tmpDir)
@@ -76,6 +81,25 @@ describe('registerSearchHandlers - fs:searchFolder', () => {
   it('rejects a root the user never opened (path policy)', async () => {
     _resetPathPolicy() // simulate: no folder ever opened
     await expect(invoke(tmpDir, 'hello')).rejects.toThrow(/not permitted/)
+  })
+
+  it('reuses the enumerated path list within a search session (TTL cache)', async () => {
+    // First search caches the path list for this root.
+    expect(await invoke(tmpDir, 'hello')).toHaveLength(1)
+    // A file created mid-session is not visible until the cache expires...
+    writeFileSync(join(tmpDir, 'late.md'), 'hello late\n', 'utf8')
+    expect(await invoke(tmpDir, 'hello')).toHaveLength(1)
+    // ...but a fresh enumeration (expiry simulated by clearing) picks it up.
+    _clearSearchPathCache()
+    expect(await invoke(tmpDir, 'hello')).toHaveLength(2)
+  })
+
+  it('re-reads file CONTENTS on every search (only the path list is cached)', async () => {
+    expect(await invoke(tmpDir, 'hello')).toHaveLength(1)
+    // Same path set, changed content: the next search must see the new text.
+    writeFileSync(join(tmpDir, 'notes.md'), '# Notes\ngoodbye world\n', 'utf8')
+    expect(await invoke(tmpDir, 'hello')).toHaveLength(0)
+    expect(await invoke(tmpDir, 'goodbye')).toHaveLength(1)
   })
 
   it('skips files larger than the per-file size cap', async () => {

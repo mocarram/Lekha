@@ -387,3 +387,79 @@ describe('FolderSearch - stale responses are dropped', () => {
     expect(container.textContent).toContain('notes.md')
   })
 })
+
+describe('FolderSearch - Replace All confirm uses dry-run counts', () => {
+  it('previews via dryRun (uncapped counts), then replaces for real after confirm', async () => {
+    const searchFolder = vi.fn(() => Promise.resolve(SAMPLE_RESULTS))
+    // The dry run reports MORE matches than the (capped) visible results - the
+    // dialog must show the dry-run numbers, not the result-derived ones.
+    const replaceInFolder = vi
+      .fn<(args: { dryRun?: boolean }) => Promise<{ filesChanged: number; replacements: number; changedPaths: string[] }>>()
+      .mockImplementation((args) =>
+        Promise.resolve(
+          args.dryRun
+            ? { filesChanged: 250, replacements: 5000, changedPaths: [] }
+            : { filesChanged: 250, replacements: 5000, changedPaths: ['/docs/notes.md'] },
+        ),
+      )
+    const confirmReplace = vi.fn((_detail: string) => Promise.resolve(true))
+    const mock = makeMockLekha(searchFolder)
+    mock.replaceInFolder = replaceInFolder
+    mock.confirmReplace = confirmReplace
+    vi.stubGlobal('lekha', mock)
+
+    const onReplaced = vi.fn()
+    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={onReplaced} />)
+
+    // Search, open the replace row, fill the replacement, click Replace All.
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } })
+    await act(async () => { vi.advanceTimersByTime(250); await Promise.resolve() })
+    fireEvent.click(document.querySelector('.folder-search__replace-toggle')!)
+    const replaceInput = document.querySelector('.folder-search__replace-row .folder-search__input')!
+    fireEvent.change(replaceInput, { target: { value: 'bye' } })
+    await act(async () => {
+      fireEvent.click(document.querySelector('.folder-search__replace-all')!)
+      await Promise.resolve()
+    })
+
+    // Dry run first, real run second.
+    expect(replaceInFolder).toHaveBeenCalledTimes(2)
+    expect(replaceInFolder.mock.calls[0]?.[0]).toMatchObject({ dryRun: true })
+    expect(replaceInFolder.mock.calls[1]?.[0]).not.toMatchObject({ dryRun: true })
+    // The confirm shows the ACCURATE dry-run counts (5000 in 250), not the
+    // capped result-derived ones (3 in 2).
+    expect(String(confirmReplace.mock.calls[0]?.[0])).toContain('5000')
+    expect(String(confirmReplace.mock.calls[0]?.[0])).toContain('250')
+    expect(onReplaced).toHaveBeenCalledWith(['/docs/notes.md'])
+  })
+
+  it('declining the confirm performs no real replace', async () => {
+    const searchFolder = vi.fn(() => Promise.resolve(SAMPLE_RESULTS))
+    const replaceInFolder = vi.fn(
+      (_args: { dryRun?: boolean }) =>
+        Promise.resolve({ filesChanged: 2, replacements: 3, changedPaths: [] }),
+    )
+    const confirmReplace = vi.fn((_detail: string) => Promise.resolve(false))
+    const mock = makeMockLekha(searchFolder)
+    mock.replaceInFolder = replaceInFolder
+    mock.confirmReplace = confirmReplace
+    vi.stubGlobal('lekha', mock)
+
+    render(<FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } })
+    await act(async () => { vi.advanceTimersByTime(250); await Promise.resolve() })
+    fireEvent.click(document.querySelector('.folder-search__replace-toggle')!)
+    fireEvent.change(
+      document.querySelector('.folder-search__replace-row .folder-search__input')!,
+      { target: { value: 'bye' } },
+    )
+    await act(async () => {
+      fireEvent.click(document.querySelector('.folder-search__replace-all')!)
+      await Promise.resolve()
+    })
+
+    // Only the dry-run call happened; the declined confirm stopped the write.
+    expect(replaceInFolder).toHaveBeenCalledTimes(1)
+    expect(replaceInFolder.mock.calls[0]?.[0]).toMatchObject({ dryRun: true })
+  })
+})

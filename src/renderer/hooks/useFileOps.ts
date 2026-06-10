@@ -9,6 +9,7 @@ import {
   type DocumentTab,
 } from '@renderer/store/documentsStore'
 import { normalizeLineEndings, detectEol } from '@shared/eol'
+import { isOpenablePath } from '@shared/openable'
 import { deriveTitle } from '@shared/pathTitle'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 
@@ -510,7 +511,9 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // saveAs must be declared before save so save can reference it.
   const saveAs = useCallback(async (): Promise<void> => {
     const currentTitle = editorStore.getState().title
-    const suggestedName = currentTitle.endsWith('.md') ? currentTitle : `${currentTitle}.md`
+    // Keep an existing openable extension (.txt stays .txt); default new or
+    // extension-less docs to .md.
+    const suggestedName = isOpenablePath(currentTitle) ? currentTitle : `${currentTitle}.md`
     const path = await window.lekha.saveAsDialog(suggestedName)
     if (path === null) return
 

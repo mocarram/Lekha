@@ -122,10 +122,23 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
     const skipPaths = dirtyOpenPaths
     const dirtyOpen = new Set(dirtyOpenPaths)
     const skippedWithMatches = results.filter((r) => dirtyOpen.has(r.filePath)).length
-    const totalMatches = results.reduce((acc, r) => acc + r.matches.length, 0)
+    // Count via a dry run, NOT from the visible results: the sidebar list is
+    // capped (200 files / 20 matches per file) while Replace All is not, so
+    // result-derived counts under-reported what an irreversible replace was
+    // about to touch.
+    const replaceArgs = {
+      root: rootFolder,
+      query,
+      replacement: replaceText,
+      caseSensitive,
+      wholeWord,
+      skipPaths,
+    }
+    const preview = await window.lekha.replaceInFolder({ ...replaceArgs, dryRun: true })
+    if (preview.replacements === 0) return
     const detail =
-      `Replace ${totalMatches} match${totalMatches === 1 ? '' : 'es'} in ` +
-      `${results.length} file${results.length === 1 ? '' : 's'}.` +
+      `Replace ${preview.replacements} match${preview.replacements === 1 ? '' : 'es'} in ` +
+      `${preview.filesChanged} file${preview.filesChanged === 1 ? '' : 's'}.` +
       (skippedWithMatches > 0
         ? ` ${skippedWithMatches} open unsaved file${skippedWithMatches === 1 ? '' : 's'} will be skipped.`
         : '') +
@@ -134,14 +147,7 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
     const ok = await window.lekha.confirmReplace(detail)
     if (!ok) return
 
-    const res = await window.lekha.replaceInFolder({
-      root: rootFolder,
-      query,
-      replacement: replaceText,
-      caseSensitive,
-      wholeWord,
-      skipPaths,
-    })
+    const res = await window.lekha.replaceInFolder(replaceArgs)
     onReplaced(res.changedPaths)
     setReplaceStatus(
       `Replaced ${res.replacements} in ${res.filesChanged} file${res.filesChanged === 1 ? '' : 's'}` +
