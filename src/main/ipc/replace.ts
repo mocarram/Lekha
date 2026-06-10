@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 import { writeFileAtomic, mapPool } from '@main/fs-helpers'
+import { assertPathAllowed } from '@main/pathPolicy'
 import { collectMarkdownPaths, readScannableFile } from '@main/ipc/search'
 import { replaceAllInText } from '@shared/textSearch'
 
@@ -73,6 +74,9 @@ export async function replaceInFolderFiles(
 /** Register the `fs:replaceInFolder` IPC handler. */
 export function registerReplaceHandlers(): void {
   ipcMain.handle(IPC.replaceInFolder, async (_event, args: ReplaceInFolderArgs) => {
+    // The root must be a user-opened workspace (path policy); the writes stay
+    // within it by construction.
+    assertPathAllowed(String(args.root))
     return replaceInFolderFiles(args)
   })
 }

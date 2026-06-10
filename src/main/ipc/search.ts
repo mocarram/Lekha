@@ -4,6 +4,7 @@ import { stat } from 'node:fs/promises'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult, FolderSearchMatch } from '@shared/types'
 import { buildFileTree, readTextFile, mapPool } from '@main/fs-helpers'
+import { assertPathAllowed } from '@main/pathPolicy'
 import { findMatchRanges } from '@shared/textSearch'
 
 // ---------------------------------------------------------------------------
@@ -144,6 +145,9 @@ export function registerSearchHandlers(): void {
 
     // Guard: empty query returns nothing.
     if (!query || query.length < 1) return []
+
+    // The root must be a user-opened workspace (path policy).
+    assertPathAllowed(String(root))
 
     // Enumerate the vault. A missing/unreadable root makes readdir reject with a
     // raw Node error; treat that as "no files" (an empty result) the same way

@@ -1,6 +1,7 @@
 import { ipcMain, dialog } from 'electron'
 import { IPC } from '@shared/ipc-channels'
 import { senderWindow } from '@main/senderWindow'
+import { allowFile, allowRoot } from '@main/pathPolicy'
 
 /** The three choices the user can make when there are unsaved changes. */
 export type UnsavedChoice = 'save' | 'dontSave' | 'cancel'
@@ -55,6 +56,9 @@ export function registerDialogHandlers(): void {
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     })
     if (result.canceled || result.filePaths.length === 0) return null
+    // A dialog choice is explicit user intent: permit the path for the
+    // filesystem IPC handlers (see pathPolicy.ts).
+    allowFile(result.filePaths[0]!)
     return result.filePaths[0]!
   })
 
@@ -64,6 +68,8 @@ export function registerDialogHandlers(): void {
       properties: ['openDirectory'],
     })
     if (result.canceled || result.filePaths.length === 0) return null
+    // A chosen folder permits its whole subtree (tree, search, replace, move).
+    allowRoot(result.filePaths[0]!)
     return result.filePaths[0]!
   })
 
@@ -74,6 +80,7 @@ export function registerDialogHandlers(): void {
       filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     })
     if (result.canceled || !result.filePath) return null
+    allowFile(result.filePath)
     return result.filePath
   })
 }

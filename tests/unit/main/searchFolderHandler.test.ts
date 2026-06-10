@@ -24,6 +24,7 @@ vi.mock('electron', () => ({
 }))
 
 import { registerSearchHandlers, MAX_SEARCH_FILE_BYTES } from '@main/ipc/search'
+import { allowRoot, _resetPathPolicy } from '@main/pathPolicy'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult } from '@shared/types'
 
@@ -32,7 +33,10 @@ let tmpDir: string
 beforeEach(() => {
   handlers.clear()
   registerSearchHandlers()
+  _resetPathPolicy()
   tmpDir = mkdtempSync(join(tmpdir(), 'lekha-searchh-'))
+  // The handler enforces the path policy; tests act as a user who opened tmpDir.
+  allowRoot(tmpDir)
   writeFileSync(join(tmpDir, 'notes.md'), '# Notes\nhello world\n', 'utf8')
 })
 
@@ -63,6 +67,11 @@ describe('registerSearchHandlers - fs:searchFolder', () => {
 
   it('returns [] for an empty query without touching the filesystem', async () => {
     await expect(invoke(tmpDir, '')).resolves.toEqual([])
+  })
+
+  it('rejects a root the user never opened (path policy)', async () => {
+    _resetPathPolicy() // simulate: no folder ever opened
+    await expect(invoke(tmpDir, 'hello')).rejects.toThrow(/not permitted/)
   })
 
   it('skips files larger than the per-file size cap', async () => {

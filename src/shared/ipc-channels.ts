@@ -33,6 +33,12 @@ export const IPC = {
   deletePath: 'fs:deletePath',
   /** Renderer -> main: reveal `path` in the OS file manager (Finder/Explorer). */
   revealPath: 'fs:revealPath',
+  /**
+   * PRELOAD -> main (send, not exposed on the lekha API): register an
+   * OS-dropped path with the path policy. Sent only from getPathForFile after
+   * webUtils resolved a real OS-backed File, which a renderer cannot forge.
+   */
+  permitDroppedPath: 'fs:permitDroppedPath',
   getRecentFiles: 'settings:getRecentFiles',
   addRecentFile: 'settings:addRecentFile',
   getSettings: 'settings:get',

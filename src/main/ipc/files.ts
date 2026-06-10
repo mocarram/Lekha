@@ -1,6 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { statSync } from 'node:fs'
 import { IPC } from '@shared/ipc-channels'
+import { allowFile, allowRoot, assertPathAllowed } from '@main/pathPolicy'
 import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
 import type { WindowRegistry } from '@main/window'
@@ -69,71 +71,128 @@ export function registerFileHandlers(
   const backupsDir = (): string => join(getUserDataPath(), 'backups')
 
   // --- Filesystem ---
+  // Every path-taking handler asserts against the path policy (pathPolicy.ts):
+  // only paths the user put in play (dialogs, OS opens, drops, restored
+  // session state) are reachable. Defense-in-depth against a compromised
+  // renderer turning this surface into full-disk authority.
 
   safeHandle(IPC.readFile, async (path) => {
+    assertPathAllowed(String(path))
     return readTextFile(String(path))
   })
 
   safeHandle(IPC.statFile, async (path) => {
+    assertPathAllowed(String(path))
     return statFile(String(path))
   })
 
   safeHandle(IPC.verifyOpenFile, async (arg) => {
     const { path, inode } = arg as { path: string; inode: number }
-    return verifyOpenFile(String(path), Number(inode))
+    assertPathAllowed(String(path))
+    const result = await verifyOpenFile(String(path), Number(inode))
+    // A recovered same-folder rename re-points the open doc at the new path;
+    // permit it so the follow-up readFile/save is not rejected.
+    if (result.status === 'renamed') allowFile(result.newPath)
+    return result
   })
 
   safeHandle(IPC.writeFile, async (path, content) => {
+    assertPathAllowed(String(path))
     await writeFileAtomic(String(path), String(content))
   })
 
   safeHandle(IPC.listArticles, async (root) => {
+    assertPathAllowed(String(root))
     return listArticles(String(root))
   })
 
   safeHandle(IPC.readDir, async (dir) => {
+    assertPathAllowed(String(dir))
     return buildFileTree(String(dir))
   })
 
   // --- File-tree entry operations (create / rename / delete / reveal) ---
   // Name validation + path-safety live in fileOps.ts. deletePath uses
-  // shell.trashItem (recoverable), never a permanent rm.
+  // shell.trashItem (recoverable), never a permanent rm. Operations that mint
+  // NEW paths register them, so a file created/renamed/moved outside any
+  // permitted root (e.g. next to a single opened file) stays reachable.
 
   safeHandle(IPC.createFile, async (dir, name) => {
-    return createFile(String(dir), String(name))
+    assertPathAllowed(String(dir))
+    const created = await createFile(String(dir), String(name))
+    allowFile(created)
+    return created
   })
 
   safeHandle(IPC.createFolder, async (dir, name) => {
+    assertPathAllowed(String(dir))
     return createFolder(String(dir), String(name))
   })
 
   safeHandle(IPC.renamePath, async (oldPath, newName) => {
-    return renamePath(String(oldPath), String(newName))
+    assertPathAllowed(String(oldPath))
+    const renamed = await renamePath(String(oldPath), String(newName))
+    allowFile(renamed)
+    return renamed
   })
 
   safeHandle(IPC.duplicatePath, async (path) => {
-    return duplicatePath(String(path))
+    assertPathAllowed(String(path))
+    const copy = await duplicatePath(String(path))
+    allowFile(copy)
+    return copy
   })
 
   safeHandle(IPC.movePath, async (srcPath, destDir) => {
-    return movePath(String(srcPath), String(destDir))
+    assertPathAllowed(String(srcPath))
+    assertPathAllowed(String(destDir))
+    const moved = await movePath(String(srcPath), String(destDir))
+    allowFile(moved)
+    return moved
   })
 
   safeHandle(IPC.deletePath, async (path) => {
+    assertPathAllowed(String(path))
     await deletePath(String(path))
   })
 
   // revealPath is synchronous (shell.showItemInFolder); wrap its result in a
   // resolved promise so it fits the async safeHandle contract.
   safeHandle(IPC.revealPath, (path) => {
+    assertPathAllowed(String(path))
     revealPath(String(path))
     return Promise.resolve()
+  })
+
+  // --- Drag-and-drop path registration ---
+  // Sent by the PRELOAD (not exposed on the lekha API) when
+  // webUtils.getPathForFile resolves a real OS-backed File - i.e. a genuine
+  // drop the renderer cannot forge. statSync (not async) so the permit is in
+  // place before the renderer's follow-up readFile/readDir IPC is processed.
+  ipcMain.on(IPC.permitDroppedPath, (_event, rawPath: unknown) => {
+    const path = String(rawPath ?? '')
+    if (!path) return
+    try {
+      if (statSync(path).isDirectory()) allowRoot(path)
+      else allowFile(path)
+    } catch {
+      // Nonexistent/unreadable: nothing to permit.
+    }
   })
 
   // --- Settings ---
   // Routed through safeHandle for consistent clean-Error behavior on failure.
 
-  safeHandle(IPC.getSettings, async () => settings.get())
+  safeHandle(IPC.getSettings, async () => {
+    const s = await settings.get()
+    // Restored session state is main-persisted user intent: permit the last
+    // folder, restored tabs, and recents BEFORE the renderer round-trips them
+    // into readDir/readFile during startup restore.
+    if (s.lastFolder) allowRoot(s.lastFolder)
+    for (const p of s.openTabPaths) if (p) allowFile(p)
+    for (const p of s.recentFiles) allowFile(p)
+    return s
+  })
 
   safeHandle(IPC.setSettings, async (patch) => {
     const updated = await settings.set(patch as Partial<Settings>)
@@ -143,7 +202,11 @@ export function registerFileHandlers(
     return updated
   })
 
-  safeHandle(IPC.getRecentFiles, async () => settings.getRecentFiles())
+  safeHandle(IPC.getRecentFiles, async () => {
+    const recents = await settings.getRecentFiles()
+    for (const p of recents) allowFile(p)
+    return recents
+  })
 
   safeHandle(IPC.addRecentFile, async (path) => {
     await settings.addRecentFile(String(path))
@@ -174,7 +237,11 @@ export function registerFileHandlers(
   })
 
   safeHandle(IPC.backupList, async () => {
-    return listBackups(backupsDir())
+    const records = await listBackups(backupsDir())
+    // A backup's original document path is restore-flow user intent: permit it
+    // so recovery can re-read/save the real file.
+    for (const r of records) if (r.path) allowFile(r.path)
+    return records
   })
 
   // --- Window document state ---

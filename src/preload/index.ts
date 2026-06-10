@@ -49,8 +49,15 @@ const api: LekhaAPI = {
   // Resolve the absolute filesystem path of a dropped/selected File. File.path
   // was removed in modern Electron; webUtils.getPathForFile is the supported
   // replacement and must run in the preload (it is not exposed to the sandbox).
+  //
+  // A non-empty result proves the File is a real OS-backed drop (a synthetic
+  // File yields ''), i.e. genuine user intent - so register the path with the
+  // main-process path policy here. This is what authorizes the subsequent
+  // readFile/readDir for drag-and-dropped files and folders.
   getPathForFile(file: File): string {
-    return webUtils.getPathForFile(file)
+    const path = webUtils.getPathForFile(file)
+    if (path) ipcRenderer.send(IPC.permitDroppedPath, path)
+    return path
   },
   verifyOpenFile(args: { path: string; inode: number }): Promise<OpenFileStatus> {
     return ipcRenderer.invoke(IPC.verifyOpenFile, args) as Promise<OpenFileStatus>

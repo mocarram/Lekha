@@ -12,6 +12,7 @@ import { registerThemeHandlers } from '@main/ipc/themes'
 import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
 import { listUserThemes } from '@main/userThemes'
 import { markdownPathsFromArgv } from '@main/openWith'
+import { allowFile } from '@main/pathPolicy'
 import { join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
@@ -116,6 +117,9 @@ function openFileInApp(path: string): void {
 /** Enqueue (before ready) or immediately open (after ready) one opened file. */
 function handleOpenFile(path: string): void {
   if (!path) return
+  // An OS-delivered open (Open With / double-click / argv) is user intent:
+  // permit the path for the filesystem IPC handlers.
+  allowFile(path)
   if (appReady) openFileInApp(path)
   else pendingLaunchPaths.push(path)
 }
@@ -183,6 +187,9 @@ async function applyMenu(
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.command, cmd)
   }
   const openPath = (p: string): void => {
+    // Menu-originated open (Open Recent): permit the path before the renderer
+    // round-trips it into readFile.
+    allowFile(p)
     BrowserWindow.getFocusedWindow()?.webContents.send(IPC.openPath, p)
   }
   // Forward the chosen theme id to the focused renderer via the value-carrying

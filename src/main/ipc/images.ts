@@ -21,6 +21,7 @@ import { mkdir, writeFile, access } from 'node:fs/promises'
 import { dirname, join, posix } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import { extFromMime } from '@shared/image'
+import { assertPathAllowed } from '@main/pathPolicy'
 
 // Re-export so existing test imports from this module continue to work.
 export { extFromMime }
@@ -161,6 +162,10 @@ export async function saveImageToDisk(
 export function registerImageHandlers(getUserDataPath: () => string): void {
   ipcMain.handle(IPC.saveImage, async (_event, args: SaveImageArgs) => {
     try {
+      // The write target is derived from docPath (the doc's assets folder), so
+      // docPath must be a user-opened document (path policy). A null docPath
+      // targets userData, which is always safe.
+      if (args.docPath !== null) assertPathAllowed(String(args.docPath))
       return await saveImageToDisk(args, getUserDataPath())
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
