@@ -14,5 +14,7 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["tests/e2e/**/*.ts"]
+  // src/preload/api.d.ts is included for its `declare global` of window.lekha,
+  // so evaluate() callbacks that drive the preload bridge typecheck naturally.
+  "include": ["tests/e2e/**/*.ts", "src/preload/api.d.ts", "src/shared/**/*.ts"]
 }
