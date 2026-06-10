@@ -104,9 +104,10 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
   return (
     <div
       // No `no-drag` here: the strip itself is a window drag region (set in
-      // global.css). The interactive children (tabs, close x, +) opt out with
-      // -webkit-app-region:no-drag individually, so the empty strip space drags
-      // the window while clicks on tabs/buttons still work.
+      // global.css). The scroll wrapper and the + button opt out as whole
+      // stationary blocks - NEVER the individual tabs: per-tab no-drag rects
+      // shift with the strip's scrollLeft and leak outside it, punching holes
+      // in other drag regions (electron#40610).
       className="tab-bar"
       role="tablist"
       aria-label="Open documents"

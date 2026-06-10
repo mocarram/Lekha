@@ -116,6 +116,28 @@ test('edge fades hint at hidden tabs in each scroll direction', async () => {
   await expect(wrap).not.toHaveClass(/--more-right/)
 })
 
+test('no element INSIDE the scrolling strip carries its own no-drag region', async () => {
+  // Regression guard for electron#40610: no-drag rects inside a scrolled
+  // container are not clipped to its overflow, so a per-tab no-drag leaks
+  // outside the strip when scrolled and kills OTHER drag regions (this broke
+  // window-dragging from the sidebar chrome). The carve-out must live on the
+  // stationary wrapper only.
+  const regions = await win.evaluate(() => {
+    const region = (el: Element) =>
+      getComputedStyle(el).getPropertyValue('-webkit-app-region').trim()
+    return {
+      wrapper: region(document.querySelector('.tab-bar__scroll')!),
+      tabsWithOwnRegion: Array.from(
+        document.querySelectorAll('.tab-bar__tabs *'),
+      ).filter((el) => ['drag', 'no-drag'].includes(region(el))).length,
+      chrome: region(document.querySelector('.sidebar__chrome')!),
+    }
+  })
+  expect(regions.wrapper).toBe('no-drag')
+  expect(regions.tabsWithOwnRegion).toBe(0)
+  expect(regions.chrome).toBe('drag')
+})
+
 test('a packed tab bar still reserves a real window-drag zone', async () => {
   const zone = await win.evaluate(() => {
     const el = document.querySelector('.tab-bar__drag-zone')!

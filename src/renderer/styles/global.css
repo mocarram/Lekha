@@ -611,6 +611,13 @@ body,
   display: flex;
   flex: 0 1 auto;
   min-width: 0;
+  /* The no-drag carve-out for the WHOLE strip viewport lives here, on a
+     stationary element - NOT on the individual tabs. Electron computes window
+     drag regions from no-drag rects WITHOUT clipping them to scroll overflow
+     (electron#40610): per-tab no-drag rects shift with scrollLeft and leak
+     outside the strip, where they were punching holes in the sidebar chrome's
+     drag region whenever the strip was scrolled. One fixed rect cannot leak. */
+  -webkit-app-region: no-drag;
 }
 
 /* Edge fades: hint that more tabs are hidden in that direction. A fade is a
@@ -683,8 +690,9 @@ body,
 }
 
 .tab {
-  /* Clickable - opt out of the strip's drag region. */
-  -webkit-app-region: no-drag;
+  /* No app-region here: the .tab-bar__scroll wrapper carves the whole strip
+     viewport out of the drag region (see above). A per-tab no-drag would leak
+     outside the strip when scrolled (electron#40610). */
   display: flex;
   align-items: center;
   gap: 7px;
