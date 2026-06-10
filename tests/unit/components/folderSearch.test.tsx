@@ -352,3 +352,38 @@ describe('FolderSearch', () => {
     expect(searchFolder).not.toHaveBeenCalled()
   })
 })
+
+describe('FolderSearch - stale responses are dropped', () => {
+  it('a slow superseded search cannot overwrite newer results', async () => {
+    // First search resolves SLOWLY with stale data; second resolves fast.
+    let resolveFirst: (r: FolderSearchResult[]) => void = () => {}
+    const firstResponse = new Promise<FolderSearchResult[]>((resolve) => { resolveFirst = resolve })
+    const searchFolder = vi
+      .fn<(args: { root: string; query: string; caseSensitive: boolean; wholeWord: boolean }) => Promise<FolderSearchResult[]>>()
+      .mockImplementationOnce(() => firstResponse)
+      .mockImplementationOnce(() => Promise.resolve(SAMPLE_RESULTS))
+    vi.stubGlobal('lekha', makeMockLekha(searchFolder))
+
+    const { container } = render(
+      <FolderSearch rootFolder="/docs" onOpenResult={vi.fn()} onReplaced={vi.fn()} />,
+    )
+    const input = screen.getByRole('textbox')
+
+    // Issue search #1, let the debounce fire (promise stays pending).
+    fireEvent.change(input, { target: { value: 'hel' } })
+    await act(async () => { vi.advanceTimersByTime(250); await Promise.resolve() })
+
+    // Issue search #2, let it fire AND resolve.
+    fireEvent.change(input, { target: { value: 'hello' } })
+    await act(async () => { vi.advanceTimersByTime(250); await Promise.resolve() })
+    expect(container.textContent).toContain('notes.md')
+
+    // The stale first response finally arrives - it must be DROPPED.
+    await act(async () => {
+      resolveFirst([{ filePath: '/docs/stale.md', fileName: 'stale.md', matches: [{ lineNumber: 1, lineText: 'hel' }] }])
+      await Promise.resolve()
+    })
+    expect(container.textContent).not.toContain('stale.md')
+    expect(container.textContent).toContain('notes.md')
+  })
+})

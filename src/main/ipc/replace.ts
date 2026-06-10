@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc-channels'
-import { readTextFile, writeFileAtomic } from '@main/fs-helpers'
-import { collectMarkdownPaths } from '@main/ipc/search'
+import { writeFileAtomic } from '@main/fs-helpers'
+import { collectMarkdownPaths, readScannableFile, mapPool } from '@main/ipc/search'
 import { replaceAllInText } from '@shared/textSearch'
 
 export interface ReplaceInFolderArgs {
@@ -41,26 +41,30 @@ export async function replaceInFolderFiles(
   }
 
   const opts = { caseSensitive, wholeWord }
-  const changedPaths: string[] = []
-  let replacements = 0
 
-  for (const filePath of paths) {
-    if (skip.has(filePath)) continue
-    let content: string
-    try {
-      content = await readTextFile(filePath)
-    } catch {
-      continue
-    }
+  // Read/replace/write with bounded concurrency. readScannableFile applies the
+  // SAME unreadable + size-cap skip rules as search, so a replace only ever
+  // touches files whose matches the search results could have shown.
+  const outcomes = await mapPool(paths, 8, async (filePath): Promise<{ filePath: string; count: number } | null> => {
+    if (skip.has(filePath)) return null
+    const content = await readScannableFile(filePath)
+    if (content === null) return null
     const { text, count } = replaceAllInText(content, query, replacement, opts)
-    if (count === 0) continue
+    if (count === 0) return null
     try {
       await writeFileAtomic(filePath, text)
     } catch {
-      continue
+      return null
     }
-    changedPaths.push(filePath)
-    replacements += count
+    return { filePath, count }
+  })
+
+  const changedPaths: string[] = []
+  let replacements = 0
+  for (const o of outcomes) {
+    if (!o) continue
+    changedPaths.push(o.filePath)
+    replacements += o.count
   }
 
   return { filesChanged: changedPaths.length, replacements, changedPaths }

@@ -70,6 +70,10 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Monotonic search sequence: responses carry the sequence they were issued
+  // with and are dropped when a newer search has started since, so a slow
+  // stale response can never overwrite fresher results.
+  const searchSeqRef = useRef(0)
 
   // Focus the query input when the search panel opens. FolderSearch mounts fresh
   // each time the user switches to the Search tab (Sidebar renders it
@@ -81,6 +85,7 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
   // Run a search via IPC and update results state.
   const runSearch = useCallback(
     (q: string, cs: boolean, ww: boolean) => {
+      const seq = ++searchSeqRef.current
       if (!rootFolder || q.length < 1) {
         setResults([])
         setSearching(false)
@@ -90,10 +95,12 @@ export function FolderSearch({ rootFolder, onOpenResult, onReplaced }: FolderSea
       window.lekha
         .searchFolder({ root: rootFolder, query: q, caseSensitive: cs, wholeWord: ww })
         .then((res) => {
+          if (seq !== searchSeqRef.current) return // superseded - drop
           setResults(res)
           setSearching(false)
         })
         .catch(() => {
+          if (seq !== searchSeqRef.current) return
           setResults([])
           setSearching(false)
         })

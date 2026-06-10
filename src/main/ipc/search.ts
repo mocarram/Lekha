@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { basename } from 'node:path'
+import { stat } from 'node:fs/promises'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult, FolderSearchMatch } from '@shared/types'
 import { buildFileTree, readTextFile } from '@main/fs-helpers'
@@ -17,6 +18,43 @@ const MAX_RESULT_FILES = 200
 
 /** Maximum line text length returned (trimmed to avoid huge payloads). */
 const MAX_LINE_LENGTH = 300
+
+/**
+ * Per-file size cap for search AND folder replace (replace must skip exactly
+ * the files search skipped, or a replace would touch matches the user never
+ * saw). One stray huge file must not be slurped into the main-process heap on
+ * every debounced search keystroke.
+ */
+export const MAX_SEARCH_FILE_BYTES = 2 * 1024 * 1024
+
+/** How many files are read concurrently during a folder scan. */
+const READ_CONCURRENCY = 8
+
+/**
+ * Map `items` through async `fn` with at most `limit` in flight, preserving
+ * input order in the result. `shouldStop` lets the scan stop scheduling new
+ * work once enough results were collected (already-started items still
+ * finish, so everything before the stop point completes deterministically).
+ */
+export async function mapPool<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+  shouldStop?: () => boolean,
+): Promise<Array<R | undefined>> {
+  const out = new Array<R | undefined>(items.length)
+  let nextIndex = 0
+  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    for (;;) {
+      if (shouldStop?.()) return
+      const i = nextIndex++
+      if (i >= items.length) return
+      out[i] = await fn(items[i] as T)
+    }
+  })
+  await Promise.all(workers)
+  return out
+}
 
 // ---------------------------------------------------------------------------
 // Pure helper (exported for unit testing without fs)
@@ -85,6 +123,21 @@ export async function collectMarkdownPaths(dir: string): Promise<string[]> {
   return paths
 }
 
+/**
+ * Read a file's content for scanning, or null when it is unreadable OR larger
+ * than MAX_SEARCH_FILE_BYTES. Shared by search and replace so both skip the
+ * exact same set of files.
+ */
+export async function readScannableFile(filePath: string): Promise<string | null> {
+  try {
+    const s = await stat(filePath)
+    if (s.size > MAX_SEARCH_FILE_BYTES) return null
+    return await readTextFile(filePath)
+  } catch {
+    return null
+  }
+}
+
 // ---------------------------------------------------------------------------
 // IPC search args type
 // ---------------------------------------------------------------------------
@@ -128,29 +181,32 @@ export function registerSearchHandlers(): void {
     } catch {
       return []
     }
+
+    // Read + scan with bounded concurrency (sequential awaits made big vaults
+    // pay total-latency = sum of per-file latency). Output order follows the
+    // enumeration order regardless of which read finishes first. Once enough
+    // matching files were found, stop scheduling further reads.
+    let found = 0
+    const scanned = await mapPool(
+      filePaths,
+      READ_CONCURRENCY,
+      async (filePath): Promise<FolderSearchResult | null> => {
+        const content = await readScannableFile(filePath)
+        if (content === null) return null // unreadable or oversized - skip
+        const matches = searchInText(content, query, caseSensitive, wholeWord)
+        if (matches.length === 0) return null
+        found += 1
+        return { filePath, fileName: basename(filePath), matches }
+      },
+      () => found >= MAX_RESULT_FILES,
+    )
+
     const results: FolderSearchResult[] = []
-
-    for (const filePath of filePaths) {
+    for (const r of scanned) {
+      if (r === null || r === undefined) continue
+      results.push(r)
       if (results.length >= MAX_RESULT_FILES) break
-
-      let content: string
-      try {
-        content = await readTextFile(filePath)
-      } catch {
-        // Skip unreadable files silently.
-        continue
-      }
-
-      const matches = searchInText(content, query, caseSensitive, wholeWord)
-      if (matches.length > 0) {
-        results.push({
-          filePath,
-          fileName: basename(filePath),
-          matches,
-        })
-      }
     }
-
     return results
   })
 }

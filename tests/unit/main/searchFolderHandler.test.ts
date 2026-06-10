@@ -23,7 +23,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-import { registerSearchHandlers } from '@main/ipc/search'
+import { registerSearchHandlers, MAX_SEARCH_FILE_BYTES } from '@main/ipc/search'
 import { IPC } from '@shared/ipc-channels'
 import type { FolderSearchResult } from '@shared/types'
 
@@ -63,5 +63,26 @@ describe('registerSearchHandlers - fs:searchFolder', () => {
 
   it('returns [] for an empty query without touching the filesystem', async () => {
     await expect(invoke(tmpDir, '')).resolves.toEqual([])
+  })
+
+  it('skips files larger than the per-file size cap', async () => {
+    // An oversized file containing the query must be skipped (one stray huge
+    // file must not be re-read into memory on every search keystroke).
+    const big = 'hello '.repeat(Math.ceil((MAX_SEARCH_FILE_BYTES + 1024) / 6))
+    writeFileSync(join(tmpDir, 'huge.md'), big, 'utf8')
+    const results = await invoke(tmpDir, 'hello')
+    expect(results.map((r) => r.fileName)).toEqual(['notes.md'])
+  })
+
+  it('searches many files concurrently and preserves enumeration order', async () => {
+    for (let i = 0; i < 30; i++) {
+      writeFileSync(join(tmpDir, `f${String(i).padStart(2, '0')}.md`), `hello ${i}\n`, 'utf8')
+    }
+    const results = await invoke(tmpDir, 'hello')
+    const names = results.map((r) => r.fileName)
+    // Deterministic: matches come back in the same (sorted) order the tree
+    // enumerates, regardless of read concurrency.
+    expect(names).toEqual([...names].sort())
+    expect(names).toHaveLength(31)
   })
 })

@@ -7,6 +7,7 @@ import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { replaceInFolderFiles } from '../../../src/main/ipc/replace'
+import { MAX_SEARCH_FILE_BYTES } from '../../../src/main/ipc/search'
 
 let dir: string
 beforeEach(async () => { dir = await mkdtemp(join(tmpdir(), 'lekha-replace-')) })
@@ -60,5 +61,18 @@ describe('replaceInFolderFiles', () => {
       caseSensitive: false, wholeWord: false, skipPaths: [],
     })
     expect(res).toEqual({ filesChanged: 0, replacements: 0, changedPaths: [] })
+  })
+
+  it('skips files larger than the per-file size cap (consistent with search)', async () => {
+    const huge = join(dir, 'huge.md')
+    const big = 'cat '.repeat(Math.ceil((MAX_SEARCH_FILE_BYTES + 1024) / 4))
+    await writeFile(huge, big, 'utf8')
+    const res = await replaceInFolderFiles({
+      root: dir, query: 'cat', replacement: 'dog',
+      caseSensitive: false, wholeWord: false, skipPaths: [],
+    })
+    expect(res.filesChanged).toBe(0)
+    // The oversized file is untouched (search never showed its matches either).
+    expect((await readFile(huge, 'utf8')).startsWith('cat ')).toBe(true)
   })
 })
