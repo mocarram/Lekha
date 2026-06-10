@@ -47,6 +47,13 @@ export interface FileOps {
    */
   refreshTree(): Promise<void>
   /**
+   * Re-stat `path` and adopt its current mtime+size as the external-change
+   * baseline. Must be called after any write or disk-reload that bypasses
+   * persist()/loadInto() (saveAllForClose, folder replace), otherwise the next
+   * plain Save falsely reports "changed on disk".
+   */
+  refreshDiskSig(path: string): Promise<void>
+  /**
    * Guard against discarding unsaved changes.
    * Returns true when it is safe to proceed (clean, saved, or "Don't Save").
    * Returns false when the user cancelled or Save As was cancelled.
@@ -193,6 +200,22 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // across tab switches without per-tab store plumbing. A ref so it persists
   // across renders and never triggers one.
   const diskSig = useRef<Map<string, { mtimeMs: number; sizeBytes: number }>>(new Map())
+
+  /**
+   * Adopt the file's CURRENT on-disk state as the external-change baseline.
+   * persist()/loadInto() do this inline; every other code path that writes the
+   * file or reloads the buffer from disk (saveAllForClose, folder replace) must
+   * call this, or the next plain Save falsely prompts "changed on disk".
+   */
+  const refreshDiskSig = useCallback(async (path: string): Promise<void> => {
+    try {
+      const st = await window.lekha.statFile(path)
+      diskSig.current.set(path, { mtimeMs: st.mtimeMs, sizeBytes: st.sizeBytes })
+    } catch {
+      // stat failed - drop the baseline rather than keep a stale one.
+      diskSig.current.delete(path)
+    }
+  }, [])
 
   // -------------------------------------------------------------------------
   // Document-path sync
@@ -679,6 +702,10 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       if (tab.backupId !== null) { try { await window.lekha.deleteBackup(tab.backupId) } catch { /* harmless */ } }
       documentsStore.getState().updateDocument(tab.id, { isDirty: false, backupId: null, recovered: false })
       try { await window.lekha.addRecentFile(tab.path as string) } catch { /* ignore */ }
+      // The write bumped the file's mtime past the open-time baseline; adopt the
+      // just-written state so a cancelled close + later Save does not falsely
+      // prompt "changed on disk".
+      await refreshDiskSig(tab.path as string)
     }
     // If the active tab was just saved, clear the LIVE editor dirty flag too so
     // window-level dirtiness can reach false.
@@ -696,7 +723,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       await saveAs()
       if (editorStore.getState().isDirty) return // user cancelled Save As -> stop
     }
-  }, [snapshotActive, documentsStore, editorStore, selectTab, saveAs])
+  }, [snapshotActive, documentsStore, editorStore, selectTab, saveAs, refreshDiskSig])
 
   // "Don't Save" from the main-process window-close guard: drop EVERY tab's crash
   // backup and mark all clean, WITHOUT writing any file, so the window can close
@@ -966,6 +993,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     openFolder,
     openFolderPath,
     refreshTree,
+    refreshDiskSig,
     guardUnsaved,
     revertToSaved,
     duplicateCurrent,

@@ -609,6 +609,7 @@ export default function App() {
   // After a folder-wide replace, reload any CHANGED file open in a CLEAN tab so
   // the on-disk change and the in-app buffer never diverge. Dirty tabs were
   // skipped by the replace and are intentionally left alone.
+  const refreshDiskSig = fileOps.refreshDiskSig
   const handleFolderReplaced = useCallback((changedPaths: string[]) => {
     const changed = new Set(changedPaths)
     const docs = useDocumentsStore.getState()
@@ -628,9 +629,12 @@ export default function App() {
           useEditorStore.getState().setMarkdown(content)
         }
         useDocumentsStore.getState().updateDocument(docId, { markdown: content, isDirty: false })
+        // The replace bumped the file's mtime; adopt the reloaded content as the
+        // external-change baseline so the next Save does not falsely prompt.
+        void refreshDiskSig(docPath)
       })
     }
-  }, [])
+  }, [refreshDiskSig])
 
   return (
     <div className={`app${sidebarVisible ? '' : ' app--sidebar-hidden'}`}>

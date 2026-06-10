@@ -1316,3 +1316,60 @@ describe('useFileOps - error surfacing on failed ops', () => {
     expect(useWorkspaceStore.getState().rootFolder).toBeNull()
   })
 })
+
+// ---------------------------------------------------------------------------
+// External-change baseline (diskSig) refresh
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - diskSig refresh after non-persist writes', () => {
+  function setupStatable() {
+    const { handle } = makeMockEditor('# Edited')
+    // Disk mtime starts at 1 and bumps on every write (and via bumpDisk for
+    // external edits), mimicking a real filesystem so a stale baseline is
+    // detectable.
+    let mtime = 1
+    const statFile = vi.fn(() =>
+      Promise.resolve({ sizeBytes: 10, birthtimeMs: 0, mtimeMs: mtime, inode: 7 }),
+    )
+    const writeFile = vi.fn(() => { mtime += 1; return Promise.resolve() })
+    const readFile = vi.fn(() => Promise.resolve('# A'))
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    vi.stubGlobal('lekha', makeMockLekha({ statFile, writeFile, readFile }))
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+    const bumpDisk = () => { mtime += 1 }
+    return { result, writeFile, confirm, bumpDisk }
+  }
+
+  it('saveAllForClose refreshes the baseline so a later Save does not falsely prompt', async () => {
+    const { result, writeFile, confirm } = setupStatable()
+    await act(async () => { await result.current.openPath('/a.md') }) // baseline mtime=1
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.saveAllForClose() }) // write bumps disk to mtime=2
+
+    // Close was cancelled, user edits and saves again: the baseline must match
+    // what saveAllForClose wrote, so no "changed on disk" confirm appears.
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.save() })
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(writeFile).toHaveBeenCalledTimes(2)
+  })
+
+  it('refreshDiskSig adopts the current on-disk state as the new baseline', async () => {
+    const { result, writeFile, confirm, bumpDisk } = setupStatable()
+    await act(async () => { await result.current.openPath('/a.md') }) // baseline mtime=1
+    // Simulate an external write the app already reconciled (folder replace
+    // reloaded the buffer from disk), then the baseline refresh that must
+    // accompany it.
+    bumpDisk()
+    await act(async () => { await result.current.refreshDiskSig('/a.md') })
+
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.save() })
+    expect(confirm).not.toHaveBeenCalled()
+    expect(writeFile).toHaveBeenCalledTimes(1)
+  })
+})
