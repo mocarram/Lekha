@@ -82,12 +82,21 @@ export function getLowlight(): Lowlight | null {
 // the block lives.  Caching the hast Root by content means:
 //   - editing text ABOVE a code block (which shifts its position) does NOT
 //     invalidate the cache entry and does NOT re-run the highlighter.
-//   - the cache never accumulates stale position-keyed entries, so there is no
-//     unbounded memory leak when blocks are moved around the document.
+//   - the cache never accumulates stale position-keyed entries when blocks are
+//     moved around the document.
+//
+// Bounded as an LRU: typing INSIDE a code block produces a new content key per
+// keystroke, so without eviction a long editing session accumulated one hast
+// tree per keystroke for the session's lifetime. The Map's insertion order is
+// the recency order (get() re-inserts), and the oldest entry is dropped once
+// the cap is exceeded. The cap comfortably holds every block of a large doc
+// plus recent keystroke states.
 //
 // Position mapping (walkHast) is cheap and is recomputed whenever a block needs
 // (re)decorating using the current blockStart.
 // ---------------------------------------------------------------------------
+
+const HAST_CACHE_MAX = 200
 
 const hastCache = new Map<string, Root>()
 
@@ -178,10 +187,21 @@ function highlightToHast(
 ): Root {
   const key = `${language}\x00${code}`
   const cached = hastCache.get(key)
-  if (cached) return cached
+  if (cached) {
+    // Refresh recency: re-insert so this entry moves to the back of the
+    // Map's insertion order (= most recently used).
+    hastCache.delete(key)
+    hastCache.set(key, cached)
+    return cached
+  }
 
   const root = lowlight.highlight(language, code)
   hastCache.set(key, root)
+  // Evict the least recently used entry (the Map's first key) past the cap.
+  if (hastCache.size > HAST_CACHE_MAX) {
+    const oldest = hastCache.keys().next().value
+    if (oldest !== undefined) hastCache.delete(oldest)
+  }
   return root
 }
 
@@ -364,9 +384,16 @@ export function highlightPlugin(): Plugin<DecorationSet> {
         void whenLanguagesReady()
       }
       return {
-        update(updatedView) {
+        update(updatedView, prevState) {
           // A code block may appear later (paste / slash menu); load on demand.
-          if (!lowlightInstance && hasCodeBlock(updatedView.state.doc)) {
+          // Only re-walk the doc when it actually changed - selection-only
+          // updates would otherwise pay an O(nodes) scan on every cursor move
+          // for as long as the document contains no code block.
+          if (
+            !lowlightInstance &&
+            updatedView.state.doc !== prevState.doc &&
+            hasCodeBlock(updatedView.state.doc)
+          ) {
             void whenLanguagesReady()
           }
         },

@@ -20,6 +20,9 @@ import { schema } from './schema'
 import { imageEditorProps } from './imagePaste'
 import { useEditorStore } from '../store/editorStore'
 import { countSelection } from './wordCount'
+
+/** Debounce for the status-bar selection counter (see dispatchTransaction). */
+const SELECTION_COUNT_DEBOUNCE_MS = 120
 import {
   setFindQuery,
   findNext as _findNext,
@@ -368,6 +371,10 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
       // reports; thereafter null=outside-any-table, number=that table's start.
       let lastTableId: number | null | undefined = undefined
 
+      // Debounce handle for the status-bar selection counter (see
+      // dispatchTransaction); cleared on unmount below.
+      let selCountTimer: ReturnType<typeof setTimeout> | null = null
+
       const view = new ProseMirrorView(mountRef.current, {
         state: createEditorState(markdown),
         nodeViews: {
@@ -418,16 +425,29 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
           if (tr.docChanged) {
             onChangeRef.current?.(newState.doc)
           }
-          // Keep the status-bar selection counter in sync. Recompute whenever
-          // the selection or document changed. An empty (collapsed) selection
-          // resets the counts to 0 so the status bar falls back to doc counts.
+          // Keep the status-bar selection counter in sync. Collapsing resets
+          // immediately (cheap); a non-empty selection is DEBOUNCED: extending
+          // a selection streams a transaction per mousemove/shift-arrow, and
+          // extracting + tokenizing the selected text synchronously each time
+          // is O(selection) - after Cmd+A in a large doc that was a full-doc
+          // scan per event. The debounce reads the LIVE selection when it
+          // fires, so the final counts are always accurate.
           if (tr.selectionSet || tr.docChanged) {
             const { from, to } = newState.selection
+            if (selCountTimer !== null) {
+              clearTimeout(selCountTimer)
+              selCountTimer = null
+            }
             if (from === to) {
               useEditorStore.getState().setSelectionCounts({ words: 0, chars: 0 })
             } else {
-              const text = newState.doc.textBetween(from, to, '\n')
-              useEditorStore.getState().setSelectionCounts(countSelection(text))
+              selCountTimer = setTimeout(() => {
+                selCountTimer = null
+                const sel = view.state.selection
+                if (sel.from === sel.to) return // collapsed since; reset already ran
+                const text = view.state.doc.textBetween(sel.from, sel.to, '\n')
+                useEditorStore.getState().setSelectionCounts(countSelection(text))
+              }, SELECTION_COUNT_DEBOUNCE_MS)
             }
             // Notify the host of the current table state so the floating
             // TableToolbar can show/hide and reposition. We avoid the
@@ -450,6 +470,7 @@ export const EditorView = forwardRef<EditorHandle, EditorViewProps>(
       viewRef.current = view
 
       return () => {
+        if (selCountTimer !== null) clearTimeout(selCountTimer)
         view.destroy()
         viewRef.current = null
         // Clear the selection counter when the view unmounts (e.g. mode switch)
