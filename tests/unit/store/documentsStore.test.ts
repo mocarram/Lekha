@@ -294,3 +294,43 @@ describe('nextTabId (pure)', () => {
     expect(nextTabId(docs, 'zzz', -1)).toBe('b')
   })
 })
+
+describe('documentsStore - moveDocument (drag-to-reorder)', () => {
+  it('moves a tab to the target index, keeping the active id', () => {
+    const s = useDocumentsStore.getState()
+    const a = s.openDocument({ path: '/a.md', markdown: '' })
+    const b = s.openDocument({ path: '/b.md', markdown: '' })
+    const c = s.openDocument({ path: '/c.md', markdown: '' })
+    useDocumentsStore.getState().activateDocument(b)
+
+    useDocumentsStore.getState().moveDocument(a, 2)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/b.md', '/c.md', '/a.md',
+    ])
+    expect(useDocumentsStore.getState().activeId).toBe(b)
+
+    useDocumentsStore.getState().moveDocument(c, 0)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/c.md', '/b.md', '/a.md',
+    ])
+  })
+
+  it('clamps out-of-range targets and ignores unknown ids / same-slot moves', () => {
+    const s = useDocumentsStore.getState()
+    const a = s.openDocument({ path: '/a.md', markdown: '' })
+    s.openDocument({ path: '/b.md', markdown: '' })
+
+    useDocumentsStore.getState().moveDocument(a, 99)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/b.md', '/a.md',
+    ])
+    useDocumentsStore.getState().moveDocument(a, -5)
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/a.md', '/b.md',
+    ])
+    const before = useDocumentsStore.getState().documents
+    useDocumentsStore.getState().moveDocument('nope', 0)
+    useDocumentsStore.getState().moveDocument(a, 0) // already there
+    expect(useDocumentsStore.getState().documents).toBe(before)
+  })
+})

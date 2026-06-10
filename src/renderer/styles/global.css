@@ -719,6 +719,30 @@ body,
   background-color: color-mix(in srgb, var(--color-bg) 55%, transparent);
 }
 
+/* Drag-to-reorder affordances: the dragged pill dims; the insertion slot is a
+   2px accent bar drawn just outside the pill's edge (into the 5px gap) via
+   box-shadow, so it adds no layout. tab--drop-after only ever applies to the
+   LAST tab (the end slot renders after it). */
+.tab--dragging {
+  opacity: 0.45;
+}
+
+.tab--drop-before {
+  box-shadow: -4px 0 0 -1px var(--color-accent);
+}
+
+.tab--drop-after {
+  box-shadow: 4px 0 0 -1px var(--color-accent);
+}
+
+.tab--active.tab--drop-before {
+  box-shadow: var(--shadow-sm), -4px 0 0 -1px var(--color-accent);
+}
+
+.tab--active.tab--drop-after {
+  box-shadow: var(--shadow-sm), 4px 0 0 -1px var(--color-accent);
+}
+
 .tab--active,
 .tab--active:hover {
   color: var(--color-text);

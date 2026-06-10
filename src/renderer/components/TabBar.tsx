@@ -31,6 +31,19 @@ interface TabMenuState {
 }
 
 /**
+ * Custom MIME type carried by a tab drag. Distinguishes tab-reorder drags from
+ * OS file drags (the editor/sidebar drop zones check for 'Files') and blocks
+ * foreign drags from triggering reorders.
+ */
+const TAB_DRAG_TYPE = 'application/x-lekha-tab'
+
+/** Edge band (px) inside which dragging auto-scrolls the strip. */
+const DRAG_SCROLL_EDGE = 28
+
+/** Auto-scroll step per dragover event near an edge. */
+const DRAG_SCROLL_STEP = 12
+
+/**
  * TabBar renders the open-document tab strip above the editor.
  *
  * It is purely presentational: it reads the open tabs from documentsStore and
@@ -81,6 +94,60 @@ export function TabBar({
   const menuAction = (fn: () => void) => () => {
     setMenu(null)
     fn()
+  }
+
+  // ---------------------------------------------------------------------
+  // Drag-to-reorder (same-window). HTML5 DnD: the dragged tab id travels in
+  // the dataTransfer under TAB_DRAG_TYPE; while dragging, `dropIndex` marks
+  // the insertion slot (0..N) and styles an indicator on the tab at/before it.
+  // ---------------------------------------------------------------------
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+
+  /** Insertion slot for a dragover at `clientX` over the tab at `index`. */
+  const slotFor = (e: React.DragEvent, index: number): number => {
+    const box = e.currentTarget.getBoundingClientRect()
+    return e.clientX < box.left + box.width / 2 ? index : index + 1
+  }
+
+  const onTabDragStart = (e: React.DragEvent, id: string): void => {
+    e.dataTransfer.setData(TAB_DRAG_TYPE, id)
+    e.dataTransfer.effectAllowed = 'move'
+    setDraggingId(id)
+  }
+
+  const onTabDragOver = (e: React.DragEvent, index: number): void => {
+    if (!e.dataTransfer.types.includes(TAB_DRAG_TYPE)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDropIndex(slotFor(e, index))
+    // Auto-scroll the strip when dragging near its clipped edges, so a tab
+    // can be carried to targets that are currently scrolled out of view.
+    const strip = tabsRef.current
+    if (strip) {
+      const box = strip.getBoundingClientRect()
+      if (e.clientX < box.left + DRAG_SCROLL_EDGE) strip.scrollLeft -= DRAG_SCROLL_STEP
+      else if (e.clientX > box.right - DRAG_SCROLL_EDGE) strip.scrollLeft += DRAG_SCROLL_STEP
+    }
+  }
+
+  const onTabDrop = (e: React.DragEvent, index: number): void => {
+    const id = e.dataTransfer.getData(TAB_DRAG_TYPE)
+    if (!id) return
+    e.preventDefault()
+    const slot = slotFor(e, index)
+    const from = documents.findIndex((d) => d.id === id)
+    // Dropping into a slot AFTER the dragged tab's own position shifts the
+    // target left by one once the tab is removed from its origin.
+    const target = from !== -1 && slot > from ? slot - 1 : slot
+    useDocumentsStore.getState().moveDocument(id, target)
+    setDraggingId(null)
+    setDropIndex(null)
+  }
+
+  const onTabDragEnd = (): void => {
+    setDraggingId(null)
+    setDropIndex(null)
   }
 
   // Which edges hide more tabs: drives the fade overlays that hint "there is
@@ -181,8 +248,12 @@ export function TabBar({
         }
       >
         <div className="tab-bar__tabs" ref={tabsRef} onWheel={onTabsWheel} onScroll={updateOverflow}>
-          {documents.map((doc) => {
+          {documents.map((doc, i) => {
           const isActive = doc.id === activeId
+          // Insertion indicator: slot k renders BEFORE tab k; the end slot (N)
+          // renders AFTER the last tab.
+          const dropBefore = dropIndex === i
+          const dropAfter = dropIndex === documents.length && i === documents.length - 1
           return (
             <div
               key={doc.id}
@@ -191,8 +262,17 @@ export function TabBar({
               // Roving tabindex: only the active tab is in the Tab order; arrow
               // keys move focus among the rest.
               tabIndex={isActive ? 0 : -1}
-              className={`tab${isActive ? ' tab--active' : ''}${doc.isDirty ? ' tab--dirty' : ''}`}
+              className={
+                `tab${isActive ? ' tab--active' : ''}${doc.isDirty ? ' tab--dirty' : ''}` +
+                `${doc.id === draggingId ? ' tab--dragging' : ''}` +
+                `${dropBefore ? ' tab--drop-before' : ''}${dropAfter ? ' tab--drop-after' : ''}`
+              }
               title={doc.path ?? doc.title}
+              draggable
+              onDragStart={(e) => onTabDragStart(e, doc.id)}
+              onDragOver={(e) => onTabDragOver(e, i)}
+              onDrop={(e) => onTabDrop(e, i)}
+              onDragEnd={onTabDragEnd}
               onClick={() => onSelect(doc.id)}
               onAuxClick={(e) => {
                 // Middle-click closes the tab (standard tab UX).

@@ -79,6 +79,20 @@ test('a restored background tab opens with its content when activated', async ()
   await expect(win.locator('.ProseMirror h1', { hasText: 'First Doc' })).toBeVisible()
 })
 
+test('dragging a tab reorders it within the strip', async () => {
+  // Drag third.md onto the LEFT half of first.md -> it lands in front.
+  const source = win.locator('.tab', { hasText: 'third.md' })
+  const target = win.locator('.tab', { hasText: 'first.md' })
+  const targetBox = (await target.boundingBox())!
+  await source.dragTo(target, {
+    targetPosition: { x: Math.floor(targetBox.width * 0.2), y: Math.floor(targetBox.height / 2) },
+  })
+
+  await expect
+    .poll(async () => win.locator('.tab .tab__title').allTextContents())
+    .toEqual(['third.md', 'first.md', 'second.md'])
+})
+
 test('File > New Window opens BLANK instead of replaying the session', async () => {
   // Trigger New Window through the same IPC the menu/command uses.
   const [newWin] = await Promise.all([

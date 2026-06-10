@@ -7,7 +7,7 @@
  * shifts and the new-tab button is always available.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, cleanup, fireEvent, act } from '@testing-library/react'
+import { render, cleanup, fireEvent, createEvent, act } from '@testing-library/react'
 import { TabBar } from '../../../src/renderer/components/TabBar'
 import { useDocumentsStore } from '../../../src/renderer/store/documentsStore'
 
@@ -390,5 +390,85 @@ describe('TabBar - right-click context menu', () => {
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(queryByRole('menu')).toBeNull()
     expect(onClose).not.toHaveBeenCalled()
+  })
+})
+
+describe('TabBar - drag-to-reorder', () => {
+  /** Minimal DataTransfer stand-in (happy-dom has no full DnD support). */
+  function makeDataTransfer() {
+    const store = new Map<string, string>()
+    return {
+      setData: (t: string, v: string) => { store.set(t, v) },
+      getData: (t: string) => store.get(t) ?? '',
+      get types() { return Array.from(store.keys()) },
+      effectAllowed: '',
+      dropEffect: '',
+    }
+  }
+
+  it('dropping a tab on the left half of a later tab inserts it before that tab', () => {
+    const ids = openTabs(3) // [a, b, c]
+    const { getAllByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    // Give the target tab a geometry so the slot math works in happy-dom.
+    Object.defineProperty(tabs[2]!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({ left: 200, width: 100, right: 300, top: 0, bottom: 26, height: 26, x: 200, y: 0, toJSON: () => ({}) }) as DOMRect,
+    })
+
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(tabs[0]!, { dataTransfer })
+    // clientX 220 = left half of tab 2 -> slot 2; minus the vacated origin = 1.
+    // (happy-dom's DragEvent drops MouseEvent coords, so clientX is assigned
+    // onto the event instance instead of passed as init.)
+    const dropEv = createEvent.drop(tabs[2]!)
+    Object.assign(dropEv, { dataTransfer, clientX: 220 })
+    fireEvent(tabs[2]!, dropEv)
+
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/doc1.md', '/doc0.md', '/doc2.md',
+    ])
+    expect(ids[0]).toBe(useDocumentsStore.getState().documents[1]!.id)
+  })
+
+  it('dropping on the right half of the last tab moves the dragged tab to the end', () => {
+    openTabs(3)
+    const { getAllByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    Object.defineProperty(tabs[2]!, 'getBoundingClientRect', {
+      configurable: true,
+      value: () =>
+        ({ left: 200, width: 100, right: 300, top: 0, bottom: 26, height: 26, x: 200, y: 0, toJSON: () => ({}) }) as DOMRect,
+    })
+
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(tabs[0]!, { dataTransfer })
+    const dropEv = createEvent.drop(tabs[2]!)
+    Object.assign(dropEv, { dataTransfer, clientX: 280 }) // right half -> end slot
+    fireEvent(tabs[2]!, dropEv)
+
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/doc1.md', '/doc2.md', '/doc0.md',
+    ])
+  })
+
+  it('ignores foreign drags (no tab MIME type) for the indicator and the drop', () => {
+    openTabs(2)
+    const { getAllByRole, container } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    const tabs = getAllByRole('tab')
+    const dataTransfer = { setData: noop, getData: () => '', types: ['Files'], effectAllowed: '', dropEffect: '' }
+    fireEvent.dragOver(tabs[1]!, { dataTransfer })
+    expect(container.querySelector('.tab--drop-before, .tab--drop-after')).toBeNull()
+    fireEvent.drop(tabs[1]!, { dataTransfer })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual([
+      '/doc0.md', '/doc1.md',
+    ])
   })
 })

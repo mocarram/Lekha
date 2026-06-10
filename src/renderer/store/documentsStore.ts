@@ -66,6 +66,12 @@ interface DocumentsActions {
   closeDocument(id: string): void
   /** Make an existing tab active (no-op if the id is unknown). */
   activateDocument(id: string): void
+  /**
+   * Move the tab with `id` to `toIndex` in the strip order (drag-to-reorder).
+   * The index is clamped; the active tab stays active (activation is
+   * id-based, not order-based). No-op for unknown ids.
+   */
+  moveDocument(id: string, toIndex: number): void
   /** Patch the active tab in place (id cannot be changed). */
   updateActive(patch: Partial<Omit<DocumentTab, 'id'>>): void
   /**
@@ -211,6 +217,18 @@ export const useDocumentsStore = create<DocumentsStore>()((set, get) => ({
     if (get().documents.some((d) => d.id === id)) {
       set({ activeId: id })
     }
+  },
+
+  moveDocument(id, toIndex) {
+    const docs = get().documents
+    const from = docs.findIndex((d) => d.id === id)
+    if (from === -1) return
+    const to = Math.max(0, Math.min(toIndex, docs.length - 1))
+    if (to === from) return
+    const next = [...docs]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved!)
+    set({ documents: next })
   },
 
   updateActive(patch) {
