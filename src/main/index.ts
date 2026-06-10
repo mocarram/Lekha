@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, Menu, ShareMenu, session, screen, dialog } from 'electron'
+import { app, BrowserWindow, Menu, ShareMenu, session, screen, dialog } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { createSettingsStore } from '@main/settings'
 import { registerDialogHandlers } from '@main/ipc/dialog'
 import { registerFileHandlers } from '@main/ipc/files'
@@ -526,20 +527,20 @@ void app.whenReady().then(async () => {
   // mount to open any files the OS requested before it existed (Open With /
   // double-click / CLI arg). The splice clears the queue so a second window does
   // not re-open the same files.
-  ipcMain.handle(IPC.takePendingOpen, () => pendingLaunchPaths.splice(0))
+  guardedIpc.handle(IPC.takePendingOpen, () => pendingLaunchPaths.splice(0))
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens
   // windows directly via openNewWindow without this round-trip.)
-  ipcMain.on(IPC.newWindow, () => { openNewWindow() })
+  guardedIpc.on(IPC.newWindow, () => { openNewWindow() })
 
   // Print: open the native print dialog for the window that asked. Printing the
   // sender (not the focused window) keeps the right document in multi-window use.
-  ipcMain.on(IPC.print, (event) => { event.sender.print() })
+  guardedIpc.on(IPC.print, (event) => { event.sender.print() })
 
   // Share: open the macOS share sheet for the current file. macOS-only; a no-op
   // on other platforms (ShareMenu is a macOS feature).
-  ipcMain.on(IPC.share, (event, filePath: unknown) => {
+  guardedIpc.on(IPC.share, (event, filePath: unknown) => {
     if (process.platform !== 'darwin') return
     const path = String(filePath)
     if (!path) return
@@ -549,14 +550,14 @@ void app.whenReady().then(async () => {
   })
 
   // Always on Top: float the sender window above others (toggle from the View menu).
-  ipcMain.on(IPC.setAlwaysOnTop, (event, value: unknown) => {
+  guardedIpc.on(IPC.setAlwaysOnTop, (event, value: unknown) => {
     BrowserWindow.fromWebContents(event.sender)?.setAlwaysOnTop(Boolean(value))
   })
 
   // Window-level dirtiness (ANY open tab dirty): drives the close guard and the
   // macOS edited dot. Separate from setDocumentState, which only drives the
   // ACTIVE doc's title bullet (per-document indicator).
-  ipcMain.on(IPC.setWindowDirty, (event, anyDirty: unknown) => {
+  guardedIpc.on(IPC.setWindowDirty, (event, anyDirty: unknown) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
     const v = Boolean(anyDirty)

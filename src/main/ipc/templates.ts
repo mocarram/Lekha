@@ -4,7 +4,7 @@
  * Exposes window.lekha.listTemplates() which reads user-defined templates from
  * `userData/templates/*.md` and returns them to the renderer.
  */
-import { ipcMain } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import { listUserTemplates } from '@main/templates'
@@ -16,7 +16,7 @@ import { listUserTemplates } from '@main/templates'
  *   path. Passed as a thunk so tests can inject it without a live Electron app.
  */
 export function registerTemplateHandlers(getUserDataPath: () => string): void {
-  ipcMain.handle(IPC.listTemplates, async () => {
+  guardedIpc.handle(IPC.listTemplates, async () => {
     const templatesDir = join(getUserDataPath(), 'templates')
     return listUserTemplates(templatesDir)
   })

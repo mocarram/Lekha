@@ -44,11 +44,15 @@ afterEach(() => {
   rmSync(tmpDir, { recursive: true, force: true })
 })
 
-/** Invoke the captured fs:searchFolder handler with a fake IPC event. */
+/** Fake trusted IPC event: senderFrame IS the sender's main frame (ipcGuard). */
+const FRAME = {}
+const TRUSTED_EVENT = { senderFrame: FRAME, sender: { mainFrame: FRAME } }
+
+/** Invoke the captured fs:searchFolder handler with a fake trusted IPC event. */
 async function invoke(root: string, query: string, caseSensitive = false): Promise<FolderSearchResult[]> {
   const handler = handlers.get(IPC.searchFolder)
   if (!handler) throw new Error('searchFolder handler not registered')
-  return (await handler({}, { root, query, caseSensitive })) as FolderSearchResult[]
+  return (await handler(TRUSTED_EVENT, { root, query, caseSensitive })) as FolderSearchResult[]
 }
 
 describe('registerSearchHandlers - fs:searchFolder', () => {

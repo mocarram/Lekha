@@ -1,4 +1,5 @@
-import { ipcMain, dialog } from 'electron'
+import { dialog } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { IPC } from '@shared/ipc-channels'
 import { senderWindow } from '@main/senderWindow'
 import { allowFile, allowRoot } from '@main/pathPolicy'
@@ -22,7 +23,7 @@ export function registerDialogHandlers(): void {
   // --- Unsaved-changes guard dialog ---
   // Invoked by the renderer before open() / openPath() / newFile() when dirty.
   // Modal to the calling window (event.sender), not a global main window.
-  ipcMain.handle(IPC.confirmUnsaved, async (event): Promise<UnsavedChoice> => {
+  guardedIpc.handle(IPC.confirmUnsaved, async (event): Promise<UnsavedChoice> => {
     const win = senderWindow(event)
     const result = await dialog.showMessageBox(win!, {
       type: 'warning',
@@ -36,7 +37,7 @@ export function registerDialogHandlers(): void {
   })
 
   // --- Folder-replace confirmation (destructive, not undoable) ---
-  ipcMain.handle(IPC.confirmReplace, async (event, detail: string): Promise<boolean> => {
+  guardedIpc.handle(IPC.confirmReplace, async (event, detail: string): Promise<boolean> => {
     const win = senderWindow(event)
     const result = await dialog.showMessageBox(win!, {
       type: 'warning',
@@ -49,7 +50,7 @@ export function registerDialogHandlers(): void {
     return result.response === 0
   })
 
-  ipcMain.handle(IPC.openFileDialog, async (event) => {
+  guardedIpc.handle(IPC.openFileDialog, async (event) => {
     const win = senderWindow(event)
     const result = await dialog.showOpenDialog(win!, {
       properties: ['openFile'],
@@ -62,7 +63,7 @@ export function registerDialogHandlers(): void {
     return result.filePaths[0]!
   })
 
-  ipcMain.handle(IPC.openFolderDialog, async (event) => {
+  guardedIpc.handle(IPC.openFolderDialog, async (event) => {
     const win = senderWindow(event)
     const result = await dialog.showOpenDialog(win!, {
       properties: ['openDirectory'],
@@ -73,7 +74,7 @@ export function registerDialogHandlers(): void {
     return result.filePaths[0]!
   })
 
-  ipcMain.handle(IPC.saveAsDialog, async (event, suggestedName?: string) => {
+  guardedIpc.handle(IPC.saveAsDialog, async (event, suggestedName?: string) => {
     const win = senderWindow(event)
     const result = await dialog.showSaveDialog(win!, {
       ...(suggestedName !== undefined ? { defaultPath: suggestedName } : {}),

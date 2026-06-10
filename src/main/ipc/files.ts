@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { BrowserWindow } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { join } from 'node:path'
 import { statSync } from 'node:fs'
 import { IPC } from '@shared/ipc-channels'
@@ -25,7 +26,7 @@ function safeHandle<T>(
   channel: string,
   handler: (...args: unknown[]) => Promise<T>,
 ): void {
-  ipcMain.handle(channel, async (_event, ...args: unknown[]) => {
+  guardedIpc.handle(channel, async (_event, ...args: unknown[]) => {
     try {
       return await handler(...args)
     } catch (err) {
@@ -169,7 +170,7 @@ export function registerFileHandlers(
   // webUtils.getPathForFile resolves a real OS-backed File - i.e. a genuine
   // drop the renderer cannot forge. statSync (not async) so the permit is in
   // place before the renderer's follow-up readFile/readDir IPC is processed.
-  ipcMain.on(IPC.permitDroppedPath, (_event, rawPath: unknown) => {
+  guardedIpc.on(IPC.permitDroppedPath, (_event, rawPath: unknown) => {
     const path = String(rawPath ?? '')
     if (!path) return
     try {
@@ -256,7 +257,7 @@ export function registerFileHandlers(
   // a clean active tab must not clear the edited dot / guard while a background
   // tab is still dirty.
   // On macOS, setRepresentedFilename drives the proxy icon in the title bar.
-  ipcMain.on(
+  guardedIpc.on(
     IPC.setDocumentState,
     (event, state: { title: string; dirty: boolean; path: string | null }) => {
       const win = BrowserWindow.fromWebContents(event.sender)

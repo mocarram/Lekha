@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { basename } from 'node:path'
 import { stat } from 'node:fs/promises'
 import { IPC } from '@shared/ipc-channels'
@@ -140,7 +140,7 @@ interface SearchFolderArgs {
  * Short queries (<1 char) return [] immediately.
  */
 export function registerSearchHandlers(): void {
-  ipcMain.handle(IPC.searchFolder, async (_event, args: SearchFolderArgs) => {
+  guardedIpc.handle(IPC.searchFolder, async (_event, args: SearchFolderArgs) => {
     const { root, query, caseSensitive, wholeWord } = args
 
     // Guard: empty query returns nothing.

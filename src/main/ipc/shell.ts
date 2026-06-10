@@ -5,7 +5,8 @@
  * The scheme allowlist lives in main/openExternal.ts (pure, unit-tested). This
  * thin wrapper wires it to ipcMain + shell.openExternal.
  */
-import { clipboard, ipcMain, shell } from 'electron'
+import { clipboard, shell } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { IPC } from '@shared/ipc-channels'
 import { isSafeExternalUrl } from '@main/openExternal'
 
@@ -19,7 +20,7 @@ export interface ClipboardWriteArgs {
 
 /** Register the openExternal + writeClipboard IPC handlers. */
 export function registerShellHandlers(): void {
-  ipcMain.handle(IPC.openExternal, async (_event, url: string): Promise<void> => {
+  guardedIpc.handle(IPC.openExternal, async (_event, url: string): Promise<void> => {
     if (typeof url === 'string' && isSafeExternalUrl(url)) {
       await shell.openExternal(url)
     }
@@ -29,7 +30,7 @@ export function registerShellHandlers(): void {
   // clipboard.write({ html, text }) so pasting into rich editors keeps the
   // formatting, with text as the plain-text fallback. Text-only writes use
   // clipboard.writeText.
-  ipcMain.handle(IPC.writeClipboard, (_event, args: ClipboardWriteArgs): void => {
+  guardedIpc.handle(IPC.writeClipboard, (_event, args: ClipboardWriteArgs): void => {
     const { text, html } = args ?? {}
     if (typeof html === 'string') {
       clipboard.write({ html, ...(typeof text === 'string' ? { text } : {}) })
@@ -39,5 +40,5 @@ export function registerShellHandlers(): void {
   })
 
   // Plain-text clipboard read (for "Paste as Plain Text").
-  ipcMain.handle(IPC.readClipboardText, (): string => clipboard.readText())
+  guardedIpc.handle(IPC.readClipboardText, (): string => clipboard.readText())
 }

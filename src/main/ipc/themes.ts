@@ -9,7 +9,8 @@
  *
  * The themes folder is `userData/themes`. Only *.css files there are read.
  */
-import { ipcMain, shell } from 'electron'
+import { shell } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import { listUserThemes, ensureUserThemesDir } from '@main/userThemes'
@@ -33,9 +34,9 @@ export function registerThemeHandlers(
     return listUserThemes(dir)
   }
 
-  ipcMain.handle(IPC.listThemes, () => listWithSeed())
-  ipcMain.handle(IPC.reloadThemes, () => listWithSeed())
-  ipcMain.handle(IPC.openThemeFolder, async () => {
+  guardedIpc.handle(IPC.listThemes, () => listWithSeed())
+  guardedIpc.handle(IPC.reloadThemes, () => listWithSeed())
+  guardedIpc.handle(IPC.openThemeFolder, async () => {
     const dir = themesDir()
     await ensureUserThemesDir(dir, getTemplateCss())
     await shell.openPath(dir)

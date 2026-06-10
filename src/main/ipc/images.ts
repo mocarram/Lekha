@@ -16,7 +16,7 @@
  * stable and filenames are predictable.
  */
 
-import { ipcMain } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { mkdir, writeFile, access } from 'node:fs/promises'
 import { dirname, join, posix } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
@@ -160,7 +160,7 @@ export async function saveImageToDisk(
  *   tests can inject a temp directory.
  */
 export function registerImageHandlers(getUserDataPath: () => string): void {
-  ipcMain.handle(IPC.saveImage, async (_event, args: SaveImageArgs) => {
+  guardedIpc.handle(IPC.saveImage, async (_event, args: SaveImageArgs) => {
     try {
       // The write target is derived from docPath (the doc's assets folder), so
       // docPath must be a user-opened document (path policy). A null docPath

@@ -39,7 +39,8 @@
  * pandoc argument builder `buildPandocArgs` is a pure helper that IS testable.
  */
 
-import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { BrowserWindow, dialog } from 'electron'
+import { guardedIpc } from '@main/ipcGuard'
 import { writeFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -195,7 +196,7 @@ export function registerExportHandlers(): void {
   // export:html
   // -------------------------------------------------------------------------
 
-  ipcMain.handle(
+  guardedIpc.handle(
     IPC.exportHtml,
     async (event, args: { html: string; suggestedName: string }): Promise<void> => {
       const win = senderWindow(event)
@@ -225,7 +226,7 @@ export function registerExportHandlers(): void {
   //   6. Destroy the offscreen window and delete the temp file (finally).
   // -------------------------------------------------------------------------
 
-  ipcMain.handle(
+  guardedIpc.handle(
     IPC.exportPdf,
     async (event, args: { html: string; suggestedName: string }): Promise<void> => {
       // Write HTML to a temp file so loadFile() can read it (data: URLs have
@@ -305,7 +306,7 @@ export function registerExportHandlers(): void {
   // format 'docx' (see preload) so existing callers keep working unchanged.
   // -------------------------------------------------------------------------
 
-  ipcMain.handle(
+  guardedIpc.handle(
     IPC.exportPandoc,
     async (
       event,
@@ -368,7 +369,7 @@ export function registerExportHandlers(): void {
   // export:pandocAvailable
   // -------------------------------------------------------------------------
 
-  ipcMain.handle(IPC.pandocAvailable, async (): Promise<boolean> => {
+  guardedIpc.handle(IPC.pandocAvailable, async (): Promise<boolean> => {
     return checkPandocAvailable()
   })
 }
