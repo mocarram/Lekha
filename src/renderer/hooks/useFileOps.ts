@@ -31,6 +31,14 @@ export interface FileOps {
   open(): Promise<void>
   /** Read a file at a known path and load it into the editor. */
   openPath(path: string): Promise<void>
+  /**
+   * Session restore: open every previously-open tab in ONE batch. Reads all
+   * files in parallel, creates all tabs in a single synchronous pass (one
+   * paint), and loads ONLY the remembered active tab into the live editor -
+   * restoring tabs through openPath sequentially visibly flipped the editor
+   * through every document at startup. Missing/unreadable files are skipped.
+   */
+  restoreTabs(paths: string[], activePath: string | null): Promise<void>
   /** Save to the current path; falls through to saveAs when no path exists. */
   save(): Promise<void>
   /**
@@ -637,6 +645,86 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     }
   }, [openPath])
 
+  // Session restore (see the FileOps interface doc). Distinct from openPath:
+  // no per-file live-editor load, no recents updates (restoring is not the
+  // user "opening" anything - recents already reflect those opens).
+  const restoreTabs = useCallback(
+    async (paths: string[], activePath: string | null): Promise<void> => {
+      // Read everything in parallel; a missing/unreadable file restores as
+      // nothing rather than failing the session.
+      const entries = await Promise.all(
+        paths.map(async (path) => {
+          try {
+            return { path, markdown: await window.lekha.readFile(path) }
+          } catch {
+            return null
+          }
+        }),
+      )
+      const valid = entries.filter((e): e is { path: string; markdown: string } => e !== null)
+      if (valid.length === 0) return
+
+      // One synchronous pass: reuse an unmodified Untitled (the welcome/blank
+      // tab) for the FIRST file - the same rule openPath applies - then append
+      // the rest. openDocument de-dupes by path internally. React batches the
+      // whole pass into a single render, so all tabs appear at once.
+      const blank = documentsStore.getState().activeDocument()
+      const reuseBlank = blank !== null && blank.path === null && !blank.isDirty
+      let first = true
+      for (const e of valid) {
+        if (first && reuseBlank) {
+          documentsStore.getState().updateActive({
+            path: e.path,
+            title: deriveTitle(e.path),
+            markdown: e.markdown,
+            isDirty: false,
+            eol: detectEol(e.markdown),
+          })
+        } else {
+          documentsStore.getState().openDocument({ path: e.path, markdown: e.markdown })
+        }
+        first = false
+      }
+
+      // Activate the remembered tab (falling back to the last restored, which
+      // matches the old sequential behavior) and load ONLY it into the editor.
+      const docs = documentsStore.getState().documents
+      const targetPath =
+        activePath !== null && docs.some((d) => d.path === activePath)
+          ? activePath
+          : valid[valid.length - 1]!.path
+      const target = documentsStore.getState().documents.find((d) => d.path === targetPath)
+      if (target) {
+        documentsStore.getState().activateDocument(target.id)
+        const tab = documentsStore.getState().activeDocument()
+        if (tab) loadTab(tab)
+      }
+
+      // Disk bookkeeping AFTER the visible restore (parallel): the inode lets
+      // an outside rename be recovered, and the mtime+size baseline keeps the
+      // pre-save external-edit check working for every restored tab.
+      await Promise.all(
+        valid.map(async (e) => {
+          try {
+            const st = await window.lekha.statFile(e.path)
+            const tab = documentsStore.getState().documents.find((d) => d.path === e.path)
+            if (tab) documentsStore.getState().updateDocument(tab.id, { inode: st.inode })
+            diskSig.current.set(e.path, { mtimeMs: st.mtimeMs, sizeBytes: st.sizeBytes })
+          } catch {
+            diskSig.current.delete(e.path)
+          }
+        }),
+      )
+      // The active tab's inode landed after loadTab seeded the editor store;
+      // re-sync it (guarded against the user having switched docs meanwhile).
+      const cur = documentsStore.getState().activeDocument()
+      if (cur !== null && cur.path !== null && editorStore.getState().path === cur.path) {
+        editorStore.getState().setInode(cur.inode)
+      }
+    },
+    [documentsStore, editorStore, loadTab],
+  )
+
   // New document = a new blank tab. Does not discard the current doc (it stays
   // open in its tab), so no unsaved guard is needed.
   const newFile = useCallback((): Promise<void> => {
@@ -1019,6 +1107,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   return {
     open,
     openPath,
+    restoreTabs,
     save,
     saveQuiet,
     saveAs,

@@ -76,11 +76,28 @@ function makeFileOps(readFile: (p: string) => Promise<string>): FileOps {
     const md = await readFile(p)
     useDocumentsStore.getState().openDocument({ path: p, markdown: md })
   })
+  // Mirrors the real restoreTabs closely enough for the recovery tests:
+  // opens each restorable path as a tab, then activates the remembered one.
+  const restoreTabs = vi.fn(async (paths: string[], activePath: string | null) => {
+    for (const p of paths) {
+      try {
+        const md = await readFile(p)
+        useDocumentsStore.getState().openDocument({ path: p, markdown: md })
+      } catch {
+        // skipped, like the real implementation
+      }
+    }
+    if (activePath !== null) {
+      const tab = useDocumentsStore.getState().documents.find((d) => d.path === activePath)
+      if (tab) useDocumentsStore.getState().activateDocument(tab.id)
+    }
+  })
   const selectTab = vi.fn(() => Promise.resolve())
   const noop = vi.fn(() => Promise.resolve())
   return {
     open: noop,
     openPath,
+    restoreTabs,
     save: noop,
     saveAs: noop,
     newFile: noop,

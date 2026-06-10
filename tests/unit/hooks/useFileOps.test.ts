@@ -1438,3 +1438,110 @@ describe('useFileOps - saveQuiet', () => {
     expect(onConflict).not.toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// restoreTabs (session restore)
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - restoreTabs', () => {
+  function setupRestore(files: Record<string, string>) {
+    const { handle, setMarkdown } = makeMockEditor()
+    const readFile = vi.fn((p: string) =>
+      p in files ? Promise.resolve(files[p]!) : Promise.reject(new Error('ENOENT')),
+    )
+    const statFile = vi.fn(() =>
+      Promise.resolve({ sizeBytes: 5, birthtimeMs: 0, mtimeMs: 7, inode: 42 }),
+    )
+    vi.stubGlobal('lekha', makeMockLekha({ readFile, statFile }))
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+    return { result, setMarkdown, readFile, statFile }
+  }
+
+  it('creates every tab in one batch but loads ONLY the active one into the editor', async () => {
+    const { result, setMarkdown } = setupRestore({
+      '/a.md': '# A',
+      '/b.md': '# B',
+      '/c.md': '# C',
+    })
+    await act(async () => {
+      await result.current.restoreTabs(['/a.md', '/b.md', '/c.md'], '/b.md')
+    })
+
+    const docs = useDocumentsStore.getState().documents
+    expect(docs.map((d) => d.path)).toEqual(['/a.md', '/b.md', '/c.md'])
+    expect(useDocumentsStore.getState().activeDocument()?.path).toBe('/b.md')
+    // The startup glitch was N sequential editor loads: only the active tab
+    // may touch the live editor.
+    expect(setMarkdown).toHaveBeenCalledTimes(1)
+    expect(setMarkdown).toHaveBeenCalledWith('# B')
+  })
+
+  it('reuses the initial blank Untitled tab for the first file (no stray welcome tab)', async () => {
+    useDocumentsStore.getState().openDocument({ path: null, markdown: '' })
+    const { result } = setupRestore({ '/a.md': '# A', '/b.md': '# B' })
+    await act(async () => {
+      await result.current.restoreTabs(['/a.md', '/b.md'], null)
+    })
+    const docs = useDocumentsStore.getState().documents
+    expect(docs.map((d) => d.path)).toEqual(['/a.md', '/b.md'])
+    expect(docs.some((d) => d.path === null)).toBe(false)
+  })
+
+  it('skips missing files and falls back to the LAST restored tab when activePath is gone', async () => {
+    const { result, setMarkdown } = setupRestore({ '/a.md': '# A', '/c.md': '# C' })
+    await act(async () => {
+      await result.current.restoreTabs(['/a.md', '/gone.md', '/c.md'], '/gone.md')
+    })
+    const docs = useDocumentsStore.getState().documents
+    expect(docs.map((d) => d.path)).toEqual(['/a.md', '/c.md'])
+    expect(useDocumentsStore.getState().activeDocument()?.path).toBe('/c.md')
+    expect(setMarkdown).toHaveBeenCalledWith('# C')
+  })
+
+  it('restores nothing (welcome stays) when no persisted file is readable', async () => {
+    const { result, setMarkdown } = setupRestore({})
+    await act(async () => {
+      await result.current.restoreTabs(['/gone1.md', '/gone2.md'], '/gone1.md')
+    })
+    expect(useDocumentsStore.getState().documents).toHaveLength(0)
+    expect(setMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('seeds the inode and external-edit baseline for EVERY restored tab', async () => {
+    const { result, statFile } = setupRestore({ '/a.md': '# A', '/b.md': '# B' })
+    await act(async () => {
+      await result.current.restoreTabs(['/a.md', '/b.md'], '/a.md')
+    })
+    expect(statFile).toHaveBeenCalledTimes(2)
+    for (const d of useDocumentsStore.getState().documents) {
+      expect(d.inode).toBe(42)
+    }
+    // The active editor's inode is synced too (rename recovery needs it).
+    expect(useEditorStore.getState().inode).toBe(42)
+  })
+
+  it('saving a restored tab does not falsely prompt about external changes', async () => {
+    const confirm = vi.fn(() => false)
+    vi.stubGlobal('confirm', confirm)
+    const { result } = setupRestore({ '/a.md': '# A' })
+    await act(async () => {
+      await result.current.restoreTabs(['/a.md'], '/a.md')
+    })
+    useEditorStore.getState().markDirty()
+    await act(async () => { await result.current.save() })
+    // The baseline seeded at restore time matches the unchanged disk: no
+    // confirm, and the write went through.
+    expect(confirm).not.toHaveBeenCalled()
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
+
+  it('de-dupes repeated persisted paths into a single tab', async () => {
+    const { result } = setupRestore({ '/a.md': '# A' })
+    await act(async () => {
+      await result.current.restoreTabs(['/a.md', '/a.md'], '/a.md')
+    })
+    expect(useDocumentsStore.getState().documents).toHaveLength(1)
+  })
+})

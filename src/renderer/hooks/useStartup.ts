@@ -194,23 +194,16 @@ export function useStartup(
         }
       }
 
-      // Restore previously open document tabs (saved files only). Each path is
-      // opened as a tab via fileOps.openPath (de-dupes + reuses the welcome
-      // tab for the first file); missing/unreadable files are skipped. Then the
-      // last-active tab is re-selected.
+      // Restore previously open document tabs (saved files only) in ONE batch:
+      // parallel reads, all tabs created in a single pass, and only the
+      // remembered active tab loaded into the live editor. (Restoring through
+      // openPath sequentially visibly flipped the editor through every
+      // document at startup.) Missing/unreadable files are skipped.
       if (s.openTabPaths.length > 0) {
-        for (const p of s.openTabPaths) {
-          try {
-            await fileOpsRef.current.openPath(p)
-          } catch {
-            // File no longer exists or is not readable - skip silently.
-          }
-        }
-        if (s.activeTabPath !== null) {
-          const tab = useDocumentsStore
-            .getState()
-            .documents.find((d) => d.path === s.activeTabPath)
-          if (tab) await fileOpsRef.current.selectTab(tab.id)
+        try {
+          await fileOpsRef.current.restoreTabs(s.openTabPaths, s.activeTabPath)
+        } catch {
+          // Restore is best-effort: a failure leaves the welcome tab in place.
         }
       }
 
