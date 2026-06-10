@@ -6,6 +6,7 @@
  * the absolute path comes from Electron's webUtils via window.lekha
  * .getPathForFile (File.path was removed in modern Electron).
  */
+import { isOpenablePath } from '@shared/openable'
 
 /** Subset of FileSystemEntry we rely on (jsdom lacks the full type). */
 interface DropEntry {
@@ -109,9 +110,7 @@ export function dragMaybeFolder(dt: DataTransfer | null): boolean {
   return true
 }
 
-const OPENABLE_RE = /\.(md|markdown|mdx|txt|text)$/i
-
 /** Keep only files the editor can open as text tabs (markdown + plain text). */
 export function openableFiles(paths: string[]): string[] {
-  return paths.filter((p) => OPENABLE_RE.test(p))
+  return paths.filter(isOpenablePath)
 }

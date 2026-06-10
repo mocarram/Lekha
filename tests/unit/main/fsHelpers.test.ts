@@ -12,7 +12,8 @@ beforeEach(() => {
 
   // Layout:
   //   a.md
-  //   b.txt          <- should be excluded
+  //   b.txt          <- openable plain text, included
+  //   d.png          <- not openable, excluded
   //   Zed.md
   //   .hidden.md     <- dotfile, excluded
   //   sub/
@@ -20,6 +21,7 @@ beforeEach(() => {
   mkdirSync(join(tmpDir, 'sub'))
   writeFileSync(join(tmpDir, 'a.md'), '# A', 'utf8')
   writeFileSync(join(tmpDir, 'b.txt'), 'plain', 'utf8')
+  writeFileSync(join(tmpDir, 'd.png'), 'not text', 'utf8')
   writeFileSync(join(tmpDir, 'Zed.md'), '# Zed', 'utf8')
   writeFileSync(join(tmpDir, '.hidden.md'), '# Hidden', 'utf8')
   writeFileSync(join(tmpDir, 'sub', 'c.md'), '# C', 'utf8')
@@ -36,17 +38,18 @@ describe('buildFileTree', () => {
     expect(firstIsDir).toBe(true)
   })
 
-  it('lists directories first, then .md files, all case-insensitive alphabetical', async () => {
+  it('lists directories first, then openable files, all case-insensitive alphabetical', async () => {
     const tree = await buildFileTree(tmpDir)
     const names = tree.map((n) => n.name)
-    // dirs first, then md files sorted: a.md < Zed.md (case-insensitive a < z)
-    expect(names).toEqual(['sub', 'a.md', 'Zed.md'])
+    // dirs first, then files sorted case-insensitively: a.md < b.txt < Zed.md
+    expect(names).toEqual(['sub', 'a.md', 'b.txt', 'Zed.md'])
   })
 
-  it('excludes b.txt (non-md file)', async () => {
+  it('includes openable plain text (b.txt) and excludes non-text files (d.png)', async () => {
     const tree = await buildFileTree(tmpDir)
     const names = tree.map((n) => n.name)
-    expect(names).not.toContain('b.txt')
+    expect(names).toContain('b.txt')
+    expect(names).not.toContain('d.png')
   })
 
   it('excludes dotfiles (.hidden.md)', async () => {
@@ -144,13 +147,14 @@ describe('deriveArticleTitle / deriveArticlePreview (pure)', () => {
 })
 
 describe('listArticles (IO)', () => {
-  it('lists every md file recursively, newest first, with title + preview', async () => {
+  it('lists every openable file recursively, newest first, with title + preview', async () => {
     const list = await listArticles(tmpDir)
     const paths = list.map((a) => a.path)
     expect(paths).toContain(join(tmpDir, 'a.md'))
     expect(paths).toContain(join(tmpDir, 'sub', 'c.md'))
-    // b.txt is excluded; dotfiles excluded.
-    expect(paths.some((p) => p.endsWith('b.txt'))).toBe(false)
+    // Openable plain text included; non-text and dotfiles excluded.
+    expect(paths.some((p) => p.endsWith('b.txt'))).toBe(true)
+    expect(paths.some((p) => p.endsWith('d.png'))).toBe(false)
     const a = list.find((x) => x.path === join(tmpDir, 'a.md'))!
     expect(a.title).toBe('A')
     expect(typeof a.mtimeMs).toBe('number')

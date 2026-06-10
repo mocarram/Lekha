@@ -1,15 +1,15 @@
 /**
  * files.ts - flatten the workspace file tree into the flat list quick-open
- * needs. Only Markdown files are kept (quick-open searches notes, not assets).
+ * needs. Only openable text/markdown files are kept (quick-open searches
+ * notes, not assets).
  *
  * The relative directory is derived against the workspace root so the palette
  * can show "todo.md  notes/sub" without leaking the absolute path. Files at the
  * root get an empty dir.
  */
 import type { FileNode } from '@shared/types'
+import { isOpenablePath } from '@shared/openable'
 import type { PaletteFileEntry } from '@renderer/components/CommandPalette'
-
-const MARKDOWN_EXT = /\.(md|markdown|mdown|mkd)$/i
 
 /** Compute the directory of `path` relative to `root` ('' when at the root). */
 function relativeDir(root: string | null, path: string): string {
@@ -41,7 +41,7 @@ export function flattenFiles(
         if (node.children) walk(node.children)
         continue
       }
-      if (!MARKDOWN_EXT.test(node.name)) continue
+      if (!isOpenablePath(node.name)) continue
       out.push({
         path: node.path,
         name: node.name,

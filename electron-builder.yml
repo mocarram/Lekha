@@ -23,12 +23,19 @@ afterSign: build/notarize.cjs
 # it in "Open With" and routes double-clicked files to the app. On macOS this
 # generates CFBundleDocumentTypes in Info.plist (delivered via the `open-file`
 # event); on Windows it registers the extensions. role: Editor (we can edit, not
-# just view). Extensions mirror the renderer's openable set (sidebarDrop.ts).
+# just view). Extensions mirror OPENABLE_EXTENSIONS (src/shared/openable.ts) -
+# keep both lists in sync when adding an extension.
 fileAssociations:
   - ext: md
     name: Markdown Document
     role: Editor
   - ext: markdown
+    name: Markdown Document
+    role: Editor
+  - ext: mdown
+    name: Markdown Document
+    role: Editor
+  - ext: mkd
     name: Markdown Document
     role: Editor
   - ext: mdx

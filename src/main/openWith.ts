@@ -13,13 +13,11 @@
  * Kept Electron-free and dependency-injected (the `exists` predicate and `cwd`
  * are passed in) so it can be unit-tested without spawning a real app.
  */
+import { OPENABLE_EXT_RE } from '@shared/openable'
 
-/**
- * Extensions Lekha can open as a document tab. Mirrors the renderer's
- * OPENABLE_RE (sidebarDrop.ts) so drag-drop, the sidebar, and OS file-open all
- * agree on what counts as an openable file.
- */
-export const OPENABLE_EXT_RE = /\.(md|markdown|mdx|txt|text)$/i
+// Re-exported for existing consumers/tests; the definition lives in
+// src/shared/openable.ts so every feature filters by the same set.
+export { OPENABLE_EXT_RE }
 
 /** Options for {@link markdownPathsFromArgv}. */
 export interface ArgvParseOptions {

@@ -2,8 +2,10 @@ import { readFile, writeFile, rename, unlink, readdir, stat } from 'node:fs/prom
 import { basename, join, extname, dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { FileNode, FileStat, ArticleEntry, OpenFileStatus } from '@shared/types'
-
-const MD_EXTENSIONS = new Set(['.md', '.markdown'])
+// The tree/search/articles file filter is the SAME openable set used by
+// drag-drop, quick-open, and OS Open With (src/shared/openable.ts), so every
+// surface agrees on which files exist.
+import { OPENABLE_EXT_SET } from '@shared/openable'
 
 /** Returns true for dotfiles / dotdirs (names starting with "."). */
 function isDotEntry(name: string): boolean {
@@ -11,9 +13,10 @@ function isDotEntry(name: string): boolean {
 }
 
 /**
- * Recursively builds a tree of markdown files and directories.
+ * Recursively builds a tree of openable text/markdown files and directories.
  * Dotfiles, dotdirs, and node_modules are excluded.
- * Only files with .md / .markdown extensions are included.
+ * Only files in the shared openable set (md/markdown/mdown/mkd/mdx/txt/text)
+ * are included.
  * Sort order: directories first (alpha, case-insensitive), then files (alpha, case-insensitive).
  */
 export async function buildFileTree(dir: string): Promise<FileNode[]> {
@@ -31,7 +34,7 @@ export async function buildFileTree(dir: string): Promise<FileNode[]> {
     if (entry.isDirectory()) {
       const children = await buildFileTree(absPath)
       dirs.push({ name: entry.name, path: absPath, isDirectory: true, children })
-    } else if (entry.isFile() && MD_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
+    } else if (entry.isFile() && OPENABLE_EXT_SET.has(extname(entry.name).toLowerCase())) {
       files.push({ name: entry.name, path: absPath, isDirectory: false })
     }
   }
@@ -146,7 +149,7 @@ async function collectMarkdownFiles(dir: string): Promise<string[]> {
       out.push(...(await collectMarkdownFiles(abs)))
     } else if (
       entry.isFile() &&
-      MD_EXTENSIONS.has(extname(entry.name).toLowerCase())
+      OPENABLE_EXT_SET.has(extname(entry.name).toLowerCase())
     ) {
       out.push(abs)
     }
