@@ -1259,3 +1259,60 @@ describe('useFileOps - closeTab race guard', () => {
     expect(useDocumentsStore.getState().documents.map((d) => d.id)).not.toContain(a)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Error surfacing - move/revert/duplicate/open-folder
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - error surfacing on failed ops', () => {
+  function setupWithOpenDoc(overrides: Partial<LekhaAPI>) {
+    const { handle } = makeMockEditor('# Doc')
+    vi.stubGlobal('lekha', makeMockLekha(overrides))
+    const alert = vi.fn()
+    vi.stubGlobal('alert', alert)
+    useEditorStore.getState().openFile('/docs/note.md', '# Doc')
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+    return { result, alert }
+  }
+
+  it('moveCurrentTo alerts when movePath rejects and keeps the current path', async () => {
+    const { result, alert } = setupWithOpenDoc({
+      openFolderDialog: vi.fn(() => Promise.resolve('/dest' as string | null)),
+      movePath: vi.fn(() => Promise.reject(new Error('already exists'))),
+    })
+    await act(async () => { await result.current.moveCurrentTo() })
+    expect(alert).toHaveBeenCalledOnce()
+    expect(String(alert.mock.calls[0]?.[0])).toContain('already exists')
+    expect(useEditorStore.getState().path).toBe('/docs/note.md')
+  })
+
+  it('revertToSaved alerts when readFile rejects and keeps the buffer', async () => {
+    const { result, alert } = setupWithOpenDoc({
+      readFile: vi.fn(() => Promise.reject(new Error('EACCES: permission denied'))),
+    })
+    await act(async () => { await result.current.revertToSaved() })
+    expect(alert).toHaveBeenCalledOnce()
+    expect(String(alert.mock.calls[0]?.[0])).toContain('EACCES')
+  })
+
+  it('duplicateCurrent alerts when duplicatePath rejects', async () => {
+    const { result, alert } = setupWithOpenDoc({
+      duplicatePath: vi.fn(() => Promise.reject(new Error('disk full'))),
+    })
+    await act(async () => { await result.current.duplicateCurrent() })
+    expect(alert).toHaveBeenCalledOnce()
+    expect(String(alert.mock.calls[0]?.[0])).toContain('disk full')
+  })
+
+  it('openFolderPath alerts when readDir rejects and leaves the workspace root unset', async () => {
+    const { result, alert } = setupWithOpenDoc({
+      readDir: vi.fn(() => Promise.reject(new Error('ENOENT: no such directory'))),
+    })
+    await act(async () => { await result.current.openFolderPath('/gone') })
+    expect(alert).toHaveBeenCalledOnce()
+    expect(String(alert.mock.calls[0]?.[0])).toContain('ENOENT')
+    expect(useWorkspaceStore.getState().rootFolder).toBeNull()
+  })
+})

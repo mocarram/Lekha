@@ -12,6 +12,15 @@ import { normalizeLineEndings, detectEol } from '@shared/eol'
 import { deriveTitle } from '@shared/pathTitle'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 
+/**
+ * Surface a failed file operation as a readable alert. Every user-initiated
+ * file op funnels failures through here so none of them silently no-ops (a
+ * bare rejection would land in the console-only global handler).
+ */
+function alertOpError(what: string, err: unknown): void {
+  window.alert(`${what}:\n\n${err instanceof Error ? err.message : String(err)}`)
+}
+
 // ---------------------------------------------------------------------------
 // Public interface
 // ---------------------------------------------------------------------------
@@ -704,9 +713,13 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // workspace root. Shared by openFolder (dialog) and sidebar drag-and-drop.
   // lastFolder is persisted by the useStartup subscriber watching rootFolder.
   const openFolderPath = useCallback(async (dir: string): Promise<void> => {
-    const tree = await window.lekha.readDir(dir)
-    workspaceStore.getState().setRootFolder(dir)
-    workspaceStore.getState().setFileTree(tree)
+    try {
+      const tree = await window.lekha.readDir(dir)
+      workspaceStore.getState().setRootFolder(dir)
+      workspaceStore.getState().setFileTree(tree)
+    } catch (err) {
+      alertOpError(`Could not open the folder "${dir}"`, err)
+    }
   }, [workspaceStore])
 
   // openFolder does NOT replace the current document, so it does not need
@@ -739,17 +752,26 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     ) {
       return
     }
-    const md = await window.lekha.readFile(path)
-    await loadInto(path, md)
+    try {
+      const md = await window.lekha.readFile(path)
+      await loadInto(path, md)
+    } catch (err) {
+      // Read failed (file gone, permissions): keep the in-memory buffer intact.
+      alertOpError('Could not revert to the saved version', err)
+    }
   }, [editorStore, loadInto])
 
   // Duplicate the current file on disk and open the copy.
   const duplicateCurrent = useCallback(async (): Promise<void> => {
     const { path } = editorStore.getState()
     if (path === null) return
-    const newPath = await window.lekha.duplicatePath(path)
-    await refreshTree()
-    await openPath(newPath)
+    try {
+      const newPath = await window.lekha.duplicatePath(path)
+      await refreshTree()
+      await openPath(newPath)
+    } catch (err) {
+      alertOpError('Could not duplicate the file', err)
+    }
   }, [editorStore, refreshTree, openPath])
 
   // Move the current file to trash (after confirm), then reset to a blank doc.
@@ -782,7 +804,14 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (path === null) return
     const destDir = await window.lekha.openFolderDialog()
     if (destDir === null) return
-    const newPath = await window.lekha.movePath(path, destDir)
+    let newPath: string
+    try {
+      newPath = await window.lekha.movePath(path, destDir)
+    } catch (err) {
+      // movePath rejects on a name collision in the destination, among others.
+      alertOpError('Could not move the file', err)
+      return
+    }
     await refreshTree()
     // Update the path IN PLACE rather than re-opening: the document is the same
     // (only its location changed), so re-reading from disk would duplicate the
