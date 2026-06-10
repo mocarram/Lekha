@@ -130,9 +130,10 @@ let listBackups: ReturnType<typeof vi.fn<() => Promise<BackupRecord[]>>>
 let readFile: ReturnType<typeof vi.fn<(path: string) => Promise<string>>>
 let deleteBackup: ReturnType<typeof vi.fn<(id: string) => Promise<void>>>
 
-function stubLekha(settings: Settings): void {
+function stubLekha(settings: Settings, ownsSession = true): void {
   vi.stubGlobal('lekha', {
     getSettings: vi.fn(() => Promise.resolve(settings)),
+    shouldRestoreSession: vi.fn(() => Promise.resolve(ownsSession)),
     setSettings: vi.fn(() => Promise.resolve(settings)),
     listThemes: vi.fn(() => Promise.resolve([])),
     setDocumentState: vi.fn(),
@@ -306,5 +307,48 @@ describe('useStartup - crash recovery', () => {
     })
     const paths = useDocumentsStore.getState().documents.map((d) => d.path)
     expect(paths).not.toContain('/crlf.md')
+  })
+})
+
+describe('useStartup - session ownership (File > New Window)', () => {
+  it('a window that does NOT own the session restores no tabs and recovers no backups', async () => {
+    // A persisted session + a pending crash backup exist...
+    listBackups.mockResolvedValue([backup({ content: '# recovered' })])
+    readFile.mockResolvedValue('# on disk')
+    stubLekha(
+      makeSettings({ openTabPaths: ['/a.md', '/b.md'], activeTabPath: '/a.md' }),
+      false, // ...but this is a second window: main denied the claim.
+    )
+
+    const fileOps = makeFileOps((p) => readFile(p))
+    const { ref, setMarkdown } = makeEditorRef()
+    renderHook(() => useStartup(fileOps, ref))
+
+    // Let the startup promise chain settle, then assert NOTHING was replayed.
+    await waitFor(() => {
+      expect(
+        (window.lekha.shouldRestoreSession as ReturnType<typeof vi.fn>).mock.calls.length,
+      ).toBe(1)
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(fileOps.restoreTabs).not.toHaveBeenCalled()
+    expect(listBackups).not.toHaveBeenCalled()
+    expect(useDocumentsStore.getState().documents).toHaveLength(0)
+    expect(setMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('the owning window still restores tabs and runs recovery', async () => {
+    listBackups.mockResolvedValue([])
+    readFile.mockResolvedValue('# A')
+    stubLekha(makeSettings({ openTabPaths: ['/a.md'], activeTabPath: '/a.md' }), true)
+
+    const fileOps = makeFileOps((p) => readFile(p))
+    const { ref } = makeEditorRef()
+    renderHook(() => useStartup(fileOps, ref))
+
+    await waitFor(() => {
+      expect(fileOps.restoreTabs).toHaveBeenCalledWith(['/a.md'], '/a.md')
+    })
+    expect(listBackups).toHaveBeenCalled()
   })
 })

@@ -194,12 +194,24 @@ export function useStartup(
         }
       }
 
+      // Session ownership: exactly ONE window per app run replays the session
+      // (previous tabs + crash recovery below). Without this claim every File >
+      // New Window re-ran the whole restore and duplicated the session instead
+      // of opening blank. An unreachable bridge defaults to restoring (single-
+      // window startup must never lose the session).
+      let ownsSession = true
+      try {
+        ownsSession = await window.lekha.shouldRestoreSession()
+      } catch {
+        ownsSession = true
+      }
+
       // Restore previously open document tabs (saved files only) in ONE batch:
       // parallel reads, all tabs created in a single pass, and only the
       // remembered active tab loaded into the live editor. (Restoring through
       // openPath sequentially visibly flipped the editor through every
       // document at startup.) Missing/unreadable files are skipped.
-      if (s.openTabPaths.length > 0) {
+      if (ownsSession && s.openTabPaths.length > 0) {
         try {
           await fileOpsRef.current.restoreTabs(s.openTabPaths, s.activeTabPath)
         } catch {
@@ -214,9 +226,10 @@ export function useStartup(
       // against already-restored tabs. A clean exit leaves no backups (saved or
       // discarded docs delete theirs), so this is usually a no-op. Each backup
       // is handled in its own try/catch: a single bad backup never breaks
-      // startup.
+      // startup. Gated on session ownership: a New Window must not recover the
+      // same backups into a second window.
       try {
-        const backups = await window.lekha.listBackups()
+        const backups = ownsSession ? await window.lekha.listBackups() : []
         for (const backup of backups) {
           try {
             // Stale check: if the backup has a path and the on-disk file's

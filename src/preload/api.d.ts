@@ -123,6 +123,13 @@ export interface LekhaAPI {
   takePendingOpen(): Promise<string[]>
 
   /**
+   * True exactly once per app run: the FIRST window to ask owns the session
+   * restore (previous tabs + crash recovery). Later windows (File > New
+   * Window) receive false and start blank instead of replaying the session.
+   */
+  shouldRestoreSession(): Promise<boolean>
+
+  /**
    * Subscribe to set-theme messages from the main process (Theme menu).
    * The callback receives the chosen theme id string.
    * Returns an unsubscribe function that removes the listener.

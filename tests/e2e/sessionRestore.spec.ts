@@ -77,3 +77,21 @@ test('a restored background tab opens with its content when activated', async ()
   await win.locator('.tab', { hasText: 'first.md' }).click()
   await expect(win.locator('.ProseMirror h1', { hasText: 'First Doc' })).toBeVisible()
 })
+
+test('File > New Window opens BLANK instead of replaying the session', async () => {
+  // Trigger New Window through the same IPC the menu/command uses.
+  const [newWin] = await Promise.all([
+    app.waitForEvent('window'),
+    win.evaluate(() => { window.lekha.newWindow() }),
+  ])
+  await newWin.waitForSelector('.ProseMirror', { state: 'visible', timeout: 20_000 })
+
+  // One blank Untitled tab - NOT the restored session files.
+  await expect(newWin.locator('.tab')).toHaveCount(1)
+  await expect(newWin.locator('.tab .tab__title')).toHaveText('Untitled')
+  await expect(newWin.locator('.tab', { hasText: 'second.md' })).toHaveCount(0)
+
+  // The original window's session is untouched.
+  await expect(win.locator('.tab')).toHaveCount(3)
+  await newWin.close()
+})

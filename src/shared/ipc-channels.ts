@@ -39,6 +39,12 @@ export const IPC = {
    * webUtils resolved a real OS-backed File, which a renderer cannot forge.
    */
   permitDroppedPath: 'fs:permitDroppedPath',
+  /**
+   * Renderer -> main: ask whether THIS window owns the session restore.
+   * Answers true exactly once per app run (the first window); later windows
+   * (File > New Window) start blank instead of replaying the session.
+   */
+  shouldRestoreSession: 'session:shouldRestore',
   getRecentFiles: 'settings:getRecentFiles',
   addRecentFile: 'settings:addRecentFile',
   getSettings: 'settings:get',

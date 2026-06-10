@@ -174,6 +174,13 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.takePendingOpen) as Promise<string[]>
   },
 
+  // True exactly once per app run (for the FIRST window): this window owns the
+  // session restore (previous tabs + crash recovery). Later windows (File >
+  // New Window) get false and start blank.
+  shouldRestoreSession(): Promise<boolean> {
+    return ipcRenderer.invoke(IPC.shouldRestoreSession) as Promise<boolean>
+  },
+
   // Subscribes to set-theme messages from main (Theme menu).
   // Returns an unsubscribe function for cleanup on unmount.
   onSetTheme(cb: (id: string) => void): () => void {

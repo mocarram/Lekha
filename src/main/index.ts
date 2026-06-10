@@ -14,6 +14,7 @@ import { DEFAULT_TEMPLATE_CSS } from '@main/themeTemplate'
 import { listUserThemes } from '@main/userThemes'
 import { markdownPathsFromArgv } from '@main/openWith'
 import { allowFile, isPathAllowed } from '@main/pathPolicy'
+import { claimSessionRestore } from '@main/sessionRestore'
 import { join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
@@ -528,6 +529,11 @@ void app.whenReady().then(async () => {
   // double-click / CLI arg). The splice clears the queue so a second window does
   // not re-open the same files.
   guardedIpc.handle(IPC.takePendingOpen, () => pendingLaunchPaths.splice(0))
+
+  // Session-restore claim: exactly ONE window per app run (the first renderer
+  // to ask) replays the persisted session + crash recovery; every later window
+  // (File > New Window) starts blank instead of duplicating the session.
+  guardedIpc.handle(IPC.shouldRestoreSession, () => claimSessionRestore())
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens
