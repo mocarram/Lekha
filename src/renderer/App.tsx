@@ -104,12 +104,16 @@ export default function App() {
   useStartup(fileOps, editorRef, setSidebarWidth)
 
   // Auto-save: debounced write for saved (has-path) dirty documents.
+  // Declared here (not with the focus-check block below) because auto-save
+  // reuses the same non-blocking notice banner for external-edit conflicts.
+  const [externalNotice, setExternalNotice] = useState<string | null>(null)
   const autoSave = useEditorStore((s) => s.autoSave)
   const isDirty = useEditorStore((s) => s.isDirty)
   const editorPath = useEditorStore((s) => s.path)
-  // Wrap in an arrow to avoid the unbound-method lint rule: fileOps.save is a
-  // plain async function (no `this` access), but the linter can't infer that.
-  const autoSaveFn = useCallback(() => fileOps.save(), [fileOps])
+  // saveQuiet (not save): auto-save must never pop a modal mid-typing. On an
+  // external-edit conflict it skips the write and raises the notice banner.
+  // Wrapped in an arrow to dodge the unbound-method lint rule.
+  const autoSaveFn = useCallback(() => fileOps.saveQuiet(setExternalNotice), [fileOps])
   useAutoSave({ enabled: autoSave, isDirty, hasPath: editorPath !== null, save: autoSaveFn })
 
   // Shared auto-save toggle behaviour: the same path for the native menu item
@@ -477,9 +481,9 @@ export default function App() {
   // silently (the tab follows the new name via its inode); a move-elsewhere or
   // delete keeps the buffer but detaches the doc from disk and shows a quiet,
   // non-blocking notice. No fs watchers, no polling, nothing on the typing path.
+  // (externalNotice state is declared with the auto-save block above, which
+  // shares the banner.)
   // -------------------------------------------------------------------------
-  const [externalNotice, setExternalNotice] = useState<string | null>(null)
-
   // The file-system side of the external-change check lives in useFileOps
   // (verifyActiveDoc); App only owns the banner UI. Passing setExternalNotice as
   // the notice callback keeps the banner behaviour identical while the stat /

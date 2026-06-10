@@ -32,6 +32,13 @@ export interface FileOps {
   openPath(path: string): Promise<void>
   /** Save to the current path; falls through to saveAs when no path exists. */
   save(): Promise<void>
+  /**
+   * Auto-save variant of save(): never shows a dialog. No-op for clean or
+   * path-less documents. On an external-edit conflict it skips the write
+   * (document stays dirty) and reports through `onConflict` so the caller can
+   * show a non-blocking notice instead of a modal mid-typing.
+   */
+  saveQuiet(onConflict: (notice: string) => void): Promise<void>
   /** Show the OS save-as dialog and write to the chosen path. */
   saveAs(): Promise<void>
   /** Create a fresh blank document. */
@@ -50,9 +57,10 @@ export interface FileOps {
    * Re-stat `path` and adopt its current mtime+size as the external-change
    * baseline. Must be called after any write or disk-reload that bypasses
    * persist()/loadInto() (saveAllForClose, folder replace), otherwise the next
-   * plain Save falsely reports "changed on disk".
+   * plain Save falsely reports "changed on disk". Property-style (not method
+   * shorthand) so callers can extract it without the unbound-method lint rule.
    */
-  refreshDiskSig(path: string): Promise<void>
+  refreshDiskSig: (path: string) => Promise<void>
   /**
    * Guard against discarding unsaved changes.
    * Returns true when it is safe to proceed (clean, saved, or "Don't Save").
@@ -310,7 +318,10 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
    * Shared by save() and saveAs().
    */
   const persist = useCallback(
-    async (path: string, opts?: { checkExternal?: boolean }): Promise<void> => {
+    async (
+      path: string,
+      opts?: { checkExternal?: boolean; onConflict?: (notice: string) => void },
+    ): Promise<void> => {
       const md = editorRef.current?.getMarkdown() ?? ''
       // Write with the document's chosen line-ending style (LF default; CRLF
       // when detected on open or chosen via the Line Endings menu).
@@ -326,6 +337,15 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
           try {
             const cur = await window.lekha.statFile(path)
             if (cur.mtimeMs !== baseline.mtimeMs || cur.sizeBytes !== baseline.sizeBytes) {
+              // Auto-save must never block typing with a modal: report through
+              // onConflict and skip the write (document stays dirty) instead.
+              if (opts.onConflict !== undefined) {
+                opts.onConflict(
+                  'Auto-save paused: this file changed on disk outside Lekha. ' +
+                    'Save (Cmd+S) to overwrite it, or use File > Revert to Saved to load the disk version.',
+                )
+                return
+              }
               const proceed = window.confirm(
                 'This file has changed on disk since you opened it in Lekha ' +
                   '(another app, git, or a sync client may have edited it).\n\n' +
@@ -511,6 +531,15 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     // overwrite a concurrent external edit (saveAs targets a user-picked path).
     await persist(path, { checkExternal: true })
   }, [editorStore, persist, saveAs])
+
+  // Auto-save path: dialog-free. Clean/path-less docs are skipped (auto-save
+  // must never trigger a Save As); an external-edit conflict skips the write
+  // and reports via onConflict rather than blocking with a confirm.
+  const saveQuiet = useCallback(async (onConflict: (notice: string) => void): Promise<void> => {
+    const { path, isDirty } = editorStore.getState()
+    if (path === null || !isDirty) return
+    await persist(path, { checkExternal: true, onConflict })
+  }, [editorStore, persist])
 
   /**
    * Guard against discarding unsaved changes.
@@ -988,6 +1017,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     open,
     openPath,
     save,
+    saveQuiet,
     saveAs,
     newFile,
     openFolder,

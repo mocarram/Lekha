@@ -1373,3 +1373,68 @@ describe('useFileOps - diskSig refresh after non-persist writes', () => {
     expect(writeFile).toHaveBeenCalledTimes(1)
   })
 })
+
+// ---------------------------------------------------------------------------
+// saveQuiet (auto-save path)
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - saveQuiet', () => {
+  function setupConflict(opts: { conflict: boolean }) {
+    const { handle } = makeMockEditor('# Edited')
+    let mtime = 1
+    const statFile = vi.fn(() =>
+      Promise.resolve({ sizeBytes: 10, birthtimeMs: 0, mtimeMs: mtime, inode: 7 }),
+    )
+    const writeFile = vi.fn(() => { mtime += 1; return Promise.resolve() })
+    const readFile = vi.fn(() => Promise.resolve('# A'))
+    const confirm = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirm)
+    vi.stubGlobal('lekha', makeMockLekha({ statFile, writeFile, readFile }))
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+    const externalEdit = () => { mtime += 1 }
+    return { result, writeFile, confirm, externalEdit, conflict: opts.conflict }
+  }
+
+  it('on an external-edit conflict: skips the write, stays dirty, reports via onConflict, never confirms', async () => {
+    const { result, writeFile, confirm, externalEdit } = setupConflict({ conflict: true })
+    await act(async () => { await result.current.openPath('/a.md') })
+    useEditorStore.getState().markDirty()
+    externalEdit() // disk changed since open
+
+    const onConflict = vi.fn()
+    await act(async () => { await result.current.saveQuiet(onConflict) })
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(writeFile).not.toHaveBeenCalled()
+    expect(onConflict).toHaveBeenCalledOnce()
+    expect(useEditorStore.getState().isDirty).toBe(true)
+  })
+
+  it('without a conflict: writes and marks clean like a normal save', async () => {
+    const { result, writeFile, confirm } = setupConflict({ conflict: false })
+    await act(async () => { await result.current.openPath('/a.md') })
+    useEditorStore.getState().markDirty()
+
+    const onConflict = vi.fn()
+    await act(async () => { await result.current.saveQuiet(onConflict) })
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(writeFile).toHaveBeenCalledOnce()
+    expect(onConflict).not.toHaveBeenCalled()
+    expect(useEditorStore.getState().isDirty).toBe(false)
+  })
+
+  it('is a no-op for clean or path-less documents', async () => {
+    const { result, writeFile } = setupConflict({ conflict: false })
+    const onConflict = vi.fn()
+    // No document open at all (path null).
+    await act(async () => { await result.current.saveQuiet(onConflict) })
+    // Open but clean.
+    await act(async () => { await result.current.openPath('/a.md') })
+    await act(async () => { await result.current.saveQuiet(onConflict) })
+    expect(writeFile).not.toHaveBeenCalled()
+    expect(onConflict).not.toHaveBeenCalled()
+  })
+})

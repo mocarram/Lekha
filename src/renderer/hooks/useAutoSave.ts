@@ -10,8 +10,9 @@
  *     post-unmount saves.
  *
  * Guard: if `hasPath` is false (new/untitled document), we do nothing.
- * save() itself is also idempotent (no-op when already clean), so multiple
- * rapid calls are harmless.
+ * App passes fileOps.saveQuiet as `save`, which is itself a no-op for clean or
+ * path-less documents and never opens a dialog, so multiple rapid calls are
+ * harmless and auto-save can never block typing with a modal.
  */
 import { useEffect, useRef } from 'react'
 
