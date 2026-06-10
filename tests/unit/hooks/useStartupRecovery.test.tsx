@@ -17,6 +17,7 @@ import { createRef } from 'react'
 import { useStartup } from '../../../src/renderer/hooks/useStartup'
 import { useEditorStore } from '../../../src/renderer/store/editorStore'
 import { useDocumentsStore } from '../../../src/renderer/store/documentsStore'
+import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
 import type { FileOps } from '../../../src/renderer/hooks/useFileOps'
 import type { EditorPaneHandle } from '../../../src/renderer/editor/EditorPane'
 import type { Settings, BackupRecord } from '../../../src/shared/types'
@@ -140,6 +141,7 @@ function stubLekha(settings: Settings, ownsSession = true): void {
     addRecentFile: vi.fn(() => Promise.resolve()),
     getRecentFiles: vi.fn(() => Promise.resolve([])),
     statFile: vi.fn(() => Promise.resolve({ inode: 1, sizeBytes: 0, birthtimeMs: 0, mtimeMs: 0 })),
+    readDir: vi.fn(() => Promise.resolve([])),
     listBackups,
     readFile,
     deleteBackup,
@@ -350,5 +352,65 @@ describe('useStartup - session ownership (File > New Window)', () => {
       expect(fileOps.restoreTabs).toHaveBeenCalledWith(['/a.md'], '/a.md')
     })
     expect(listBackups).toHaveBeenCalled()
+  })
+})
+
+describe('useStartup - secondary window workspace isolation', () => {
+  it('a non-owning window does not inherit the last folder', async () => {
+    useWorkspaceStore.setState({ rootFolder: null, fileTree: [] })
+    stubLekha(makeSettings({ lastFolder: '/vault' }), false)
+
+    const fileOps = makeFileOps((p) => readFile(p))
+    const { ref } = makeEditorRef()
+    renderHook(() => useStartup(fileOps, ref))
+
+    await waitFor(() => {
+      expect(
+        (window.lekha.shouldRestoreSession as ReturnType<typeof vi.fn>).mock.calls.length,
+      ).toBe(1)
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(window.lekha.readDir).not.toHaveBeenCalled()
+    expect(useWorkspaceStore.getState().rootFolder).toBeNull()
+  })
+
+  it('the owning window still restores the last folder', async () => {
+    useWorkspaceStore.setState({ rootFolder: null, fileTree: [] })
+    stubLekha(makeSettings({ lastFolder: '/vault' }), true)
+
+    const fileOps = makeFileOps((p) => readFile(p))
+    const { ref } = makeEditorRef()
+    renderHook(() => useStartup(fileOps, ref))
+
+    await waitFor(() => {
+      expect(useWorkspaceStore.getState().rootFolder).toBe('/vault')
+    })
+  })
+
+  it('a non-owning window never persists its tabs or folder over the session', async () => {
+    useWorkspaceStore.setState({ rootFolder: null, fileTree: [] })
+    stubLekha(makeSettings({ openTabPaths: ['/real.md'], lastFolder: '/vault' }), false)
+
+    const fileOps = makeFileOps((p) => readFile(p))
+    const { ref } = makeEditorRef()
+    renderHook(() => useStartup(fileOps, ref))
+    await waitFor(() => {
+      expect(
+        (window.lekha.shouldRestoreSession as ReturnType<typeof vi.fn>).mock.calls.length,
+      ).toBe(1)
+    })
+    await new Promise((r) => setTimeout(r, 0))
+
+    // User activity in the scratch window: opens a file, opens a folder.
+    readFile.mockResolvedValue('# scratch')
+    useDocumentsStore.getState().openDocument({ path: '/scratch.md', markdown: '# scratch' })
+    useWorkspaceStore.getState().setRootFolder('/scratch-folder')
+    // Let the debounced persisters (if wrongly armed) fire.
+    await new Promise((r) => setTimeout(r, 700))
+
+    const setSettings = window.lekha.setSettings as ReturnType<typeof vi.fn>
+    const persistedKeys = setSettings.mock.calls.flatMap((c) => Object.keys(c[0] as object))
+    expect(persistedKeys).not.toContain('openTabPaths')
+    expect(persistedKeys).not.toContain('lastFolder')
   })
 })

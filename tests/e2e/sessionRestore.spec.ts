@@ -26,11 +26,12 @@ test.beforeAll(async () => {
   fs.writeFileSync(path.join(docsDir, 'second.md'), '# Second Doc 777\n', 'utf8')
   fs.writeFileSync(path.join(docsDir, 'third.md'), '# Third Doc\n', 'utf8')
 
-  // A persisted session: three open tabs, the MIDDLE one active, plus one
-  // path that no longer exists (must be skipped silently).
+  // A persisted session: an open folder, three open tabs (the MIDDLE one
+  // active), plus one path that no longer exists (must be skipped silently).
   fs.writeFileSync(
     path.join(userDataDir, 'settings.json'),
     JSON.stringify({
+      lastFolder: docsDir,
       openTabPaths: [
         path.join(docsDir, 'first.md'),
         path.join(docsDir, 'gone.md'),
@@ -91,7 +92,12 @@ test('File > New Window opens BLANK instead of replaying the session', async () 
   await expect(newWin.locator('.tab .tab__title')).toHaveText('Untitled')
   await expect(newWin.locator('.tab', { hasText: 'second.md' })).toHaveCount(0)
 
-  // The original window's session is untouched.
+  // ...and an EMPTY workspace: the session's folder is not inherited either.
+  await expect(newWin.locator('.files-empty')).toBeVisible()
+  await expect(newWin.locator('.file-tree__name')).toHaveCount(0)
+
+  // The original window's session is untouched (tabs + folder tree).
   await expect(win.locator('.tab')).toHaveCount(3)
+  await expect(win.locator('.file-tree__name', { hasText: 'first.md' })).toBeVisible()
   await newWin.close()
 })

@@ -113,6 +113,13 @@ export function useStartup(
   // Using a plain ref (not state) so changes to it never cause re-renders.
   const restoringRef = useRef(false)
 
+  // Whether THIS window owns the persisted session (true for the first window
+  // of the app run; false for File > New Window). Owners restore AND persist
+  // the session slices (lastFolder, open tabs); secondary windows do neither -
+  // a scratch window must never clobber the real session in settings. Global
+  // preferences (theme, sidebar visibility, ...) persist from any window.
+  const ownsSessionRef = useRef(true)
+
   // Debounce timer for sidebar-state persistence.
   const sidebarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -182,9 +189,25 @@ export function useStartup(
       document.documentElement.style.setProperty('--sidebar-width', `${restoredWidth}px`)
       onSidebarWidth?.(restoredWidth)
 
+      // Session ownership: exactly ONE window per app run replays the session
+      // (the last folder, the previous tabs, and crash recovery below).
+      // Without this claim every File > New Window re-ran the whole restore
+      // and duplicated the session instead of opening blank. Global
+      // PREFERENCES (theme, font, sidebar width, ...) restored above apply to
+      // every window. An unreachable bridge defaults to restoring (single-
+      // window startup must never lose the session).
+      let ownsSession = true
+      try {
+        ownsSession = await window.lekha.shouldRestoreSession()
+      } catch {
+        ownsSession = true
+      }
+      ownsSessionRef.current = ownsSession
+
       // Restore last folder if one was persisted. A missing/deleted folder
-      // is silently ignored to avoid noisy startup errors.
-      if (s.lastFolder !== null) {
+      // is silently ignored to avoid noisy startup errors. New windows start
+      // with an empty workspace - no inherited folder.
+      if (ownsSession && s.lastFolder !== null) {
         try {
           const tree = await window.lekha.readDir(s.lastFolder)
           useWorkspaceStore.getState().setRootFolder(s.lastFolder)
@@ -192,18 +215,6 @@ export function useStartup(
         } catch {
           // Folder no longer exists or is not readable - skip silently.
         }
-      }
-
-      // Session ownership: exactly ONE window per app run replays the session
-      // (previous tabs + crash recovery below). Without this claim every File >
-      // New Window re-ran the whole restore and duplicated the session instead
-      // of opening blank. An unreachable bridge defaults to restoring (single-
-      // window startup must never lose the session).
-      let ownsSession = true
-      try {
-        ownsSession = await window.lekha.shouldRestoreSession()
-      } catch {
-        ownsSession = true
       }
 
       // Restore previously open document tabs (saved files only) in ONE batch:
@@ -316,8 +327,10 @@ export function useStartup(
         void window.lekha.setSettings({ sidebarTab: state.sidebarTab })
       }
 
-      // Persist last-open folder change.
-      if (state.rootFolder !== prev.rootFolder) {
+      // Persist last-open folder change - session-owning window only (a
+      // secondary window's folder is scratch state and must not clobber the
+      // session's lastFolder).
+      if (ownsSessionRef.current && state.rootFolder !== prev.rootFolder) {
         void window.lekha.setSettings({ lastFolder: state.rootFolder })
       }
     })
@@ -335,6 +348,9 @@ export function useStartup(
     }
     const unsubscribeTabs = useDocumentsStore.subscribe((state, prev) => {
       if (restoringRef.current) return
+      // Session-owning window only: a New Window's tabs are scratch state and
+      // must not overwrite the real session's openTabPaths.
+      if (!ownsSessionRef.current) return
       if (tabsSignature(state) === tabsSignature(prev)) return
       if (tabsTimerRef.current !== null) clearTimeout(tabsTimerRef.current)
       tabsTimerRef.current = setTimeout(() => {
