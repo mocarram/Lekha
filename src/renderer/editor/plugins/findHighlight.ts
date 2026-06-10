@@ -2,7 +2,7 @@
  * ProseMirror plugin that highlights find/replace matches as decorations.
  *
  * State shape:
- *   { query, caseSensitive, matches, current }
+ *   { query, caseSensitive, wholeWord, matches, current, decorations }
  *
  * - `query` and `caseSensitive` are updated by dispatching a transaction with
  *   the FIND_QUERY_META key set.
@@ -10,11 +10,10 @@
  *   the document changes.
  * - `current` is the index of the "active" match (-1 when no matches).
  * - Decorations: every match gets class `find-match`; the current one also
- *   gets `find-match--current`.
- *
- * The plugin state is kept in sync after every transaction via the `apply`
- * hook, which fully recomputes matches via `findMatches` whenever the doc
- * changes (rather than mapping old positions through step maps).
+ *   gets `find-match--current`. The DecorationSet lives IN the plugin state
+ *   and is only rebuilt when matches/current actually change - selection-only
+ *   transactions reuse it, so cursor moves never pay an O(matches) rebuild
+ *   (same pattern as topLevelBlock.ts).
  */
 
 import { Plugin, PluginKey, TextSelection } from 'prosemirror-state'
@@ -49,6 +48,7 @@ export interface FindHighlightState {
   wholeWord: boolean
   matches: FindMatch[]
   current: number
+  decorations: DecorationSet
 }
 
 const INITIAL_STATE: FindHighlightState = {
@@ -57,6 +57,7 @@ const INITIAL_STATE: FindHighlightState = {
   wholeWord: false,
   matches: [],
   current: -1,
+  decorations: DecorationSet.empty,
 }
 
 // ---------------------------------------------------------------------------
@@ -103,18 +104,26 @@ export function findHighlightPlugin(): Plugin<FindHighlightState> {
         if (queryMeta && 'query' in queryMeta) {
           const { query, caseSensitive, wholeWord } = queryMeta
           const matches = findMatches(newState.doc, query, { caseSensitive, wholeWord })
+          const current = matches.length > 0 ? 0 : -1
           return {
             query,
             caseSensitive,
             wholeWord,
             matches,
-            current: matches.length > 0 ? 0 : -1,
+            current,
+            decorations: buildDecorations(newState.doc, matches, current),
           }
         }
 
-        // Handle a current-index update
+        // Handle a current-index update (changes which match gets the
+        // `--current` class, so the set is rebuilt; this only happens on
+        // explicit next/prev/goto, never per keystroke).
         if (queryMeta && 'current' in queryMeta) {
-          return { ...pluginState, current: queryMeta.current }
+          return {
+            ...pluginState,
+            current: queryMeta.current,
+            decorations: buildDecorations(newState.doc, pluginState.matches, queryMeta.current),
+          }
         }
 
         // If no meta: if the doc changed and we have an active query, recompute.
@@ -128,20 +137,23 @@ export function findHighlightPlugin(): Plugin<FindHighlightState> {
             matches.length === 0
               ? -1
               : Math.min(pluginState.current < 0 ? 0 : pluginState.current, matches.length - 1)
-          return { ...pluginState, matches, current }
+          return {
+            ...pluginState,
+            matches,
+            current,
+            decorations: buildDecorations(newState.doc, matches, current),
+          }
         }
 
+        // Selection-only transaction (or doc change with no active query):
+        // nothing to recompute, reuse the state - and its DecorationSet - as-is.
         return pluginState
       },
     },
 
     props: {
       decorations(state) {
-        const pluginState = findHighlightKey.getState(state)
-        if (!pluginState || pluginState.matches.length === 0) {
-          return DecorationSet.empty
-        }
-        return buildDecorations(state.doc, pluginState.matches, pluginState.current)
+        return findHighlightKey.getState(state)?.decorations ?? DecorationSet.empty
       },
     },
   })

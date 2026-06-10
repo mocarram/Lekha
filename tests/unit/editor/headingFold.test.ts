@@ -12,7 +12,7 @@
  *   - serializing a doc with a folded heading yields the FULL markdown.
  */
 import { describe, it, expect } from 'vitest'
-import { EditorState } from 'prosemirror-state'
+import { EditorState, TextSelection } from 'prosemirror-state'
 import {
   headingFoldPlugin,
   headingFoldKey,
@@ -199,5 +199,31 @@ describe('headingFoldPlugin decorations', () => {
     expect(out).toContain('Beta')
     expect(out).toContain('Gamma')
     expect(out.trim()).toBe(serializeMarkdown(state.doc).trim())
+  })
+})
+
+describe('headingFoldPlugin - decoration reuse on selection-only transactions', () => {
+  it('returns the SAME plugin state (no rebuild) for a selection-only transaction', () => {
+    const state = makeState('# A\n\npara one\n\n## B\n\npara two')
+    const before = headingFoldKey.getState(state)!
+    // Selection-only transaction: no doc change, no fold meta.
+    const next = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 3)))
+    expect(headingFoldKey.getState(next)).toBe(before)
+  })
+
+  it('still rebuilds when the document changes', () => {
+    const state = makeState('# A\n\npara one')
+    const before = headingFoldKey.getState(state)!
+    const next = state.apply(state.tr.insertText('x', 5))
+    expect(headingFoldKey.getState(next)).not.toBe(before)
+  })
+
+  it('still rebuilds on a toggle meta', () => {
+    const state = makeState('# A\n\npara one')
+    const pos = headingPos(state.doc, 0)
+    const before = headingFoldKey.getState(state)!
+    const next = state.apply(state.tr.setMeta(headingFoldKey, toggleFoldMeta(pos)))
+    expect(headingFoldKey.getState(next)).not.toBe(before)
+    expect(foldedRanges(next).length).toBeGreaterThan(0)
   })
 })

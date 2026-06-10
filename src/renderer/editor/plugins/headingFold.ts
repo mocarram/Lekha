@@ -210,7 +210,14 @@ export function headingFoldPlugin(): Plugin<HeadingFoldState> {
         return { folded, decorations: buildDecorations(state.doc, folded) }
       },
       apply(tr, prev, _oldState, newState): HeadingFoldState {
+        // Selection-only transactions cannot move headings or change folds:
+        // reuse the previous state untouched. Rebuilding here ran an
+        // O(blocks + headings) walk + widget allocation on every cursor move.
+        if (!tr.docChanged && tr.getMeta(headingFoldKey) === undefined) return prev
         const folded = nextFolded(prev.folded, tr)
+        // Doc changes rebuild (not map) the set: the chevron widgets embed
+        // their heading position in the DOM, so mapped decorations would keep
+        // stale positions and break toggle clicks.
         return { folded, decorations: buildDecorations(newState.doc, folded) }
       },
     },
