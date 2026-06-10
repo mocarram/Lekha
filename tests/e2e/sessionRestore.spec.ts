@@ -101,3 +101,20 @@ test('File > New Window opens BLANK instead of replaying the session', async () 
   await expect(win.locator('.file-tree__name', { hasText: 'first.md' })).toBeVisible()
   await newWin.close()
 })
+
+test('right-click tab menu: Close Others keeps only the clicked tab', async () => {
+  await win.locator('.tab', { hasText: 'second.md' }).click({ button: 'right' })
+  const menu = win.locator('.tab-menu')
+  await expect(menu).toBeVisible()
+  // The simple curated set is present.
+  for (const label of ['Close', 'Close Others', 'Close Saved', 'Close All', 'Reveal in Finder']) {
+    await expect(menu.getByRole('menuitem', { name: label, exact: true })).toBeVisible()
+  }
+  await menu.getByRole('menuitem', { name: 'Close Others', exact: true }).click()
+
+  await expect(win.locator('.tab')).toHaveCount(1)
+  await expect(win.locator('.tab .tab__title')).toHaveText('second.md')
+  await expect(win.locator('.tab-menu')).toHaveCount(0)
+  // The surviving tab's document is still loaded.
+  await expect(win.locator('.ProseMirror h1', { hasText: 'Second Doc 777' })).toBeVisible()
+})

@@ -6,8 +6,28 @@ interface TabBarProps {
   onSelect: (id: string) => void
   /** Close the tab with this id (caller handles the dirty-save guard). */
   onClose: (id: string) => void
+  /** Close every tab except this one. */
+  onCloseOthers: (id: string) => void
+  /** Close every tab to the right of this one. */
+  onCloseRight: (id: string) => void
+  /** Close every clean (saved) tab. */
+  onCloseSaved: () => void
+  /** Close every tab. */
+  onCloseAll: () => void
+  /** Copy the tab's absolute file path to the clipboard. */
+  onCopyPath: (path: string) => void
+  /** Reveal the tab's file in the OS file manager. */
+  onReveal: (path: string) => void
   /** Create a new blank document tab. */
   onNew: () => void
+}
+
+/** Right-click context-menu state: the targeted tab + click coordinates. */
+interface TabMenuState {
+  id: string
+  path: string | null
+  x: number
+  y: number
 }
 
 /**
@@ -21,11 +41,47 @@ interface TabBarProps {
  * it still shows the empty strip + the "+" button, so the layout never shifts
  * and creating a file is always one click away.
  */
-export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
+export function TabBar({
+  onSelect,
+  onClose,
+  onCloseOthers,
+  onCloseRight,
+  onCloseSaved,
+  onCloseAll,
+  onCopyPath,
+  onReveal,
+  onNew,
+}: TabBarProps) {
   const documents = useDocumentsStore((s) => s.documents)
   const activeId = useDocumentsStore((s) => s.activeId)
 
   const tabsRef = useRef<HTMLDivElement>(null)
+
+  // Right-click tab menu (Close / Close Others / ... / Reveal). One menu at a
+  // time, dismissed by Escape, outside pointer-down, or running an action.
+  const [menu, setMenu] = useState<TabMenuState | null>(null)
+  useEffect(() => {
+    if (menu === null) return undefined
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setMenu(null)
+    }
+    const onDown = (e: MouseEvent) => {
+      const el = document.querySelector('.tab-menu')
+      if (el && !el.contains(e.target as Node)) setMenu(null)
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onDown)
+    }
+  }, [menu])
+
+  /** Run a menu action and dismiss the menu. */
+  const menuAction = (fn: () => void) => () => {
+    setMenu(null)
+    fn()
+  }
 
   // Which edges hide more tabs: drives the fade overlays that hint "there is
   // more to scroll" in each direction. Updated from scroll/resize/tab-count
@@ -145,6 +201,10 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
                   onClose(doc.id)
                 }
               }}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setMenu({ id: doc.id, path: doc.path, x: e.clientX, y: e.clientY })
+              }}
             >
               <span className="tab__title">{doc.title}</span>
               <button
@@ -187,6 +247,51 @@ export function TabBar({ onSelect, onClose, onNew }: TabBarProps) {
       >
         +
       </button>
+
+      {/* Right-click tab menu. Reuses the file-tree menu styling (same token-
+          themed popup look); `tab-menu` scopes the outside-click dismissal and
+          carves a no-drag hole so its top rows stay clickable over the strip. */}
+      {menu !== null && (
+        <div
+          className="filetree-menu tab-menu no-drag"
+          role="menu"
+          style={{ left: `${menu.x}px`, top: `${menu.y}px` }}
+        >
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onClose(menu.id))}>
+            Close
+          </button>
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onCloseOthers(menu.id))}>
+            Close Others
+          </button>
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onCloseRight(menu.id))}>
+            Close to the Right
+          </button>
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onCloseSaved())}>
+            Close Saved
+          </button>
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onCloseAll())}>
+            Close All
+          </button>
+          {menu.path !== null && (
+            <>
+              <div className="filetree-menu__sep" role="separator" />
+              <button type="button" role="menuitem" className="filetree-menu__item"
+                onClick={menuAction(() => { const p = menu.path; if (p !== null) onCopyPath(p) })}>
+                Copy Path
+              </button>
+              <button type="button" role="menuitem" className="filetree-menu__item"
+                onClick={menuAction(() => { const p = menu.path; if (p !== null) onReveal(p) })}>
+                Reveal in Finder
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

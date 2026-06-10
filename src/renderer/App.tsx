@@ -652,6 +652,12 @@ export default function App() {
         <TabBar
           onSelect={(id) => { void fileOps.selectTab(id) }}
           onClose={(id) => { void fileOps.closeTab(id) }}
+          onCloseOthers={(id) => { void fileOps.closeOtherTabs(id) }}
+          onCloseRight={(id) => { void fileOps.closeTabsToRight(id) }}
+          onCloseSaved={() => { void fileOps.closeSavedTabs() }}
+          onCloseAll={() => { void fileOps.closeAllTabs() }}
+          onCopyPath={(path) => { void window.lekha.writeClipboard({ text: path }) }}
+          onReveal={(path) => { fileOps.revealEntry(path) }}
           onNew={() => { void fileOps.newFile() }}
         />
 

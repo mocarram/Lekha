@@ -13,6 +13,16 @@ import { useDocumentsStore } from '../../../src/renderer/store/documentsStore'
 
 const noop = () => undefined
 
+// Context-menu callbacks most tests don't exercise, spread into every render.
+const menuNoop = {
+  onCloseOthers: noop,
+  onCloseRight: noop,
+  onCloseSaved: noop,
+  onCloseAll: noop,
+  onCopyPath: noop,
+  onReveal: noop,
+}
+
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
@@ -38,7 +48,7 @@ function openTabs(n: number): string[] {
 describe('TabBar', () => {
   it('renders the persistent strip (new-tab button, no tabs) when zero documents are open', () => {
     const { container, getByLabelText, queryAllByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     expect(container.querySelector('.tab-bar')).not.toBeNull()
     expect(queryAllByRole('tab')).toHaveLength(0)
@@ -48,7 +58,7 @@ describe('TabBar', () => {
   it('renders a single tab when one document is open (persistent tab strip)', () => {
     openTabs(1)
     const { getAllByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     expect(getAllByRole('tab')).toHaveLength(1)
   })
@@ -56,7 +66,7 @@ describe('TabBar', () => {
   it('renders one tab per open document when multiple are open', () => {
     openTabs(3)
     const { getAllByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     expect(getAllByRole('tab')).toHaveLength(3)
   })
@@ -65,7 +75,7 @@ describe('TabBar', () => {
     const ids = openTabs(2)
     useDocumentsStore.getState().activateDocument(ids[0]!)
     const { getAllByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     expect(tabs[0]!.getAttribute('aria-selected')).toBe('true')
@@ -76,7 +86,7 @@ describe('TabBar', () => {
     const ids = openTabs(2)
     const onSelect = vi.fn()
     const { getAllByRole } = render(
-      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={onSelect} onClose={noop} onNew={noop} />,
     )
     fireEvent.click(getAllByRole('tab')[0]!)
     expect(onSelect).toHaveBeenCalledWith(ids[0])
@@ -87,7 +97,7 @@ describe('TabBar', () => {
     const onSelect = vi.fn()
     const onClose = vi.fn()
     const { getByRole } = render(
-      <TabBar onSelect={onSelect} onClose={onClose} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={onSelect} onClose={onClose} onNew={noop} />,
     )
     fireEvent.click(getByRole('button', { name: /Close doc0\.md/ }))
     expect(onClose).toHaveBeenCalledWith(ids[0])
@@ -98,7 +108,7 @@ describe('TabBar', () => {
     const ids = openTabs(2)
     const onClose = vi.fn()
     const { getAllByRole } = render(
-      <TabBar onSelect={noop} onClose={onClose} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={onClose} onNew={noop} />,
     )
     fireEvent(
       getAllByRole('tab')[1]!,
@@ -111,7 +121,7 @@ describe('TabBar', () => {
     openTabs(2)
     const onNew = vi.fn()
     const { getByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={onNew} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={onNew} />,
     )
     fireEvent.click(getByRole('button', { name: 'New document' }))
     expect(onNew).toHaveBeenCalledOnce()
@@ -121,7 +131,7 @@ describe('TabBar', () => {
     const ids = openTabs(3)
     useDocumentsStore.getState().activateDocument(ids[1]!)
     const { getAllByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     expect(tabs[0]!.getAttribute('tabindex')).toBe('-1')
@@ -134,7 +144,7 @@ describe('TabBar', () => {
     useDocumentsStore.getState().activateDocument(ids[0]!)
     const onSelect = vi.fn()
     const { getAllByRole } = render(
-      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={onSelect} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     tabs[0]!.focus()
@@ -148,7 +158,7 @@ describe('TabBar', () => {
     useDocumentsStore.getState().activateDocument(ids[0]!)
     const onSelect = vi.fn()
     const { getAllByRole } = render(
-      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={onSelect} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     tabs[0]!.focus()
@@ -161,7 +171,7 @@ describe('TabBar', () => {
     const ids = openTabs(3)
     const onSelect = vi.fn()
     const { getAllByRole } = render(
-      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={onSelect} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     tabs[1]!.focus()
@@ -176,7 +186,7 @@ describe('TabBar', () => {
     const ids = openTabs(2)
     const onSelect = vi.fn()
     const { getAllByRole } = render(
-      <TabBar onSelect={onSelect} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={onSelect} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     tabs[0]!.focus()
@@ -189,7 +199,7 @@ describe('TabBar', () => {
     useDocumentsStore.getState().activateDocument(ids[1]!)
     useDocumentsStore.getState().updateActive({ isDirty: true })
     const { getAllByRole } = render(
-      <TabBar onSelect={noop} onClose={noop} onNew={noop} />,
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
     )
     const tabs = getAllByRole('tab')
     expect(tabs[1]!.classList.contains('tab--dirty')).toBe(true)
@@ -214,7 +224,7 @@ function stubOverflow(el: Element, scrollWidth: number, clientWidth: number): vo
 describe('TabBar - wheel scrolling', () => {
   it('translates a vertical mouse wheel into horizontal strip scrolling', () => {
     openTabs(3)
-    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const { container } = render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     const strip = container.querySelector('.tab-bar__tabs')!
     stubOverflow(strip, 800, 200)
 
@@ -226,7 +236,7 @@ describe('TabBar - wheel scrolling', () => {
 
   it('leaves trackpad horizontal pans (deltaX dominant) to native scrolling', () => {
     openTabs(3)
-    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const { container } = render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     const strip = container.querySelector('.tab-bar__tabs')!
     stubOverflow(strip, 800, 200)
 
@@ -236,7 +246,7 @@ describe('TabBar - wheel scrolling', () => {
 
   it('does nothing when the tabs all fit (no overflow)', () => {
     openTabs(2)
-    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const { container } = render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     const strip = container.querySelector('.tab-bar__tabs')!
     stubOverflow(strip, 200, 200)
 
@@ -251,7 +261,7 @@ describe('TabBar - active tab auto-reveal', () => {
       .spyOn(HTMLElement.prototype, 'scrollIntoView')
       .mockImplementation(() => undefined)
     const ids = openTabs(3)
-    render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     spy.mockClear() // ignore the mount-time reveal
 
     act(() => {
@@ -268,7 +278,7 @@ describe('TabBar - active tab auto-reveal', () => {
 describe('TabBar - guaranteed drag zone', () => {
   it('renders a never-shrinking drag zone between the tabs and the + button', () => {
     openTabs(3)
-    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const { container } = render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     const bar = container.querySelector('.tab-bar')!
     const children = Array.from(bar.children).map((c) => c.className)
     // Order matters: tabs strip, then the drag zone, then the + button - the
@@ -293,7 +303,7 @@ describe('TabBar - overflow edge fades', () => {
 
   it('shows only the right fade at the start, both mid-scroll, only the left at the end', () => {
     openTabs(5)
-    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const { container } = render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     const strip = container.querySelector('.tab-bar__tabs')!
     const wrap = () => container.querySelector('.tab-bar__scroll')!
 
@@ -312,11 +322,73 @@ describe('TabBar - overflow edge fades', () => {
 
   it('shows no fades when all tabs fit', () => {
     openTabs(2)
-    const { container } = render(<TabBar onSelect={noop} onClose={noop} onNew={noop} />)
+    const { container } = render(<TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />)
     const strip = container.querySelector('.tab-bar__tabs')!
     setScroll(strip, 0, 200, 200)
     const wrap = container.querySelector('.tab-bar__scroll')!
     expect(wrap.classList.contains('tab-bar__scroll--more-left')).toBe(false)
     expect(wrap.classList.contains('tab-bar__scroll--more-right')).toBe(false)
+  })
+})
+
+describe('TabBar - right-click context menu', () => {
+  it('opens on contextmenu with the full close set, fires the action, and dismisses', () => {
+    const ids = openTabs(3)
+    const onCloseOthers = vi.fn()
+    const { container, getAllByRole, getByRole, queryByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} onCloseOthers={onCloseOthers} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[1]!, { clientX: 120, clientY: 20 })
+
+    const menu = container.querySelector('.tab-menu')!
+    expect(menu).not.toBeNull()
+    for (const label of ['Close', 'Close Others', 'Close to the Right', 'Close Saved', 'Close All']) {
+      expect(getByRole('menuitem', { name: label })).toBeTruthy()
+    }
+
+    fireEvent.click(getByRole('menuitem', { name: 'Close Others' }))
+    expect(onCloseOthers).toHaveBeenCalledWith(ids[1])
+    // Acting dismisses the menu.
+    expect(queryByRole('menu')).toBeNull()
+  })
+
+  it('shows Copy Path / Reveal for file tabs and routes the tab path', () => {
+    openTabs(2)
+    const onCopyPath = vi.fn()
+    const onReveal = vi.fn()
+    const { getAllByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} onCopyPath={onCopyPath} onReveal={onReveal} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    fireEvent.click(getByRole('menuitem', { name: 'Copy Path' }))
+    expect(onCopyPath).toHaveBeenCalledWith('/doc0.md')
+
+    fireEvent.contextMenu(getAllByRole('tab')[1]!)
+    fireEvent.click(getByRole('menuitem', { name: 'Reveal in Finder' }))
+    expect(onReveal).toHaveBeenCalledWith('/doc1.md')
+  })
+
+  it('hides the path items for an Untitled (path-less) tab', () => {
+    useDocumentsStore.getState().openDocument({ path: null, markdown: '' })
+    const { getAllByRole, queryByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    expect(getByRole('menuitem', { name: 'Close' })).toBeTruthy()
+    expect(queryByRole('menuitem', { name: 'Copy Path' })).toBeNull()
+    expect(queryByRole('menuitem', { name: 'Reveal in Finder' })).toBeNull()
+  })
+
+  it('Escape dismisses the menu without firing anything', () => {
+    openTabs(1)
+    const onClose = vi.fn()
+    const { getAllByRole, queryByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={onClose} onNew={noop} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    expect(queryByRole('menu')).not.toBeNull()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(queryByRole('menu')).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
   })
 })

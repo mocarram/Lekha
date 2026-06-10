@@ -1546,3 +1546,63 @@ describe('useFileOps - restoreTabs', () => {
     expect(useDocumentsStore.getState().documents).toHaveLength(1)
   })
 })
+
+// ---------------------------------------------------------------------------
+// Bulk tab closes (tab context menu)
+// ---------------------------------------------------------------------------
+
+describe('useFileOps - bulk tab closes', () => {
+  function setupTabs(opts?: { confirmChoice?: 'save' | 'dontSave' | 'cancel' }) {
+    const { handle, setMarkdown } = makeMockEditor('# Active')
+    const confirmUnsaved = vi.fn(() => Promise.resolve((opts?.confirmChoice ?? 'cancel') as 'save' | 'dontSave' | 'cancel'))
+    vi.stubGlobal('lekha', makeMockLekha({ confirmUnsaved }))
+    const a = useDocumentsStore.getState().openDocument({ path: '/a.md', markdown: '# A' })
+    const b = useDocumentsStore.getState().openDocument({ path: '/b.md', markdown: '# B' })
+    const c = useDocumentsStore.getState().openDocument({ path: '/c.md', markdown: '# C' })
+    useDocumentsStore.getState().activateDocument(b)
+    useEditorStore.getState().openFile('/b.md', '# B')
+    const editorRef = createRef<EditorPaneHandle>()
+    ;(editorRef as { current: EditorPaneHandle }).current = handle
+    const { result } = renderHook(() => useFileOps(editorRef))
+    return { result, ids: { a, b, c }, setMarkdown, confirmUnsaved }
+  }
+
+  it('closeOtherTabs keeps the target and never flips the editor through clean background tabs', async () => {
+    const { result, ids, setMarkdown } = setupTabs()
+    await act(async () => { await result.current.closeOtherTabs(ids.b) })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual(['/b.md'])
+    expect(useDocumentsStore.getState().activeDocument()?.path).toBe('/b.md')
+    // Clean background tabs closed IN PLACE - the live editor was untouched.
+    expect(setMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('closeTabsToRight closes only tabs after the target, in strip order', async () => {
+    const { result, ids } = setupTabs()
+    await act(async () => { await result.current.closeTabsToRight(ids.a) })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual(['/a.md'])
+  })
+
+  it('closeSavedTabs keeps dirty tabs open', async () => {
+    const { result, ids } = setupTabs()
+    useDocumentsStore.getState().updateDocument(ids.a, { isDirty: true })
+    await act(async () => { await result.current.closeSavedTabs() })
+    expect(useDocumentsStore.getState().documents.map((d) => d.path)).toEqual(['/a.md'])
+  })
+
+  it('a cancelled save guard aborts the REMAINING closes (VS Code semantics)', async () => {
+    const { result, ids, confirmUnsaved } = setupTabs({ confirmChoice: 'cancel' })
+    // Make the FIRST other tab dirty so its guard runs (and is cancelled).
+    useDocumentsStore.getState().updateDocument(ids.a, { isDirty: true })
+    await act(async () => { await result.current.closeOtherTabs(ids.b) })
+    expect(confirmUnsaved).toHaveBeenCalled()
+    // Nothing was closed: the dirty tab survived its cancelled guard, and the
+    // remaining close (/c.md) was aborted.
+    expect(useDocumentsStore.getState().documents).toHaveLength(3)
+  })
+
+  it('closeAllTabs with clean tabs ends on the editor empty state', async () => {
+    const { result } = setupTabs()
+    await act(async () => { await result.current.closeAllTabs() })
+    expect(useDocumentsStore.getState().documents).toHaveLength(0)
+  })
+})

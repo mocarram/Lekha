@@ -110,6 +110,18 @@ export interface FileOps {
    */
   closeTab(id: string): Promise<void>
   /**
+   * Tab-menu bulk closes. Clean background tabs close in place (the editor
+   * never flips through them); dirty/active tabs run the closeTab save guard,
+   * and a cancelled guard aborts the remaining closes (VS Code semantics).
+   */
+  closeOtherTabs(keepId: string): Promise<void>
+  /** Close every tab AFTER `fromId` in the strip order. */
+  closeTabsToRight(fromId: string): Promise<void>
+  /** Close every clean (saved) tab; dirty tabs stay open. */
+  closeSavedTabs(): Promise<void>
+  /** Close every tab (guarded per dirty tab; ends on a blank Untitled). */
+  closeAllTabs(): Promise<void>
+  /**
    * Handle the main-process window-close guard's "Save" choice: save EVERY dirty
    * tab (writing each tab's snapshot, prompting a Save As for path-less tabs) so
    * the window can close clean. A cancelled Save As leaves that tab dirty and
@@ -802,6 +814,60 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     }
   }, [documentsStore, selectTab, editorStore, guardUnsaved, loadTab, blankEditor])
 
+  /**
+   * Close a batch of tabs (tab-menu bulk operations). Clean BACKGROUND tabs
+   * are closed in place - no activation, so the live editor never flips
+   * through them. Dirty or active tabs go through closeTab (save guard +
+   * editor handoff); when the user CANCELS a guard, the remaining closes are
+   * aborted, mirroring VS Code's bulk-close semantics.
+   */
+  const closeManyTabs = useCallback(async (ids: string[]): Promise<void> => {
+    for (const id of ids) {
+      const docs = documentsStore.getState()
+      const tab = docs.documents.find((d) => d.id === id)
+      if (tab === undefined) continue
+      if (!tab.isDirty && docs.activeId !== id) {
+        // Clean background tab: drop its (rare) crash backup and close in
+        // place. Wrapped so a delete failure cannot block the close.
+        if (tab.backupId !== null) {
+          try { await window.lekha.deleteBackup(tab.backupId) } catch { /* harmless */ }
+        }
+        documentsStore.getState().closeDocument(id)
+        continue
+      }
+      await closeTab(id)
+      // closeTab gives no cancel signal; the tab surviving IS the signal.
+      if (documentsStore.getState().documents.some((d) => d.id === id)) return
+    }
+  }, [documentsStore, closeTab])
+
+  // Tab-menu bulk operations. Each computes its id list from the CURRENT tab
+  // order, then funnels through closeManyTabs (guard + cancel semantics above).
+  const closeOtherTabs = useCallback(async (keepId: string): Promise<void> => {
+    const ids = documentsStore.getState().documents
+      .map((d) => d.id)
+      .filter((id) => id !== keepId)
+    await closeManyTabs(ids)
+  }, [documentsStore, closeManyTabs])
+
+  const closeTabsToRight = useCallback(async (fromId: string): Promise<void> => {
+    const docs = documentsStore.getState().documents
+    const idx = docs.findIndex((d) => d.id === fromId)
+    if (idx === -1) return
+    await closeManyTabs(docs.slice(idx + 1).map((d) => d.id))
+  }, [documentsStore, closeManyTabs])
+
+  const closeSavedTabs = useCallback(async (): Promise<void> => {
+    const ids = documentsStore.getState().documents
+      .filter((d) => !d.isDirty)
+      .map((d) => d.id)
+    await closeManyTabs(ids)
+  }, [documentsStore, closeManyTabs])
+
+  const closeAllTabs = useCallback(async (): Promise<void> => {
+    await closeManyTabs(documentsStore.getState().documents.map((d) => d.id))
+  }, [documentsStore, closeManyTabs])
+
   // "Save" from the main-process window-close guard: save EVERY dirty tab so the
   // window can close clean. Tabs with a path are written directly from their
   // snapshot; path-less tabs each get a Save As dialog. A cancelled Save As (or a
@@ -1123,6 +1189,10 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     moveCurrentTo,
     selectTab,
     closeTab,
+    closeOtherTabs,
+    closeTabsToRight,
+    closeSavedTabs,
+    closeAllTabs,
     saveAllForClose,
     discardAllForClose,
     syncActivePath,
