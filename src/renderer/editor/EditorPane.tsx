@@ -351,6 +351,17 @@ export const EditorPane = forwardRef<EditorPaneHandle, EditorPaneProps>(
           return sourceRef.current?.getValue() ?? markdownRef.current
         },
         setMarkdown(md: string) {
+          // A pending trailing flush belongs to the PREVIOUS document: firing
+          // it after this programmatic load would resurrect the old content
+          // into the store and re-mark dirty (e.g. close-the-last-tab or a
+          // tab switch within the debounce window). Callers already capture
+          // the final text synchronously via getMarkdown(), so nothing is
+          // lost by dropping it.
+          if (wysiwygDebounce.current !== null) {
+            clearTimeout(wysiwygDebounce.current)
+            wysiwygDebounce.current = null
+          }
+          latestDocRef.current = null
           setMarkdownState(md)
           if (mode === 'wysiwyg') {
             wysiwygRef.current?.setMarkdown(md)

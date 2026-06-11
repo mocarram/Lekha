@@ -74,3 +74,57 @@ test('a dirty background tab keeps the window edited while the active tab is cle
   // tab, so the dirty background tab could be lost on close without a prompt.)
   await expect.poll(windowEdited).toBe(true)
 })
+
+test('closing the last tab right after typing leaves the window clean', async () => {
+  // Auto-answer the unsaved-changes dialog with "Don't Save" (button 1) so the
+  // discard path runs without a native modal blocking the test.
+  await app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () => Promise.resolve({ response: 1, checkboxChecked: false })
+  })
+
+  // Clear the two tabs left by the previous test, then start one fresh tab.
+  await win.locator('.tab').first().click({ button: 'right' })
+  await win.locator('.tab-menu').getByRole('menuitem', { name: 'Close All', exact: true }).click()
+  await expect(win.locator('.tab')).toHaveCount(0)
+  await sendCommand('new')
+  await expect(win.locator('.tab')).toHaveCount(1)
+
+  // Type and close the tab IMMEDIATELY - inside the editor's ~150ms trailing
+  // serialize debounce. Pre-fix, the pane's unmount flush then fired with the
+  // CLOSED document's content and re-marked the empty window dirty (stale
+  // edited dot + a save prompt on quit with nothing open).
+  await win.locator('.ProseMirror').click()
+  await win.keyboard.type('zap', { delay: 10 })
+  await win.locator('.tab__close').click({ force: true })
+  await expect(win.locator('.tab')).toHaveCount(0)
+
+  // Let any pending debounce/unmount flush fire, then assert clean.
+  await win.waitForTimeout(400)
+  await expect.poll(windowEdited).toBe(false)
+  const title = await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]?.getTitle() ?? '')
+  expect(title).toBe('')
+})
+
+test('switching tabs right after typing does not dirty the target tab', async () => {
+  // Two fresh tabs; the SECOND is active.
+  await sendCommand('new')
+  await sendCommand('new')
+  await expect(win.locator('.tab')).toHaveCount(2)
+
+  // Type in the FIRST tab, then switch to the second within the debounce
+  // window. Pre-fix the pending trailing flush fired AFTER the switch,
+  // pushing the first tab's markdown into the store and marking the freshly
+  // loaded (clean) tab dirty.
+  await win.locator('.tab').first().click()
+  await win.locator('.ProseMirror').click()
+  await win.keyboard.type('fast', { delay: 10 })
+  await win.locator('.tab').nth(1).click()
+  await win.waitForTimeout(400)
+
+  // The first tab carries the typing (dirty); the second must stay clean and
+  // its editor empty.
+  await expect(win.locator('.tab').first()).toHaveClass(/tab--dirty/)
+  await expect(win.locator('.tab').nth(1)).not.toHaveClass(/tab--dirty/)
+  await expect(win.locator('.ProseMirror')).toHaveText('')
+})
