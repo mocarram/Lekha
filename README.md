@@ -1,6 +1,11 @@
-# Lekha
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/banner/banner-dark.svg">
+    <img src="assets/banner/banner-light.svg" alt="Lekha - a clean markdown editor for macOS" width="640">
+  </picture>
+</p>
 
-A clean, distraction-free WYSIWYG Markdown editor for macOS, built with Electron.
+# Lekha
 
 ## Install / Download
 
