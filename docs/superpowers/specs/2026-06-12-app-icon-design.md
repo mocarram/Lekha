@@ -32,7 +32,7 @@ Concretely, the 1024px master is:
    as floating - the "liquid glass layering" cue.
 3. **Hash**: a bold `#` drawn as four rounded-cap strokes (two near-vertical
    strokes with a slight italic lean, two horizontals) in ink `#454050`,
-   centered on the page. Stroke weight ~9% of tile width.
+   centered on the page. Stroke weight ~4.3% of tile width (44px at 1024).
 4. **Accent**: a short purple underline bar (`#6e5ef0`, matching the app's
    `--color-accent`) under the hash, the only color note on the paper.
 
