@@ -720,9 +720,12 @@ body,
 }
 
 /* Drag-to-reorder affordances: the dragged pill dims; the insertion slot is a
-   2px accent bar drawn just outside the pill's edge (into the 5px gap) via
-   box-shadow, so it adds no layout. tab--drop-after only ever applies to the
-   LAST tab (the end slot renders after it). */
+   3px accent bar drawn just outside the pill's edge (into the 5px gap) via
+   box-shadow, so it adds no layout. The two slots flush against the scroll
+   container's clip edges - the END slot (drop-after only ever applies to the
+   LAST tab) and slot 0 on the FIRST tab - draw the bar INSET instead: an
+   outside shadow there falls past the overflow boundary and gets sheared to
+   a faint sliver. */
 .tab--dragging {
   opacity: 0.45;
 }
@@ -731,16 +734,24 @@ body,
   box-shadow: -4px 0 0 -1px var(--color-accent);
 }
 
+.tab--drop-before:first-child {
+  box-shadow: inset 4px 0 0 -1px var(--color-accent);
+}
+
 .tab--drop-after {
-  box-shadow: 4px 0 0 -1px var(--color-accent);
+  box-shadow: inset -4px 0 0 -1px var(--color-accent);
 }
 
 .tab--active.tab--drop-before {
   box-shadow: var(--shadow-sm), -4px 0 0 -1px var(--color-accent);
 }
 
+.tab--active.tab--drop-before:first-child {
+  box-shadow: var(--shadow-sm), inset 4px 0 0 -1px var(--color-accent);
+}
+
 .tab--active.tab--drop-after {
-  box-shadow: var(--shadow-sm), 4px 0 0 -1px var(--color-accent);
+  box-shadow: var(--shadow-sm), inset -4px 0 0 -1px var(--color-accent);
 }
 
 .tab--active,
