@@ -23,9 +23,10 @@ describe('build-icon ICONSET map', () => {
     }
   })
 
-  it('16 and 32 px renders use the simplified small master', () => {
+  it('the 16x16 and 32x32 logical slots (except 32x32@2x) use the small master', () => {
+    const SMALL_NAMES = ['icon_16x16.png', 'icon_16x16@2x.png', 'icon_32x32.png']
     for (const e of ICONSET) {
-      expect(e.source).toBe(e.size <= 32 ? 'small' : 'master')
+      expect(e.source).toBe(SMALL_NAMES.includes(e.name) ? 'small' : 'master')
     }
   })
 })

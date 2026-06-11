@@ -49,21 +49,27 @@ async function main() {
   fs.mkdirSync(iconset, { recursive: true })
 
   const browser = await chromium.launch()
-  const page = await browser.newPage()
-  for (const entry of ICONSET) {
-    await renderSvg(page, SOURCES[entry.source], entry.size, path.join(iconset, entry.name))
-    console.log(`rendered ${entry.name} (${entry.size}px, ${entry.source})`)
+  try {
+    const page = await browser.newPage()
+    for (const entry of ICONSET) {
+      await renderSvg(page, SOURCES[entry.source], entry.size, path.join(iconset, entry.name))
+      console.log(`rendered ${entry.name} (${entry.size}px, ${entry.source})`)
+    }
+    await renderSvg(page, SOURCES.master, 1024, path.join(ROOT, 'build', 'icon.png'))
+  } finally {
+    await browser.close()
   }
-  await renderSvg(page, SOURCES.master, 1024, path.join(ROOT, 'build', 'icon.png'))
-  await browser.close()
 
   if (process.platform === 'darwin') {
-    execFileSync('iconutil', ['-c', 'icns', iconset, '-o', path.join(ROOT, 'build', 'icon.icns')])
-    console.log('packed build/icon.icns')
+    try {
+      execFileSync('iconutil', ['-c', 'icns', iconset, '-o', path.join(ROOT, 'build', 'icon.icns')])
+      console.log('packed build/icon.icns')
+    } finally {
+      fs.rmSync(iconset, { recursive: true, force: true })
+    }
   } else {
     console.log('skipped iconutil (not macOS); iconset left in build/icon.iconset')
   }
-  fs.rmSync(iconset, { recursive: true, force: true })
 }
 
 const isMain =
