@@ -28,7 +28,12 @@
     "pretest:e2e": "npm run build",
     "test:e2e": "playwright test",
     "dist:mac": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac",
-    "dist:dir": "npm run build && electron-builder --dir"
+    "dist:dir": "npm run build && electron-builder --dir",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --fix",
+    "*.{css,json,md}": "prettier --write"
   },
   "dependencies": {
     "electron-updater": "^6.8.3"
@@ -38,6 +43,8 @@
     "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.1",
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
     "@electron/notarize": "^3.1.1",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
@@ -58,8 +65,10 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "happy-dom": "^20.0.0",
     "highlight.js": "^11.11.1",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "katex": "^0.17.0",
+    "lint-staged": "^16.4.0",
     "lowlight": "^3.3.0",
     "markdown-it": "^14.1.0",
     "markdown-it-emoji": "^3.0.0",

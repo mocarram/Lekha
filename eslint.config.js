@@ -11,6 +11,7 @@ export default tseslint.config(
       'node_modules/**',
       'coverage/**',
       '*.config.js',
+      'commitlint.config.mjs',
       'scripts/**',
       // Plain-JS build hooks (e.g. build/notarize.cjs) are CommonJS tooling, not
       // part of the typed TS source tree.
