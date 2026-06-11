@@ -21,6 +21,8 @@
     "tests/unit/themes/menuTheme.test.ts",
     // Build-hook unit tests run under the Node environment.
     "tests/unit/build/**/*.ts",
+    // Icon pipeline unit tests run under the Node environment.
+    "tests/unit/scripts/**/*.ts",
     // NOTE: E2E specs are intentionally NOT here. They are typechecked in
     // tsconfig.e2e.json because their browser-side page.evaluate() callbacks
     // need the DOM lib, which this Node-only project deliberately omits.

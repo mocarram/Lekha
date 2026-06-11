@@ -22,6 +22,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\" \"*.{md,json,ts}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json,md}\"",
+    "build:icon": "node scripts/build-icon.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "pretest:e2e": "npm run build",
