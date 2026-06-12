@@ -10,16 +10,21 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Every job aligns npm to 11 before `npm ci`: package.json engines require
+# npm >=11.10 and the lockfile is written by npm 11, which omits optional
+# platform packages that the runner-bundled npm 10 rejects as "out of sync".
+
 jobs:
   checks:
     name: Typecheck, lint, unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
@@ -29,11 +34,12 @@ jobs:
     name: E2E (macOS)
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
@@ -48,12 +54,13 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose

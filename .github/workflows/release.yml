@@ -13,13 +13,19 @@ jobs:
   release:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Matches package.json engines (node >=22).
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+
+      # Engines require npm >=11 and the lockfile is written by npm 11, which
+      # omits optional platform packages that the runner-bundled npm 10 then
+      # rejects in `npm ci` (lockfile "out of sync"). Align npm first.
+      - name: Use npm 11 (matches engines + lockfile)
+        run: npm install -g npm@11
 
       - name: Install dependencies
         run: npm ci
