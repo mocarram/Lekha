@@ -85,6 +85,38 @@ describe('Sidebar', () => {
     expect(container.querySelector('.outline')).toBeNull()
   })
 
+  it('the Files header shows the open folder name with the full path as tooltip', () => {
+    useWorkspaceStore.setState({
+      sidebarTab: 'files',
+      rootFolder: '/Users/someone/Notes/My Vault',
+      fileTree: [{ name: 'a.md', path: '/Users/someone/Notes/My Vault/a.md', isDirectory: false }],
+    })
+    const { container } = render(
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
+    )
+    const header = container.querySelector('.sidebar__header')
+    expect(header?.textContent).toBe('My Vault')
+    expect(header?.getAttribute('title')).toBe('/Users/someone/Notes/My Vault')
+  })
+
+  it('the Files header falls back to "Files" with no folder open, without a tooltip', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'files', rootFolder: null, fileTree: [] })
+    const { container } = render(
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
+    )
+    const header = container.querySelector('.sidebar__header')
+    expect(header?.textContent).toBe('Files')
+    expect(header?.getAttribute('title')).toBeNull()
+  })
+
+  it('non-files tabs keep their generic headers even with a folder open', () => {
+    useWorkspaceStore.setState({ sidebarTab: 'outline', rootFolder: '/root/vault' })
+    const { container } = render(
+      <Sidebar onSelectFile={noop} onJumpToHeading={noop} onOpenSearchResult={noop} {...fileOpProps} />,
+    )
+    expect(container.querySelector('.sidebar__header')?.textContent).toBe('Outline')
+  })
+
   it('shows the empty drop-state when the Files tab is active with no folder open', () => {
     useWorkspaceStore.setState({ sidebarTab: 'files', rootFolder: null, fileTree: [] })
     const { container } = render(

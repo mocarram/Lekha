@@ -63,6 +63,12 @@ test('the last folder is restored into the sidebar tree, including plain text fi
   await expect(win.locator('.file-tree__name', { hasText: 'plain.txt' })).toBeVisible()
 })
 
+test('the sidebar header shows the open folder name with its path as tooltip', async () => {
+  const header = win.locator('.sidebar__header')
+  await expect(header).toHaveText(path.basename(docsDir))
+  await expect(header).toHaveAttribute('title', docsDir)
+})
+
 test('the path policy rejects paths the user never opened and allows the workspace', async () => {
   // Outside any permitted root: must reject (defense-in-depth regression test).
   const denied = await win.evaluate(async () => {

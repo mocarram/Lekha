@@ -133,9 +133,14 @@ export function Sidebar({
   if (!sidebarVisible) return null
 
   // Section header label reflects the active tab (minimalist uppercase title).
+  // The Files tab shows the OPEN FOLDER's name instead of the generic "Files"
+  // (VS Code-style), so the workspace is identifiable at a glance; the full
+  // path lives in the tooltip. CSS uppercases it like the other headers.
+  const folderName =
+    rootFolder !== null ? rootFolder.split('/').filter(Boolean).pop() ?? null : null
   const headerLabel =
     sidebarTab === 'files'
-      ? 'Files'
+      ? folderName ?? 'Files'
       : sidebarTab === 'outline'
         ? 'Outline'
         : sidebarTab === 'articles'
@@ -147,7 +152,12 @@ export function Sidebar({
       {/* Top strip: reserves room for the macOS traffic lights (drawn by the OS
           over the sidebar's top-left) and serves as a window drag region. */}
       <div className="sidebar__chrome" />
-      <div className="sidebar__header">{headerLabel}</div>
+      <div
+        className="sidebar__header"
+        title={sidebarTab === 'files' && rootFolder !== null ? rootFolder : undefined}
+      >
+        {headerLabel}
+      </div>
       <div className="sidebar__content">
         {sidebarTab === 'files' ? (
           <div
