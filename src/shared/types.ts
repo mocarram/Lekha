@@ -155,6 +155,12 @@ export interface Settings {
    * persist a pin (no path).
    */
   pinnedTabPaths: string[]
+  /**
+   * Window page-zoom factor (1 = 100%). Persisted because the custom zoom
+   * menu items replace Electron's zoom roles (which persisted zoom per-origin
+   * via Chromium); restored to every window at startup.
+   */
+  zoomFactor: number
 }
 
 /** Default editor font size (px). Shared by the settings store and the renderer. */

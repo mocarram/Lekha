@@ -21,6 +21,7 @@ import { useDocumentsStore } from '@renderer/store/documentsStore'
 import { applyTheme, applyFontSize, injectUserThemes } from '@renderer/themes/index'
 import { setSmartPunctuation } from '@renderer/editor/createState'
 import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
+import { applyChromeZoom } from '@renderer/chromeZoom'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { BackupRecord } from '@shared/types'
 import { normalizeLineEndings } from '@shared/eol'
@@ -188,6 +189,18 @@ export function useStartup(
       const restoredWidth = clampSidebarWidth(s.sidebarWidth)
       document.documentElement.style.setProperty('--sidebar-width', `${restoredWidth}px`)
       onSidebarWidth?.(restoredWidth)
+
+      // Restore the persisted page zoom (global preference, every window).
+      // Main clamps and applies the factor; the resolved value drives the
+      // zoom compensation of the native-anchored chrome (chromeZoom.ts).
+      // Skipped at the default 1 - nothing to compensate.
+      if (typeof s.zoomFactor === 'number' && s.zoomFactor !== 1) {
+        try {
+          applyChromeZoom(await window.lekha.adjustZoom(s.zoomFactor))
+        } catch {
+          // Zoom restore is cosmetic best-effort; never block startup on it.
+        }
+      }
 
       // Session ownership: exactly ONE window per app run replays the session
       // (the last folder, the previous tabs, and crash recovery below).

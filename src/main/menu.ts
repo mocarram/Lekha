@@ -418,9 +418,13 @@ export function buildMenuTemplate(
       { role: 'reload' },
       { role: 'toggleDevTools' },
       sep,
-      { role: 'resetZoom' },
-      { role: 'zoomIn' },
-      { role: 'zoomOut' },
+      // Custom zoom commands instead of the zoom roles: the renderer routes
+      // them through zoom:adjust so it learns the resulting factor and can
+      // zoom-compensate the native-anchored chrome (sidebar toggle, traffic-
+      // light clearances) - OS pixels do not scale with page zoom.
+      item('Actual Size', 'CmdOrCtrl+0', 'zoomReset', send),
+      item('Zoom In',     'CmdOrCtrl+=', 'zoomIn',    send),
+      item('Zoom Out',    'CmdOrCtrl+-', 'zoomOut',   send),
       sep,
       { role: 'togglefullscreen' },
     ],

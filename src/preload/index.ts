@@ -181,6 +181,13 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.shouldRestoreSession) as Promise<boolean>
   },
 
+  // Adjusts this window's page zoom ('in' | 'out' | 'reset', or an absolute
+  // factor for the startup restore); resolves with the resulting factor so
+  // the renderer can zoom-compensate the native-anchored chrome.
+  adjustZoom(action: 'in' | 'out' | 'reset' | number): Promise<number> {
+    return ipcRenderer.invoke(IPC.adjustZoom, action) as Promise<number>
+  },
+
   // Subscribes to set-theme messages from main (Theme menu).
   // Returns an unsubscribe function for cleanup on unmount.
   onSetTheme(cb: (id: string) => void): () => void {

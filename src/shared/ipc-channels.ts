@@ -45,6 +45,13 @@ export const IPC = {
    * (File > New Window) start blank instead of replaying the session.
    */
   shouldRestoreSession: 'session:shouldRestore',
+  /**
+   * Renderer -> main: change this window's page zoom ('in' | 'out' | 'reset',
+   * or an absolute factor for the startup restore). Returns the resulting
+   * factor so the renderer can zoom-compensate the native-anchored chrome
+   * (the OS traffic lights do not scale with page zoom).
+   */
+  adjustZoom: 'zoom:adjust',
   getRecentFiles: 'settings:getRecentFiles',
   addRecentFile: 'settings:addRecentFile',
   getSettings: 'settings:get',

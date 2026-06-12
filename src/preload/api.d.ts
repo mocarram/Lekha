@@ -130,6 +130,14 @@ export interface LekhaAPI {
   shouldRestoreSession(): Promise<boolean>
 
   /**
+   * Adjust this window's page zoom: 'in' | 'out' | 'reset' step like the
+   * standard zoom menu items, a number applies an absolute factor (the
+   * startup restore). Resolves with the resulting zoom factor so callers can
+   * zoom-compensate the native-anchored chrome.
+   */
+  adjustZoom(action: 'in' | 'out' | 'reset' | number): Promise<number>
+
+  /**
    * Subscribe to set-theme messages from the main process (Theme menu).
    * The callback receives the chosen theme id string.
    * Returns an unsubscribe function that removes the listener.

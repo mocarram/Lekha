@@ -50,9 +50,14 @@ body,
   padding: var(--shell-gap);
   gap: var(--shell-gap);
   /* Sidebar-toggle geometry, shared by the button itself and the collapsed
-     tab-bar's left clearance below so the two can never drift apart. */
-  --sidebar-toggle-left: 80px;
-  --sidebar-toggle-width: 26px;
+     tab-bar's left clearance below so the two can never drift apart.
+     Divided by the page-zoom factor: the toggle hugs the macOS traffic
+     lights, which are OS-drawn at fixed NATIVE pixels and do not scale with
+     page zoom. CSS px / zoom keeps the product (native px) constant, so the
+     chrome stays glued to the lights at every zoom level (chromeZoom.ts
+     maintains --zoom-factor on the root element). */
+  --sidebar-toggle-left: calc(80px / var(--zoom-factor, 1));
+  --sidebar-toggle-width: calc(26px / var(--zoom-factor, 1));
 }
 
 /* ---------------------------------------------------------------------------
@@ -65,18 +70,19 @@ body,
  * --------------------------------------------------------------------------- */
 .sidebar-toggle {
   position: absolute;
-  /* Vertically center the 24px button on the title-bar row: the macOS traffic
-     lights (trafficLightPosition y:15, 12px tall -> center y21) and the tab
-     strip (top 6px gutter + 30px bar -> center y21). 9 + 24/2 = 21 exactly -
-     at 10px the button sat 1px low and read as misaligned at some zooms. */
-  top: 9px;
+  /* Vertically center the button on the NATIVE title-bar row: the macOS
+     traffic lights (trafficLightPosition y:15, 12px tall -> center y21).
+     9 + 24/2 = 21 native px exactly; every dimension divides by the zoom
+     factor so that alignment holds at any page zoom (the lights don't
+     scale; see the --sidebar-toggle-* block above). */
+  top: calc(9px / var(--zoom-factor, 1));
   left: var(--sidebar-toggle-left);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
   width: var(--sidebar-toggle-width);
-  height: 24px;
+  height: calc(24px / var(--zoom-factor, 1));
   padding: 0;
   border: none;
   border-radius: var(--radius-sm, 5px);
@@ -96,6 +102,12 @@ body,
   background-color: var(--sidebar-hover);
 }
 
+/* The glyph keeps its NATIVE 16px size at any zoom, like the button box. */
+.sidebar-toggle svg {
+  width: calc(16px / var(--zoom-factor, 1));
+  height: calc(16px / var(--zoom-factor, 1));
+}
+
 /* ---------------------------------------------------------------------------
  * Sidebar chrome strip: reserves the top-left area for the macOS traffic
  * lights (drawn by the OS over this strip) and acts as a window drag region.
@@ -103,8 +115,9 @@ body,
  * --------------------------------------------------------------------------- */
 .sidebar__chrome {
   /* Tall enough to clear the OS traffic lights (positioned at y:15 in
-     window.ts) with padding before the panel header. */
-  height: 36px;
+     window.ts, NATIVE pixels - hence the zoom compensation) with padding
+     before the panel header. */
+  height: calc(36px / var(--zoom-factor, 1));
   flex-shrink: 0;
   -webkit-app-region: drag;
   user-select: none;

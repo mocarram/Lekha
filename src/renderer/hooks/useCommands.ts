@@ -22,6 +22,7 @@ import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useDocumentsStore, nextTabId } from '@renderer/store/documentsStore'
 import { injectUserThemes, applyTheme, THEMES } from '@renderer/themes/index'
+import { applyChromeZoom } from '@renderer/chromeZoom'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
 // Type-only import: erased at build time, so it does NOT pull the export
@@ -290,6 +291,17 @@ export function useCommands(
         const next = !useWorkspaceStore.getState().alwaysOnTop
         useWorkspaceStore.getState().setAlwaysOnTop(next)
         window.lekha.setAlwaysOnTop(next)
+        return
+      }
+
+      // ------------------------------------------------------------------
+      // Window zoom (View menu). Main applies the zoom and returns the
+      // resulting factor; the chrome that is anchored to the NATIVE traffic
+      // lights re-compensates from it (see chromeZoom.ts).
+      // ------------------------------------------------------------------
+      if (cmd === 'zoomIn' || cmd === 'zoomOut' || cmd === 'zoomReset') {
+        const action = cmd === 'zoomIn' ? 'in' : cmd === 'zoomOut' ? 'out' : 'reset'
+        void window.lekha.adjustZoom(action).then(applyChromeZoom)
         return
       }
 

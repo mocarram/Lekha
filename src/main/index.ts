@@ -15,6 +15,7 @@ import { listUserThemes } from '@main/userThemes'
 import { markdownPathsFromArgv } from '@main/openWith'
 import { allowFile, isPathAllowed } from '@main/pathPolicy'
 import { claimSessionRestore } from '@main/sessionRestore'
+import { nextZoomLevel, clampZoomFactor } from '@main/zoom'
 import { join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
@@ -534,6 +535,24 @@ void app.whenReady().then(async () => {
   // to ask) replays the persisted session + crash recovery; every later window
   // (File > New Window) starts blank instead of duplicating the session.
   guardedIpc.handle(IPC.shouldRestoreSession, () => claimSessionRestore())
+
+  // Page zoom for the SENDER's window. Replaces Electron's zoom menu roles so
+  // the renderer learns the resulting factor and can zoom-compensate the
+  // native-anchored chrome (the OS traffic lights do not scale with page
+  // zoom). 'in'/'out'/'reset' step in Chromium zoom levels like the roles
+  // did; a number is the absolute factor restore at startup. The factor is
+  // persisted as a global preference (the roles persisted zoom per-origin).
+  guardedIpc.handle(IPC.adjustZoom, (event, action: unknown): number => {
+    const wc = event.sender
+    if (typeof action === 'number') {
+      wc.setZoomFactor(clampZoomFactor(action))
+    } else if (action === 'in' || action === 'out' || action === 'reset') {
+      wc.setZoomLevel(nextZoomLevel(wc.getZoomLevel(), action))
+    }
+    const factor = wc.getZoomFactor()
+    void settings.set({ zoomFactor: factor })
+    return factor
+  })
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens

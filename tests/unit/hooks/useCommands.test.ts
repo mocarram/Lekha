@@ -214,12 +214,20 @@ function stubLekha(): void {
     exportPandoc: vi.fn(() => Promise.resolve()),
     pandocAvailable: vi.fn(() => Promise.resolve(false)),
     saveImage: vi.fn(() => Promise.resolve({ insertPath: 'assets/image-000001.png' })),
+    adjustZoom: adjustZoomMock,
   }
   vi.stubGlobal('lekha', mockLekha)
 }
 
+/** Captured zoom IPC mock - resolves with the "new" factor main would return. */
+const adjustZoomMock = vi.fn((_action: 'in' | 'out' | 'reset' | number) =>
+  Promise.resolve(0.83),
+)
+
 beforeEach(() => {
   unsubscribeMock.mockClear()
+  adjustZoomMock.mockClear()
+  document.documentElement.style.removeProperty('--zoom-factor')
   useWorkspaceStore.setState({ sidebarVisible: true })
   stubLekha()
 })
@@ -273,6 +281,24 @@ describe('useCommands - file operation routing', () => {
     act(() => { capturedDispatch!('save') })
 
     expect(save).toHaveBeenCalledOnce()
+  })
+
+  it('zoom commands route through adjustZoom and re-compensate the chrome', async () => {
+    const { ref } = makeMockEditor()
+    const { fileOps } = makeMockFileOps()
+    renderHook(() => useCommands(ref, fileOps, { onFind: vi.fn(), onReplace: vi.fn(), onLink: vi.fn(), onInsertImage: vi.fn(), onPreferences: vi.fn(), onCommandPalette: vi.fn(), onQuickOpen: vi.fn(), onPresentation: vi.fn(), onNewFromTemplate: vi.fn() }))
+
+    act(() => { capturedDispatch!('zoomOut') })
+    expect(adjustZoomMock).toHaveBeenCalledWith('out')
+    // The resolved factor from main lands in the chrome-compensation var.
+    await vi.waitFor(() => {
+      expect(document.documentElement.style.getPropertyValue('--zoom-factor')).toBe('0.83')
+    })
+
+    act(() => { capturedDispatch!('zoomIn') })
+    expect(adjustZoomMock).toHaveBeenCalledWith('in')
+    act(() => { capturedDispatch!('zoomReset') })
+    expect(adjustZoomMock).toHaveBeenCalledWith('reset')
   })
 
   it('dispatching "new" calls fileOps.newFile()', () => {

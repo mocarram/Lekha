@@ -88,6 +88,13 @@ export type AppCommand =
   | 'pasteAsPlainText'
   | 'eolLf'
   | 'eolCrlf'
+  // Window zoom (View menu). Custom commands instead of Electron's zoom roles:
+  // the renderer routes them through the zoom:adjust IPC so it learns the new
+  // factor and can zoom-compensate the native-anchored chrome (sidebar toggle,
+  // traffic-light clearances), which OS pixels do not scale with page zoom.
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'zoomReset'
   | 'commandPalette'
   | 'quickOpen'
   | 'presentation'
