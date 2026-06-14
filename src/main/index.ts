@@ -19,7 +19,7 @@ import { nextZoomLevel, clampZoomFactor } from '@main/zoom'
 import { join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
-import { setupAutoUpdater, checkForUpdates } from '@main/updater'
+import { setupAutoUpdater, checkForUpdates, runUpdateCheck, updateChannel } from '@main/updater'
 import { applySpellCheck } from '@main/spellCheck'
 import { buildContextMenuTemplate } from '@main/contextMenu'
 import type { ContextMenuParams as LocalContextMenuParams } from '@main/contextMenu'
@@ -553,6 +553,17 @@ void app.whenReady().then(async () => {
     void settings.set({ zoomFactor: factor })
     return factor
   })
+
+  // In-app "Check for updates" (Preferences > About). Returns the structured,
+  // channel-aware result so the renderer can render the right message (and the
+  // brew-upgrade hint on the Homebrew channel) instead of a native dialog.
+  guardedIpc.handle(IPC.checkForUpdates, () => runUpdateCheck())
+
+  // App version + update channel for the About section.
+  guardedIpc.handle(IPC.getAppInfo, () => ({
+    version: app.getVersion(),
+    channel: updateChannel(),
+  }))
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens

@@ -8,6 +8,14 @@ const alias = {
   '@main': resolve('src/main'),
 }
 
+// Update channel baked at build time (see src/shared/updateChannel.ts). A
+// packaged app has no env to read, so the CI/Homebrew build leaves this unset
+// (-> 'homebrew', electron-updater dormant); a future signed direct-download
+// build sets LEKHA_UPDATE_CHANNEL=direct to enable real auto-update.
+const updateChannelDefine = {
+  __UPDATE_CHANNEL__: JSON.stringify(process.env['LEKHA_UPDATE_CHANNEL'] ?? 'homebrew'),
+}
+
 // Packaging rule: externalizeDepsPlugin keeps everything in package.json
 // "dependencies" UNBUNDLED and ships it as node_modules inside the asar. Main
 // and preload only import `electron-updater` from npm, so that is the sole
@@ -18,6 +26,7 @@ export default defineConfig({
   main: {
     resolve: { alias },
     plugins: [externalizeDepsPlugin()],
+    define: updateChannelDefine,
     build: {
       rollupOptions: {
         input: { index: resolve('src/main/index.ts') },

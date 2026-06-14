@@ -1418,6 +1418,50 @@ body,
   color: var(--color-text-muted);
 }
 
+/* About section: version label + "Check for updates" on one row. */
+.prefs-about {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prefs-version {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.prefs-update-status {
+  margin-top: 10px;
+}
+
+.prefs-update-msg {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* The copyable brew command + Copy button. */
+.prefs-brew {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prefs-brew-cmd {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 5px);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
 .prefs-check {
   display: flex;
   align-items: center;

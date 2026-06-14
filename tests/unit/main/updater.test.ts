@@ -14,12 +14,13 @@ import { describe, it, expect, vi } from 'vitest'
 vi.mock('electron', () => ({
   app: { isPackaged: false, getVersion: () => '0.1.0' },
   dialog: { showMessageBox: vi.fn() },
+  clipboard: { writeText: vi.fn() },
 }))
 vi.mock('electron-updater', () => ({
   default: { autoUpdater: { on: vi.fn() } },
 }))
 
-import { updateStatusMessage } from '../../../src/main/updater'
+import { updateStatusMessage, brewUpgradeCommand, updateChannel } from '../../../src/main/updater'
 
 describe('updateStatusMessage', () => {
   it('maps "checking" to a checking message', () => {
@@ -46,5 +47,17 @@ describe('updateStatusMessage', () => {
 
   it('maps "error" to a friendly failure message', () => {
     expect(updateStatusMessage('error')).toMatch(/could not check/i)
+  })
+})
+
+describe('channel helpers', () => {
+  it('defaults to the homebrew channel when the build flag is unset', () => {
+    // __UPDATE_CHANNEL__ is undefined under vitest (no vite define), so the
+    // build resolves to the safe default.
+    expect(updateChannel()).toBe('homebrew')
+  })
+
+  it('exposes the brew upgrade command for the cask', () => {
+    expect(brewUpgradeCommand()).toBe('brew upgrade --cask lekha')
   })
 })

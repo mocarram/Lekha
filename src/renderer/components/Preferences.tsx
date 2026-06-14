@@ -30,6 +30,7 @@ import { setSmartPunctuation } from '@renderer/editor/createState'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
 import { useFocusTrap } from '@renderer/hooks/useFocusTrap'
+import type { UpdateChannel, UpdateCheckResult } from '@shared/updateChannel'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,9 +93,20 @@ const SPELL_CHECK_LANGUAGES: { value: string; label: string }[] = [
 // Component
 // ---------------------------------------------------------------------------
 
+/** Update-check UI state for the About section. */
+type UpdateState =
+  | { phase: 'idle' }
+  | { phase: 'checking' }
+  | { phase: 'done'; result: UpdateCheckResult }
+
 export function Preferences({ open, onClose, onApplyAutoSave }: PreferencesProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const dialogRef = useRef<HTMLDivElement>(null)
+
+  // About section: app version + channel (loaded on open) and update-check UI.
+  const [appInfo, setAppInfo] = useState<{ version: string; channel: UpdateChannel } | null>(null)
+  const [update, setUpdate] = useState<UpdateState>({ phase: 'idle' })
+  const [copied, setCopied] = useState(false)
 
   // Confine Tab/Shift+Tab to the dialog while it is open.
   useFocusTrap(dialogRef, open)
@@ -120,13 +132,56 @@ export function Preferences({ open, onClose, onApplyAutoSave }: PreferencesProps
         smartPunctuation: s.smartPunctuation,
       })
     })
+    // Load the version + channel for the About section.
+    void window.lekha.getAppInfo().then((info) => {
+      if (!cancelled) setAppInfo(info)
+    })
     dialogRef.current?.focus()
     return () => {
       cancelled = true
     }
   }, [open])
 
+  // Clear any stale update-check result from a previous open by adjusting state
+  // during render on the closed->open transition (the React-endorsed pattern
+  // for "reset state when a prop changes", which avoids a setState-in-effect).
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setUpdate({ phase: 'idle' })
+      setCopied(false)
+    }
+  }
+
   if (!open) return null
+
+  const handleCheckForUpdates = (): void => {
+    setUpdate({ phase: 'checking' })
+    setCopied(false)
+    void window.lekha
+      .checkForUpdates()
+      .then((result) => { setUpdate({ phase: 'done', result }) })
+      .catch(() => {
+        // The IPC never rejects, but stay defensive: surface a generic error.
+        setUpdate({
+          phase: 'done',
+          result: {
+            channel: appInfo?.channel ?? 'homebrew',
+            currentVersion: appInfo?.version ?? '',
+            latestVersion: null,
+            updateAvailable: false,
+            error: true,
+          },
+        })
+      })
+  }
+
+  const handleCopyBrewCommand = (cmd: string): void => {
+    void window.lekha.writeClipboard({ text: cmd }).then(() => {
+      setCopied(true)
+    })
+  }
 
   // Persist a settings patch. Each handler also applies the live effect.
   const persist = (patch: Partial<Settings>): void => {
@@ -392,6 +447,61 @@ export function Preferences({ open, onClose, onApplyAutoSave }: PreferencesProps
               <option value="outline">Outline</option>
             </select>
           </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* About + updates */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="prefs-section">
+          <h3 className="prefs-heading">About</h3>
+
+          <div className="prefs-about">
+            <span className="prefs-version">
+              Lekha {appInfo ? appInfo.version : '…'}
+            </span>
+            <button
+              type="button"
+              className="dialog-btn"
+              onClick={handleCheckForUpdates}
+              disabled={update.phase === 'checking'}
+            >
+              {update.phase === 'checking' ? 'Checking…' : 'Check for updates'}
+            </button>
+          </div>
+
+          {update.phase === 'done' && (
+            <div className="prefs-update-status" role="status">
+              {update.result.error ? (
+                <p className="prefs-update-msg">
+                  Could not check for updates. Please try again later.
+                </p>
+              ) : !update.result.updateAvailable ? (
+                <p className="prefs-update-msg">You are on the latest version.</p>
+              ) : update.result.channel === 'homebrew' ? (
+                <>
+                  <p className="prefs-update-msg">
+                    Lekha {update.result.latestVersion} is available. Update from your
+                    terminal:
+                  </p>
+                  <div className="prefs-brew">
+                    <code className="prefs-brew-cmd">brew upgrade --cask lekha</code>
+                    <button
+                      type="button"
+                      className="dialog-btn"
+                      onClick={() => { handleCopyBrewCommand('brew upgrade --cask lekha') }}
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="prefs-update-msg">
+                  Lekha {update.result.latestVersion} is downloading in the background and
+                  will install on restart.
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         <div className="dialog-actions">

@@ -13,6 +13,7 @@ import * as path from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { Settings } from '../../../src/shared/types'
+import type { UpdateCheckResult } from '../../../src/shared/updateChannel'
 import type { LekhaAPI } from '../../../src/preload/api'
 import { useEditorStore } from '../../../src/renderer/store/editorStore'
 import { useWorkspaceStore } from '../../../src/renderer/store/workspaceStore'
@@ -58,15 +59,32 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
 
 let setSettingsMock: ReturnType<typeof vi.fn<(patch: Partial<Settings>) => Promise<Settings>>>
 let getSettingsMock: ReturnType<typeof vi.fn<() => Promise<Settings>>>
+let checkForUpdatesMock: ReturnType<typeof vi.fn<() => Promise<UpdateCheckResult>>>
+let writeClipboardMock: ReturnType<typeof vi.fn<(p: { text: string }) => Promise<void>>>
 
-function stubLekha(settings: Settings): void {
+function stubLekha(settings: Settings, updateResult?: UpdateCheckResult): void {
   setSettingsMock = vi.fn((patch: Partial<Settings>) =>
     Promise.resolve({ ...settings, ...patch }),
   )
   getSettingsMock = vi.fn(() => Promise.resolve(settings))
+  checkForUpdatesMock = vi.fn(() =>
+    Promise.resolve(
+      updateResult ?? {
+        channel: 'homebrew' as const,
+        currentVersion: '0.1.0',
+        latestVersion: null,
+        updateAvailable: false,
+        error: false,
+      },
+    ),
+  )
+  writeClipboardMock = vi.fn(() => Promise.resolve())
   const mockLekha: Partial<LekhaAPI> = {
     getSettings: getSettingsMock,
     setSettings: setSettingsMock,
+    getAppInfo: vi.fn(() => Promise.resolve({ version: '0.1.0', channel: 'homebrew' as const })),
+    checkForUpdates: checkForUpdatesMock,
+    writeClipboard: writeClipboardMock,
   }
   vi.stubGlobal('lekha', mockLekha)
 }
@@ -394,5 +412,57 @@ describe('Preferences - font size clamping', () => {
     await renderOpen()
     fireEvent.change(screen.getByLabelText('Font size'), { target: { value: '2' } })
     expect(setSettingsMock).toHaveBeenCalledWith({ fontSize: 12 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// About + channel-aware update check
+// ---------------------------------------------------------------------------
+
+describe('Preferences - About / updates', () => {
+  it('shows the app version from getAppInfo', async () => {
+    await renderOpen()
+    await waitFor(() => expect(screen.getByText(/Lekha 0\.1\.0/)).toBeTruthy())
+  })
+
+  it('reports "latest version" when no update is available', async () => {
+    await renderOpen()
+    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+    await waitFor(() =>
+      expect(screen.getByText(/latest version/i)).toBeTruthy(),
+    )
+  })
+
+  it('on Homebrew, an available update shows the copyable brew command', async () => {
+    stubLekha(makeSettings(), {
+      channel: 'homebrew',
+      currentVersion: '0.1.0',
+      latestVersion: '0.2.0',
+      updateAvailable: true,
+      error: false,
+    })
+    await renderOpen()
+    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+    await waitFor(() => expect(screen.getByText(/0\.2\.0 is available/)).toBeTruthy())
+    expect(screen.getByText('brew upgrade --cask lekha')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }))
+    await waitFor(() =>
+      expect(writeClipboardMock).toHaveBeenCalledWith({ text: 'brew upgrade --cask lekha' }),
+    )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copied' })).toBeTruthy())
+  })
+
+  it('surfaces a friendly message when the check errors', async () => {
+    stubLekha(makeSettings(), {
+      channel: 'homebrew',
+      currentVersion: '0.1.0',
+      latestVersion: null,
+      updateAvailable: false,
+      error: true,
+    })
+    await renderOpen()
+    fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+    await waitFor(() => expect(screen.getByText(/could not check/i)).toBeTruthy())
   })
 })

@@ -1,28 +1,46 @@
 /**
- * updater.ts - Auto-update wiring via electron-updater.
+ * updater.ts - channel-aware update checking.
  *
- * Design / safety contract:
- *   - In DEVELOPMENT (!app.isPackaged) every public function is a NO-OP. The
- *     electron-updater code path is only meaningful for a packaged app reading
- *     its latest-mac.yml from the configured GitHub release channel; running it
- *     unpackaged throws ("application is not packaged") and pollutes the console.
- *     We guard early and return so dev launches never touch autoUpdater.
- *   - Nothing in here is allowed to throw. autoUpdater work is wrapped so a
- *     network failure / missing release simply logs and (optionally) notifies.
- *   - The GitHub provider (owner/repo) is declared in electron-builder.yml under
- *     `publish:`; electron-updater reads the generated app-update.yml at runtime,
- *     so no provider config is needed here.
+ * Two non-overlapping channels (see src/shared/updateChannel.ts):
  *
- * electron-updater itself is Electron-bound and cannot be unit-tested in the
- * vitest/Node environment, so the testable surface is the pure
- * `updateStatusMessage` mapper below. The full check/download/notify flow is
- * verified MANUALLY on a packaged build (see PR notes).
+ *   - 'homebrew' (default, unsigned cask): electron-updater stays DORMANT -
+ *     macOS rejects an unsigned Squirrel.Mac update, so running it would only
+ *     download something it can never install. The update check instead queries
+ *     the GitHub Releases API and, when a newer version exists, tells the user
+ *     to run `brew upgrade --cask lekha`.
+ *   - 'direct' (signed + notarized): electron-updater drives real in-app
+ *     auto-update (background download, install on quit) and the manual check
+ *     delegates to it.
+ *
+ * The channel is baked at build time (electron.vite.config.ts define). Pure
+ * helpers (updateStatusMessage + the version math in updateChannel.ts) are
+ * unit-tested; the electron-updater path is verified MANUALLY on a packaged
+ * signed build.
  */
 
-import { app, dialog } from 'electron'
+import { app, dialog, clipboard } from 'electron'
 import electronUpdater from 'electron-updater'
+import {
+  normalizeChannel,
+  isNewerVersion,
+  type UpdateChannel,
+  type UpdateCheckResult,
+} from '@shared/updateChannel'
 
 const { autoUpdater } = electronUpdater
+
+/** Build-time channel flag (electron.vite.config.ts `define`). */
+declare const __UPDATE_CHANNEL__: string
+const CHANNEL: UpdateChannel = normalizeChannel(
+  typeof __UPDATE_CHANNEL__ === 'string' ? __UPDATE_CHANNEL__ : undefined,
+)
+
+/** GitHub repo backing the Homebrew channel's release lookup + cask. */
+const GITHUB_REPO = 'mocarram/Lekha'
+/** The cask token, used in the upgrade hint shown to Homebrew users. */
+const BREW_CASK = 'lekha'
+/** How long to wait on the GitHub Releases API before giving up. */
+const GITHUB_TIMEOUT_MS = 8000
 
 // ---------------------------------------------------------------------------
 // Pure status mapper (unit-testable)
@@ -37,13 +55,9 @@ export type UpdateStatus =
   | 'error'
 
 /**
- * Map an updater status to a short human-readable message.
- *
- * Pure (no Electron deps) so it can be unit-tested and reused by both the
- * background notifier and the manual "Check for Updates…" dialog.
- *
- * @param status  - The updater lifecycle status.
- * @param version - Optional version string for the available/downloaded states.
+ * Map an updater status to a short human-readable message. Pure (no Electron
+ * deps) so it can be unit-tested and reused by the background notifier, the
+ * manual dialog, and the in-app check.
  */
 export function updateStatusMessage(status: UpdateStatus, version?: string): string {
   switch (status) {
@@ -64,6 +78,85 @@ export function updateStatusMessage(status: UpdateStatus, version?: string): str
   }
 }
 
+/** The `brew upgrade` command Homebrew users run to update. */
+export function brewUpgradeCommand(): string {
+  return `brew upgrade --cask ${BREW_CASK}`
+}
+
+// ---------------------------------------------------------------------------
+// Channel-aware update check (shared by the menu dialog + the in-app button)
+// ---------------------------------------------------------------------------
+
+/** The channel this build was compiled for. */
+export function updateChannel(): UpdateChannel {
+  return CHANNEL
+}
+
+/**
+ * Query the GitHub Releases API for the latest published version. Returns the
+ * tag (without a leading 'v') or null on any failure (network, no releases,
+ * rate limit) - the caller treats null as "could not check".
+ */
+async function fetchLatestGitHubVersion(): Promise<string | null> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => { controller.abort() }, GITHUB_TIMEOUT_MS)
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { Accept: 'application/vnd.github+json' },
+      signal: controller.signal,
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { tag_name?: string }
+    const tag = typeof data.tag_name === 'string' ? data.tag_name.replace(/^v/i, '') : ''
+    return tag.length > 0 ? tag : null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
+ * Run a channel-appropriate update check and return a structured result.
+ * NEVER throws. On 'homebrew' it compares the running version to the latest
+ * GitHub release; on 'direct' it asks electron-updater (packaged only).
+ */
+export async function runUpdateCheck(): Promise<UpdateCheckResult> {
+  const currentVersion = app.getVersion()
+  const base: UpdateCheckResult = {
+    channel: CHANNEL,
+    currentVersion,
+    latestVersion: null,
+    updateAvailable: false,
+    error: false,
+  }
+
+  // Dev/e2e have no release channel: never make the live GitHub/electron-updater
+  // call (avoids a real network request + e2e flakiness). Report "up to date".
+  if (!app.isPackaged) return base
+
+  if (CHANNEL === 'direct') {
+    // Signed build: defer to electron-updater (packaged-only, guarded above).
+    try {
+      const result = await autoUpdater.checkForUpdates()
+      const latest = result?.updateInfo?.version ?? null
+      return {
+        ...base,
+        latestVersion: latest,
+        updateAvailable: latest !== null && isNewerVersion(latest, currentVersion),
+      }
+    } catch (err) {
+      console.error('[updater] direct check failed:', err)
+      return { ...base, error: true }
+    }
+  }
+
+  // Homebrew channel: ask GitHub directly.
+  const latest = await fetchLatestGitHubVersion()
+  if (latest === null) return { ...base, error: true }
+  return { ...base, latestVersion: latest, updateAvailable: isNewerVersion(latest, currentVersion) }
+}
+
 // ---------------------------------------------------------------------------
 // Status callback type
 // ---------------------------------------------------------------------------
@@ -74,19 +167,18 @@ export interface UpdaterOptions {
 }
 
 // ---------------------------------------------------------------------------
-// setupAutoUpdater
+// setupAutoUpdater (background, direct channel only)
 // ---------------------------------------------------------------------------
 
 /**
  * Configure electron-updater and start a background check on launch.
  *
- * NO-OP in development (!app.isPackaged) so dev launches never hit the updater.
- * Never throws: all autoUpdater interaction is wrapped.
+ * DORMANT unless this is a packaged 'direct' (signed) build: the Homebrew
+ * channel can never apply a Squirrel update, so we must not download one.
+ * Never throws - all autoUpdater interaction is wrapped.
  */
 export function setupAutoUpdater(opts: UpdaterOptions = {}): void {
-  // Dev guard: the updater is only meaningful for a packaged build that can
-  // read its release channel. Bail out cleanly otherwise.
-  if (!app.isPackaged) return
+  if (CHANNEL !== 'direct' || !app.isPackaged) return
 
   const emit = (status: UpdateStatus, version?: string): void => {
     const message = updateStatusMessage(status, version)
@@ -95,15 +187,10 @@ export function setupAutoUpdater(opts: UpdaterOptions = {}): void {
   }
 
   try {
-    // We download automatically but install on quit (electron-updater default
-    // for checkForUpdatesAndNotify): the user is notified, no forced restart.
     autoUpdater.autoDownload = true
     autoUpdater.autoInstallOnAppQuit = true
 
     autoUpdater.on('checking-for-update', () => { emit('checking') })
-
-    // A manual "Check for Updates…" resolves its own result dialog by awaiting
-    // checkForUpdates(); these background listeners only log/notify.
     autoUpdater.on('update-available', (info) => { emit('available', info.version) })
     autoUpdater.on('update-not-available', () => { emit('not-available') })
     autoUpdater.on('update-downloaded', (info) => { emit('downloaded', info.version) })
@@ -112,57 +199,84 @@ export function setupAutoUpdater(opts: UpdaterOptions = {}): void {
       emit('error')
     })
 
-    // Background check + native notification when an update is downloaded.
     void autoUpdater.checkForUpdatesAndNotify().catch((err: unknown) => {
       console.error('[updater] checkForUpdatesAndNotify failed:', err)
     })
   } catch (err) {
-    // Defensive: configuration must never crash startup.
     console.error('[updater] setup failed:', err)
   }
 }
 
 // ---------------------------------------------------------------------------
-// checkForUpdates (manual menu trigger)
+// checkForUpdates (manual menu trigger -> native dialog)
 // ---------------------------------------------------------------------------
 
 /**
- * Manually check for updates from the "Check for Updates…" menu item.
- *
- * NO-OP (with a friendly dev dialog suppressed) in development. In production it
- * runs a check and shows a result dialog: "no update found" or "update
- * available / downloading". Never throws.
+ * Manual "Check for Updates…" from the menu. Channel-aware: on Homebrew an
+ * available update offers to copy the `brew upgrade` command; on the direct
+ * channel electron-updater has already begun downloading. Never throws.
  */
 export async function checkForUpdates(): Promise<void> {
   if (!app.isPackaged) {
-    // In dev there is no release channel; show nothing rather than an error.
     console.info('[updater] checkForUpdates skipped (not packaged)')
     return
   }
 
-  try {
-    const result = await autoUpdater.checkForUpdates()
-    // checkForUpdates resolves with the update info; if no newer version is
-    // offered the update-not-available event fires and updateInfo.version equals
-    // the current app version.
-    const version = result?.updateInfo?.version
-    const isNewer = version !== undefined && version !== app.getVersion()
-    const status: UpdateStatus = isNewer ? 'available' : 'not-available'
-    await dialog.showMessageBox({
+  const result = await runUpdateCheck()
+
+  if (result.error) {
+    await dialog
+      .showMessageBox({
+        type: 'warning',
+        title: 'Check for Updates',
+        message: 'Update Check Failed',
+        detail: updateStatusMessage('error'),
+        buttons: ['OK'],
+      })
+      .catch(() => { /* dialog failure is non-fatal */ })
+    return
+  }
+
+  if (!result.updateAvailable) {
+    await dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Check for Updates',
+        message: 'No Updates',
+        detail: updateStatusMessage('not-available'),
+        buttons: ['OK'],
+      })
+      .catch(() => { /* non-fatal */ })
+    return
+  }
+
+  // An update is available.
+  const v = result.latestVersion ?? ''
+  if (CHANNEL === 'homebrew') {
+    const cmd = brewUpgradeCommand()
+    const choice = await dialog
+      .showMessageBox({
+        type: 'info',
+        title: 'Check for Updates',
+        message: `Lekha ${v} is available`,
+        detail: `You are on ${result.currentVersion}. Update from your terminal:\n\n${cmd}`,
+        buttons: ['Copy command', 'OK'],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      .catch(() => null)
+    if (choice?.response === 0) clipboard.writeText(cmd)
+    return
+  }
+
+  // direct channel: electron-updater is downloading in the background.
+  await dialog
+    .showMessageBox({
       type: 'info',
       title: 'Check for Updates',
-      message: isNewer ? 'Update Available' : 'No Updates',
-      detail: updateStatusMessage(status, version),
+      message: 'Update Available',
+      detail: updateStatusMessage('available', v),
       buttons: ['OK'],
     })
-  } catch (err) {
-    console.error('[updater] manual check failed:', err)
-    await dialog.showMessageBox({
-      type: 'warning',
-      title: 'Check for Updates',
-      message: 'Update Check Failed',
-      detail: updateStatusMessage('error'),
-      buttons: ['OK'],
-    }).catch(() => { /* dialog failure is non-fatal */ })
-  }
+    .catch(() => { /* non-fatal */ })
 }

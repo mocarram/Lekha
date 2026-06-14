@@ -11,7 +11,10 @@ cask "lekha" do
   desc "Clean, distraction-free WYSIWYG Markdown editor"
   homepage "https://github.com/mocarram/Lekha"
 
-  auto_updates true
+  # The Homebrew build is unsigned, so the in-app updater (Squirrel.Mac) cannot
+  # apply updates - Homebrew owns them. Leaving auto_updates at its default
+  # (false) keeps `brew upgrade --cask lekha` as the real update path; a future
+  # signed direct-download build would set this true and self-update instead.
   depends_on macos: ">= :big_sur"
 
   app "Lekha.app"

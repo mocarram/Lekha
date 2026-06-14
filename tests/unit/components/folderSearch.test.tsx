@@ -68,6 +68,8 @@ function makeMockLekha(
     onOpenPath: vi.fn(() => unsubscribe),
     takePendingOpen: vi.fn(() => Promise.resolve([])),
     shouldRestoreSession: vi.fn(() => Promise.resolve(true)),    adjustZoom: vi.fn(() => Promise.resolve(1)),
+    checkForUpdates: vi.fn(() => Promise.resolve({ channel: "homebrew" as const, currentVersion: "0.1.0", latestVersion: null, updateAvailable: false, error: false })),
+    getAppInfo: vi.fn(() => Promise.resolve({ version: "0.1.0", channel: "homebrew" as const })),
     onSetTheme: vi.fn(() => unsubscribe),
     onSetAutoSave: vi.fn(() => unsubscribe),
     writeBackup: vi.fn(() => Promise.resolve()),

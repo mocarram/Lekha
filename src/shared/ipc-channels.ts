@@ -52,6 +52,14 @@ export const IPC = {
    * (the OS traffic lights do not scale with page zoom).
    */
   adjustZoom: 'zoom:adjust',
+  /**
+   * Renderer -> main: run a channel-aware update check (GitHub Releases on the
+   * Homebrew channel, electron-updater on the signed direct channel) and return
+   * a structured UpdateCheckResult for the in-app "Check for updates" UI.
+   */
+  checkForUpdates: 'updater:check',
+  /** Renderer -> main: this build's version + update channel (for the About UI). */
+  getAppInfo: 'app:getInfo',
   getRecentFiles: 'settings:getRecentFiles',
   addRecentFile: 'settings:addRecentFile',
   getSettings: 'settings:get',

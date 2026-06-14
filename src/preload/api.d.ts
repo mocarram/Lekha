@@ -12,6 +12,7 @@ import type {
   BackupRecord,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
+import type { UpdateChannel, UpdateCheckResult } from '@shared/updateChannel'
 
 /** All methods exposed on window.lekha from the preload bridge. */
 export interface LekhaAPI {
@@ -136,6 +137,16 @@ export interface LekhaAPI {
    * zoom-compensate the native-anchored chrome.
    */
   adjustZoom(action: 'in' | 'out' | 'reset' | number): Promise<number>
+
+  /**
+   * Run a channel-aware update check (GitHub Releases on the Homebrew channel,
+   * electron-updater on the signed direct channel) and resolve with a
+   * structured result for the in-app About UI. Never rejects.
+   */
+  checkForUpdates(): Promise<UpdateCheckResult>
+
+  /** This build's version and update channel, for the About section. */
+  getAppInfo(): Promise<{ version: string; channel: UpdateChannel }>
 
   /**
    * Subscribe to set-theme messages from the main process (Theme menu).

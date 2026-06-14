@@ -15,6 +15,7 @@ import type {
   BackupRecord,
 } from '@shared/types'
 import type { AppCommand } from '@shared/commands'
+import type { UpdateChannel, UpdateCheckResult } from '@shared/updateChannel'
 
 const api: LekhaAPI = {
   // --- Dialogs ---
@@ -186,6 +187,19 @@ const api: LekhaAPI = {
   // the renderer can zoom-compensate the native-anchored chrome.
   adjustZoom(action: 'in' | 'out' | 'reset' | number): Promise<number> {
     return ipcRenderer.invoke(IPC.adjustZoom, action) as Promise<number>
+  },
+
+  // Channel-aware update check for the in-app About UI.
+  checkForUpdates(): Promise<UpdateCheckResult> {
+    return ipcRenderer.invoke(IPC.checkForUpdates) as Promise<UpdateCheckResult>
+  },
+
+  // App version + update channel (for the About section).
+  getAppInfo(): Promise<{ version: string; channel: UpdateChannel }> {
+    return ipcRenderer.invoke(IPC.getAppInfo) as Promise<{
+      version: string
+      channel: UpdateChannel
+    }>
   },
 
   // Subscribes to set-theme messages from main (Theme menu).
