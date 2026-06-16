@@ -17,7 +17,7 @@ const DEFAULTS: Settings = {
   lastFolder: null,
   sidebarVisible: true,
   sidebarTab: 'files',
-  theme: 'github',
+  theme: 'midnight',
   focusMode: false,
   typewriterMode: false,
   equationNumbering: true,

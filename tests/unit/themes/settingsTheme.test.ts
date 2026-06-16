@@ -23,10 +23,10 @@ afterEach(() => {
 })
 
 describe('Settings - theme field', () => {
-  it('theme defaults to "github"', async () => {
+  it('theme defaults to "midnight"', async () => {
     const store = createSettingsStore(tmpDir)
     const settings = await store.get()
-    expect(settings.theme).toBe('github')
+    expect(settings.theme).toBe('midnight')
   })
 
   it('theme can be set to "night" and round-trips', async () => {
