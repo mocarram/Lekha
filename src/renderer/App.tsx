@@ -8,7 +8,6 @@ import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
 import { useStartup } from '@renderer/hooks/useStartup'
 import { applyWindowColor } from '@renderer/windowColor'
-import { loadRenderMarkdownBody } from '@renderer/export/lazyBuildHtml'
 import { useAutoSave } from '@renderer/hooks/useAutoSave'
 import { useCrashBackup } from '@renderer/hooks/useCrashBackup'
 import { applyAutoSave } from '@renderer/hooks/applyAutoSave'
@@ -272,43 +271,6 @@ export default function App() {
       void window.lekha.setFolderColor(folder, hex)
     }
   }, [])
-
-  // A tab's full document for the per-tab "Copy as Markdown / HTML" menu items.
-  // The active tab's snapshot is captured lazily (not per keystroke), so read
-  // the live editor for it; background tabs use their stored snapshot, letting
-  // the user copy a tab without switching to it. Returns null if the tab is gone.
-  const tabContent = useCallback((id: string): { markdown: string; title: string } | null => {
-    const ds = useDocumentsStore.getState()
-    const tab = ds.documents.find((d) => d.id === id)
-    if (tab === undefined) return null
-    const markdown =
-      id === ds.activeId ? (editorRef.current?.getMarkdown() ?? tab.markdown) : tab.markdown
-    return { markdown, title: tab.title }
-  }, [])
-
-  const handleCopyTabAsMarkdown = useCallback((id: string): void => {
-    const c = tabContent(id)
-    if (c === null) return
-    void window.lekha.writeClipboard({ text: c.markdown }).catch((err: unknown) => {
-      console.error('[clipboard] Copy as Markdown failed:', err)
-    })
-  }, [tabContent])
-
-  const handleCopyTabAsHtml = useCallback((id: string): void => {
-    const c = tabContent(id)
-    if (c === null) return
-    // A body FRAGMENT (not a full document) on the clipboard's HTML flavor: a
-    // full <!DOCTYPE html> doc is rejected by many rich-paste targets, which
-    // then fall back to plain text. The same HTML is the plain-text flavor too,
-    // so "Copy as HTML" yields HTML everywhere (formatted in rich editors, the
-    // markup in plain ones) - never markdown.
-    void loadRenderMarkdownBody()
-      .then((render) => render(c.markdown))
-      .then((html) => window.lekha.writeClipboard({ html, text: html }))
-      .catch((err: unknown) => {
-        console.error('[clipboard] Copy as HTML failed:', err)
-      })
-  }, [tabContent])
 
   // Keep the floating table toolbar glued to the table while editing: the rect
   // is reported on selection/doc changes, but NOT on scroll/resize, so without
@@ -722,8 +684,6 @@ export default function App() {
           onNew={() => { void fileOps.newFile() }}
           windowColor={windowColor}
           onSetWindowColor={handleSetWindowColor}
-          onCopyAsMarkdown={handleCopyTabAsMarkdown}
-          onCopyAsHtml={handleCopyTabAsHtml}
         />
 
         {externalNotice !== null && (
