@@ -20,6 +20,8 @@ const menuNoop = {
   onCloseSaved: noop,
   onCloseAll: noop,
   onCopyPath: noop,
+  onCopyAsMarkdown: noop,
+  onCopyAsHtml: noop,
   onReveal: noop,
   windowColor: null,
   onSetWindowColor: noop,
@@ -379,6 +381,35 @@ describe('TabBar - right-click context menu', () => {
     expect(getByRole('menuitem', { name: 'Close' })).toBeTruthy()
     expect(queryByRole('menuitem', { name: 'Copy Path' })).toBeNull()
     expect(queryByRole('menuitem', { name: 'Reveal in Finder' })).toBeNull()
+  })
+
+  it('Copy as Markdown / Copy as HTML route the tab id (shown for every tab)', () => {
+    const ids = openTabs(2)
+    const onCopyAsMarkdown = vi.fn()
+    const onCopyAsHtml = vi.fn()
+    const { getAllByRole, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop}
+        onCopyAsMarkdown={onCopyAsMarkdown} onCopyAsHtml={onCopyAsHtml} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[1]!)
+    fireEvent.click(getByRole('menuitem', { name: 'Copy as Markdown' }))
+    expect(onCopyAsMarkdown).toHaveBeenCalledWith(ids[1])
+
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    fireEvent.click(getByRole('menuitem', { name: 'Copy as HTML' }))
+    expect(onCopyAsHtml).toHaveBeenCalledWith(ids[0])
+  })
+
+  it('offers Copy as Markdown / HTML even for an Untitled (path-less) tab', () => {
+    useDocumentsStore.getState().openDocument({ path: null, markdown: '# Draft' })
+    const { getAllByRole, getByRole, queryByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    // Copy-as items are present (content-based), unlike the path-only items.
+    expect(getByRole('menuitem', { name: 'Copy as Markdown' })).toBeTruthy()
+    expect(getByRole('menuitem', { name: 'Copy as HTML' })).toBeTruthy()
+    expect(queryByRole('menuitem', { name: 'Copy Path' })).toBeNull()
   })
 
   it('Escape dismisses the menu without firing anything', () => {

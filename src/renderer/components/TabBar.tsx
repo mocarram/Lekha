@@ -17,6 +17,10 @@ interface TabBarProps {
   onCloseAll: () => void
   /** Copy the tab's absolute file path to the clipboard. */
   onCopyPath: (path: string) => void
+  /** Copy the tab's document to the clipboard as Markdown. */
+  onCopyAsMarkdown: (id: string) => void
+  /** Copy the tab's document to the clipboard as rich HTML. */
+  onCopyAsHtml: (id: string) => void
   /** Reveal the tab's file in the OS file manager. */
   onReveal: (path: string) => void
   /** Create a new blank document tab. */
@@ -83,6 +87,8 @@ export function TabBar({
   onCloseSaved,
   onCloseAll,
   onCopyPath,
+  onCopyAsMarkdown,
+  onCopyAsHtml,
   onReveal,
   onNew,
   windowColor,
@@ -473,6 +479,17 @@ export function TabBar({
           <button type="button" role="menuitem" className="filetree-menu__item"
             onClick={menuAction(() => onCloseAll())}>
             Close All
+          </button>
+          <div className="filetree-menu__sep" role="separator" />
+          {/* Copy the tab's whole document (works for any tab, incl. Untitled,
+              and for background tabs without switching to them). */}
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onCopyAsMarkdown(menu.id))}>
+            Copy as Markdown
+          </button>
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={menuAction(() => onCopyAsHtml(menu.id))}>
+            Copy as HTML
           </button>
           {menu.path !== null && (
             <>

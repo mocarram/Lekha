@@ -25,28 +25,10 @@ import { injectUserThemes, applyTheme, THEMES } from '@renderer/themes/index'
 import { applyChromeZoom } from '@renderer/chromeZoom'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { FileOps } from './useFileOps'
-// Type-only import: erased at build time, so it does NOT pull the export
-// pipeline into the initial chunk. The actual module is dynamic-imported below.
-import type { buildExportHtml as BuildExportHtml } from '@renderer/export/buildHtml'
-
-// ---------------------------------------------------------------------------
-// Lazy export pipeline
-//
-// The export pipeline (buildHtml.ts) pulls in katex, highlight.js and the
-// markdown-it stack - none of which are needed until the user actually exports
-// or copies as HTML. We dynamic-import it on first use so it stays out of the
-// initial renderer chunk. The promise is cached at module scope so the chunk is
-// only fetched once and reused for every subsequent export.
-// ---------------------------------------------------------------------------
-
-let buildExportHtmlPromise: Promise<typeof BuildExportHtml> | null = null
-
-function loadBuildExportHtml(): Promise<typeof BuildExportHtml> {
-  buildExportHtmlPromise ??= import('@renderer/export/buildHtml').then(
-    (m) => m.buildExportHtml,
-  )
-  return buildExportHtmlPromise
-}
+// Lazy HTML export pipeline (katex/highlight.js/markdown-it), shared with App's
+// per-tab Copy as HTML. Dynamic-imported on first use, kept out of the initial
+// chunk; see lazyBuildHtml.ts.
+import { loadBuildExportHtml } from '@renderer/export/lazyBuildHtml'
 
 // ---------------------------------------------------------------------------
 // Types
