@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { FileNode } from '@shared/types'
+import { useMenuPosition } from '@renderer/components/useMenuPosition'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,6 +63,8 @@ export function FileTreeMenu({
   onClose,
 }: FileTreeMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
+  // Keep the menu inside the viewport when opened near the right/bottom edge.
+  const pos = useMenuPosition(menuRef, x, y)
 
   // Close on Escape (keyboard a11y) and on any outside pointer-down.
   useEffect(() => {
@@ -89,7 +92,7 @@ export function FileTreeMenu({
       ref={menuRef}
       className="filetree-menu"
       role="menu"
-      style={{ left: `${x}px`, top: `${y}px` }}
+      style={{ left: `${pos.left}px`, top: `${pos.top}px` }}
     >
       {showNew && (
         <>

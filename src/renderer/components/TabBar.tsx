@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
 import { WINDOW_COLOR_SWATCHES } from '@shared/windowColor'
+import { useMenuPosition } from '@renderer/components/useMenuPosition'
 
 interface TabBarProps {
   /** Activate the tab with this id. */
@@ -100,6 +101,9 @@ export function TabBar({
   const tabsRef = useRef<HTMLDivElement>(null)
   // Hidden native color input, opened by the "Custom…" color-menu item.
   const colorInputRef = useRef<HTMLInputElement>(null)
+  // Refs for the two popup menus, so they can be clamped into the viewport.
+  const tabMenuRef = useRef<HTMLDivElement>(null)
+  const colorMenuRef = useRef<HTMLDivElement>(null)
 
   // Right-click tab menu (Close / Close Others / ... / Reveal). One menu at a
   // time, dismissed by Escape, outside pointer-down, or running an action.
@@ -313,6 +317,11 @@ export function TabBar({
     onSelect(documents[next]!.id)
   }
 
+  // Clamp both popups into the viewport (they open at the cursor and would
+  // otherwise overflow near the right/bottom edge).
+  const tabMenuPos = useMenuPosition(tabMenuRef, menu?.x ?? null, menu?.y ?? null)
+  const colorMenuPos = useMenuPosition(colorMenuRef, colorMenu?.x ?? null, colorMenu?.y ?? null)
+
   return (
     <div
       // No `no-drag` here: the strip itself is a window drag region (set in
@@ -451,9 +460,10 @@ export function TabBar({
           carves a no-drag hole so its top rows stay clickable over the strip. */}
       {menu !== null && (
         <div
+          ref={tabMenuRef}
           className="filetree-menu tab-menu no-drag"
           role="menu"
-          style={{ left: `${menu.x}px`, top: `${menu.y}px` }}
+          style={{ left: `${tabMenuPos.left}px`, top: `${tabMenuPos.top}px` }}
         >
           <button type="button" role="menuitem" className="filetree-menu__item"
             onClick={menuAction(() => useDocumentsStore.getState().setPinned(menu.id, !menu.isPinned))}>
@@ -512,9 +522,10 @@ export function TabBar({
           no-drag carve-out so it stays clickable over the strip. */}
       {colorMenu !== null && (
         <div
+          ref={colorMenuRef}
           className="filetree-menu window-color-menu no-drag"
           role="menu"
-          style={{ left: `${colorMenu.x}px`, top: `${colorMenu.y}px` }}
+          style={{ left: `${colorMenuPos.left}px`, top: `${colorMenuPos.top}px` }}
         >
           <div className="window-color-swatches">
             {WINDOW_COLOR_SWATCHES.map((s) => (
