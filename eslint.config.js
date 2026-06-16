@@ -16,6 +16,9 @@ export default tseslint.config(
       // Plain-JS build hooks (e.g. build/notarize.cjs) are CommonJS tooling, not
       // part of the typed TS source tree.
       'build/**',
+      // The GitHub Pages landing site is standalone static HTML/CSS/JS, not part
+      // of the app's TS project.
+      'site/**',
     ],
   },
   js.configs.recommended,

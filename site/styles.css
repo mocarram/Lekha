@@ -1,0 +1,540 @@
+/* ============================================================
+   Lekha landing site - all styling.
+   Brand: navy #171e30, purple #6e5ef0. System fonts, no deps.
+   ============================================================ */
+
+:root {
+  --navy: #171e30;
+  --navy-deep: #0f1422;
+  --purple: #6e5ef0;
+  --purple-hover: #5a4ad6;
+  --rail-teal: #0d9488;
+  --rail-amber: #d9730d;
+
+  --bg: #ffffff;
+  --bg-soft: #f7f6f2;
+  --ink: #1f2330;
+  --ink-soft: #4a4f5e;
+  --muted: #6b7280;
+  --border: rgba(20, 24, 40, 0.1);
+  --card: #ffffff;
+  --shadow: 0 18px 50px rgba(20, 24, 40, 0.14);
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --maxw: 980px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11141b;
+    --bg-soft: #161a23;
+    --ink: #e9eaee;
+    --ink-soft: #b9bdc9;
+    --muted: #8b91a0;
+    --border: rgba(255, 255, 255, 0.1);
+    --card: #181c25;
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--purple);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+/* ===================== Hero ===================== */
+.hero {
+  background: var(--navy);
+  color: #fff;
+  text-align: center;
+  padding: 88px 24px 72px;
+  background-image: radial-gradient(
+    120% 90% at 50% -10%,
+    rgba(110, 94, 240, 0.28),
+    transparent 60%
+  );
+}
+.hero__inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.hero__icon {
+  width: 104px;
+  height: 104px;
+  border-radius: 24px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+}
+.hero__wordmark {
+  margin: 22px 0 0;
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.hero__tagline {
+  margin: 12px auto 0;
+  max-width: 30ch;
+  font-size: 19px;
+  color: #c4c9da;
+}
+.hero__actions {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  align-items: center;
+}
+.hero__github {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  color: #aab0c4;
+  font-size: 15px;
+}
+.hero__github:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+/* ===================== Buttons / chips ===================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 13px 22px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn--primary {
+  background: var(--purple);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(110, 94, 240, 0.45);
+}
+.btn--primary:hover {
+  background: var(--purple-hover);
+  text-decoration: none;
+}
+
+.copy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6e9f2;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 14px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.copy-chip:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+}
+.copy-chip code {
+  color: inherit;
+}
+.copy-chip__icon {
+  display: inline-flex;
+  opacity: 0.7;
+}
+.copy-chip.is-copied {
+  border-color: var(--rail-teal);
+}
+
+/* ===================== Window frame ===================== */
+/* Each screenshot already includes the app's own title row (with macOS traffic
+   lights baked in at capture time), so the frame is just a rounded, shadowed
+   card around the image - no separate chrome bar. */
+.window {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+@media (prefers-color-scheme: dark) {
+  .window {
+    background: #0e0e10;
+  }
+}
+.window img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ===================== Primary shot ===================== */
+.primary-shot {
+  max-width: 1080px;
+  margin: -44px auto 0;
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===================== Feature rows ===================== */
+.features {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 96px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 96px;
+}
+.feature {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+}
+.feature--reverse .feature__media {
+  order: 2;
+}
+.feature__text h2 {
+  font-size: 28px;
+  margin: 0 0 12px;
+}
+.feature__text p {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+.feature__text code {
+  background: var(--bg-soft);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
+/* Stack the two windows full media-width and crop each to its top, where the
+   color rail lives. The in-app rail is only a few px tall and vanishes at
+   thumbnail size, so we extend it into a bold colored top edge on the frame -
+   teal for one window, amber for the other - making the "tint each window"
+   idea read at a glance. */
+.window-color-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.window-color-pair .window {
+  border-top-width: 6px;
+  border-top-style: solid;
+}
+.window-color-pair .window img {
+  height: 200px;
+  object-fit: cover;
+  object-position: top center;
+}
+.window-color-pair .window:nth-child(1) {
+  border-top-color: var(--rail-teal);
+}
+.window-color-pair .window:nth-child(2) {
+  border-top-color: var(--rail-amber);
+}
+
+/* ===================== Themes showcase ===================== */
+.themes {
+  padding: 88px 24px 96px;
+}
+.themes__head {
+  max-width: 620px;
+  margin: 0 auto 8px;
+  text-align: center;
+}
+.themes__head h2 {
+  font-size: 28px;
+  margin: 0 0 10px;
+}
+.themes__head p {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+
+/* Diagonal fan of the nine theme tiles (each a cropped top-left corner of the
+   app). Each tile is offset down and to the right, so the title row + sidebar of
+   the ones behind - where the palette reads - peek out, and the front tile shows
+   in full. Offsets are percentages of the stack width, so the fan scales
+   fluidly, and the whole set is far shorter than a straight vertical stack. */
+.theme-stack {
+  position: relative;
+  max-width: 880px;
+  margin: 48px auto 0;
+}
+.theme-card {
+  width: 58%;
+  margin-top: -14.2%;
+  margin-left: calc(var(--i) * 4.6%);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 36px rgba(20, 24, 40, 0.24);
+}
+.theme-card:first-child {
+  margin-top: 0;
+}
+.theme-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@media (prefers-color-scheme: dark) {
+  .theme-card {
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  }
+}
+/* Narrower screens: wider tiles, gentler horizontal drift so the fan still fits
+   and stays legible. */
+@media (max-width: 700px) {
+  .theme-card {
+    width: 76%;
+    margin-top: -18%;
+    margin-left: calc(var(--i) * 3%);
+  }
+}
+
+/* ===================== More features ===================== */
+.more {
+  background: var(--bg-soft);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-top: 64px;
+  padding: 72px 24px;
+}
+.more__title {
+  text-align: center;
+  font-size: 26px;
+  margin: 0 0 40px;
+}
+.more__grid {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px 36px;
+}
+.more__grid li {
+  margin: 0;
+}
+.more__icon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(110, 94, 240, 0.12);
+  color: var(--purple);
+  margin-bottom: 12px;
+}
+.more__icon svg {
+  width: 20px;
+  height: 20px;
+}
+.more__grid h3 {
+  font-size: 17px;
+  margin: 0 0 5px;
+}
+.more__grid p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.more__grid code {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ===================== Install ===================== */
+.install {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 80px 24px;
+  text-align: center;
+}
+.install h2 {
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+.install__lead {
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+.codeblock {
+  position: relative;
+  text-align: left;
+  background: var(--navy);
+  color: #e6e9f2;
+  border-radius: 12px;
+  padding: 18px 52px 18px 20px;
+  box-shadow: var(--shadow);
+}
+.codeblock pre {
+  margin: 0;
+  overflow-x: auto;
+}
+.codeblock code {
+  font-family: var(--mono);
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #e6e9f2;
+}
+.codeblock__copy {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cfd3e0;
+  cursor: pointer;
+}
+.codeblock__copy:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.codeblock.is-copied .codeblock__copy {
+  border-color: var(--rail-teal);
+  color: #fff;
+}
+.install__or {
+  margin: 22px 0 0;
+  font-size: 16px;
+}
+.install__note {
+  margin: 14px auto 0;
+  max-width: 52ch;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ===================== Footer ===================== */
+.footer {
+  background: var(--navy-deep);
+  color: #aab0c4;
+  padding: 44px 24px;
+}
+.footer__inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+.footer__brand {
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+.footer__links {
+  display: flex;
+  gap: 20px;
+}
+.footer__links a {
+  color: #c4c9da;
+}
+.footer__links a:hover {
+  color: #fff;
+}
+.footer__license {
+  margin: 0;
+  margin-left: auto;
+  font-size: 14px;
+}
+
+/* ===================== Responsive ===================== */
+@media (max-width: 760px) {
+  .hero {
+    padding: 64px 20px 56px;
+  }
+  .hero__wordmark {
+    font-size: 42px;
+  }
+  .hero__tagline {
+    font-size: 17px;
+  }
+  .primary-shot {
+    margin-top: -28px;
+  }
+  .features {
+    padding-top: 64px;
+    gap: 64px;
+  }
+  .feature {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .feature--reverse .feature__media {
+    order: 0;
+  }
+  .feature__text {
+    text-align: center;
+  }
+  .more__grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    max-width: 340px;
+  }
+  .footer__inner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .footer__license {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

@@ -1,0 +1,42 @@
+name: Deploy site to GitHub Pages
+
+# Publishes the static landing site in site/ to GitHub Pages. The site is plain
+# HTML/CSS/JS with no build step, so the job just uploads site/ as the Pages
+# artifact and deploys it. Runs only when the site (or this workflow) changes.
+#
+# One-time setup: in the repo Settings -> Pages, set "Source" to "GitHub Actions".
+# After that the site is served at https://mocarram.github.io/Lekha/.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch: {}
+
+# Permissions the deploy-pages action needs to publish via OIDC.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent Pages deployment; let an in-flight run finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

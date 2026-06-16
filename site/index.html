@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lekha - a clean, distraction-free Markdown editor for macOS</title>
+    <meta
+      name="description"
+      content="Lekha is a clean, distraction-free WYSIWYG Markdown editor for macOS. Live formatting, math and diagrams, folders and tabs, themes, and your files as plain .md on disk."
+    />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content="Lekha - a clean Markdown editor for macOS" />
+    <meta
+      property="og:description"
+      content="A clean, distraction-free WYSIWYG Markdown editor for macOS."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/screenshots/primary.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ================= Hero ================= -->
+    <header class="hero">
+      <div class="hero__inner">
+        <img class="hero__icon" src="assets/icon.svg" alt="Lekha app icon" width="104" height="104" />
+        <h1 class="hero__wordmark">Lekha</h1>
+        <p class="hero__tagline">A clean, distraction-free WYSIWYG Markdown editor for macOS</p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="https://github.com/mocarram/Lekha/releases/latest">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor">
+              <path d="M12 3a1 1 0 0 1 1 1v9.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.42l2.3 2.3V4a1 1 0 0 1 1-1Zm-7 14a1 1 0 0 1 1 1v1h12v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z" />
+            </svg>
+            Download for macOS
+          </a>
+          <button class="copy-chip" type="button" data-copy="brew install --cask mocarram/tap/lekha" aria-label="Copy: brew install --cask mocarram/tap/lekha">
+            <code>brew install --cask mocarram/tap/lekha</code>
+            <span class="copy-chip__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+              </svg>
+            </span>
+          </button>
+        </div>
+        <a class="hero__github" href="https://github.com/mocarram/Lekha">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.87-.01-1.71-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.7 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.4.2 2.44.1 2.7.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.79-4.57 5.05.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.26 10.26 0 0 0 22 12.25C22 6.58 17.52 2 12 2Z" />
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <!-- ================= Primary screenshot ================= -->
+      <section class="primary-shot" aria-label="Lekha editor">
+        <figure class="window">
+          <img
+            src="assets/screenshots/primary.png"
+            alt="The Lekha editor showing a formatted Markdown note, with a file sidebar, document tabs, and rendered headings, lists, and checkboxes"
+            width="1480"
+            height="940"
+            loading="eager"
+          />
+        </figure>
+      </section>
+
+      <!-- ================= Feature rows ================= -->
+      <section class="features">
+        <!-- Sidebar / folders / tabs -->
+        <div class="feature">
+          <div class="feature__media">
+            <figure class="window">
+                  <img
+                src="assets/screenshots/sidebar.png"
+                alt="Lekha sidebar with an open folder, an expanded subfolder, and three document tabs"
+                width="1480"
+                height="940"
+                loading="lazy"
+              />
+            </figure>
+          </div>
+          <div class="feature__text">
+            <h2>Sidebar, folders &amp; tabs</h2>
+            <p>
+              Open a folder and Lekha becomes a workspace. Browse the file tree, keep several
+              documents in tabs, and search across every note. Your files stay exactly where they
+              are - plain <code>.md</code> on disk.
+            </p>
+          </div>
+        </div>
+
+        <!-- Math & diagrams -->
+        <div class="feature feature--reverse">
+          <div class="feature__media">
+            <figure class="window">
+                  <img
+                src="assets/screenshots/math.png"
+                alt="Lekha rendering KaTeX equations with equation numbers and a Mermaid flowchart inline in the document"
+                width="1480"
+                height="940"
+                loading="lazy"
+              />
+            </figure>
+          </div>
+          <div class="feature__text">
+            <h2>Math &amp; diagrams</h2>
+            <p>
+              KaTeX formulas and Mermaid diagrams render live, inline with your prose - no export
+              step, no separate preview. Equations can be auto-numbered, and diagrams follow the
+              active theme.
+            </p>
+          </div>
+        </div>
+
+        <!-- Window colors -->
+        <div class="feature">
+          <div class="feature__media">
+            <div class="window-color-pair">
+              <figure class="window">
+                <img src="assets/screenshots/window-color-teal.png" alt="A Lekha window with a teal top rail" loading="lazy" />
+              </figure>
+              <figure class="window">
+                <img src="assets/screenshots/window-color-amber.png" alt="A Lekha window with an amber top rail" loading="lazy" />
+              </figure>
+            </div>
+          </div>
+          <div class="feature__text">
+            <h2>Window colors</h2>
+            <p>
+              Working on more than one project at once? Give each window its own color rail and tell
+              them apart at a glance. The color is remembered per folder, so a project always opens
+              with its mark.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= Themes showcase ================= -->
+      <section class="themes">
+        <div class="themes__head">
+          <h2>Themes &amp; appearance</h2>
+          <p>
+            Nine built-in themes - light, warm, and dark - plus your own. Adjust the editor font
+            size, focus mode, and typewriter mode to make the writing surface yours.
+          </p>
+        </div>
+        <div class="theme-stack" role="list" aria-label="Lekha themes">
+          <figure class="theme-card" role="listitem" style="--i: 0"><img src="assets/screenshots/theme-github.png" alt="Lekha in the GitHub light theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 1"><img src="assets/screenshots/theme-sepia.png" alt="Lekha in the Sepia theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 2"><img src="assets/screenshots/theme-solarized-light.png" alt="Lekha in the Solarized Light theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 3"><img src="assets/screenshots/theme-nord.png" alt="Lekha in the Nord theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 4"><img src="assets/screenshots/theme-solarized-dark.png" alt="Lekha in the Solarized Dark theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 5"><img src="assets/screenshots/theme-night.png" alt="Lekha in the Night theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 6"><img src="assets/screenshots/theme-graphite.png" alt="Lekha in the Graphite theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 7"><img src="assets/screenshots/theme-midnight.png" alt="Lekha in the Midnight theme" loading="lazy" /></figure>
+          <figure class="theme-card" role="listitem" style="--i: 8"><img src="assets/screenshots/theme-high-contrast.png" alt="Lekha in the High Contrast theme" loading="lazy" /></figure>
+        </div>
+      </section>
+
+      <!-- ================= More features ================= -->
+      <section class="more">
+        <h2 class="more__title">And more</h2>
+        <ul class="more__grid">
+          <li>
+            <span class="more__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            </span>
+            <h3>Find &amp; replace</h3>
+            <p>In a document or across the whole folder, with whole-word matching.</p>
+          </li>
+          <li>
+            <span class="more__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+            </span>
+            <h3>Focus &amp; typewriter</h3>
+            <p>Dim everything but the current block, or keep your line centered.</p>
+          </li>
+          <li>
+            <span class="more__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 8-5 4 5 4" /><path d="m15 8 5 4-5 4" /></svg>
+            </span>
+            <h3>Source view</h3>
+            <p>Drop to raw Markdown whenever you want it, then flip back.</p>
+          </li>
+          <li>
+            <span class="more__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h11l5 5v11a0 0 0 0 1 0 0H4Z" /><path d="M15 4v5h5" /><path d="M9 14h6M9 17h6" /></svg>
+            </span>
+            <h3>Export &amp; copy</h3>
+            <p>Save to HTML or PDF, or copy clean HTML straight to the clipboard.</p>
+          </li>
+          <li>
+            <span class="more__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m7 9 3 3-3 3M13 15h4" /></svg>
+            </span>
+            <h3>Quick open</h3>
+            <p>Jump to any file in the open folder by name with <code>Cmd+P</code>.</p>
+          </li>
+          <li>
+            <span class="more__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
+            </span>
+            <h3>Tables &amp; task lists</h3>
+            <p>First-class tables, checklists, footnotes, and front-matter.</p>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ================= Install ================= -->
+      <section class="install" id="install">
+        <h2>Install</h2>
+        <p class="install__lead">With <a href="https://brew.sh">Homebrew</a>:</p>
+        <div class="codeblock" data-copy="brew tap mocarram/tap&#10;brew install --cask lekha">
+          <pre><code>brew tap mocarram/tap
+brew install --cask lekha</code></pre>
+          <button class="codeblock__copy" type="button" aria-label="Copy install commands">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+          </button>
+        </div>
+        <p class="install__or">
+          Or <a href="https://github.com/mocarram/Lekha/releases/latest">download the .dmg</a> from
+          the latest release (Apple silicon &amp; Intel).
+        </p>
+        <p class="install__note">
+          Requires macOS 11 Big Sur or later. Lekha is currently unsigned, so on first launch
+          right-click the app and choose <strong>Open</strong> to get past Gatekeeper.
+        </p>
+      </section>
+    </main>
+
+    <!-- ================= Footer ================= -->
+    <footer class="footer">
+      <div class="footer__inner">
+        <p class="footer__brand">Lekha</p>
+        <nav class="footer__links">
+          <a href="https://github.com/mocarram/Lekha">GitHub</a>
+          <a href="https://github.com/mocarram/Lekha/releases">Releases</a>
+          <a href="https://github.com/mocarram/Lekha/issues">Issues</a>
+        </nav>
+        <p class="footer__license">Open source under the MIT license.</p>
+      </div>
+    </footer>
+
+    <script src="main.js"></script>
+  </body>
+</html>

@@ -5,6 +5,12 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://mocarram.github.io/Lekha/"><strong>Website</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/mocarram/Lekha/releases/latest">Download</a>
+</p>
+
 # Lekha
 
 ## Install / Download
