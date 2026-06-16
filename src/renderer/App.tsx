@@ -8,7 +8,7 @@ import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
 import { useStartup } from '@renderer/hooks/useStartup'
 import { applyWindowColor } from '@renderer/windowColor'
-import { loadBuildExportHtml } from '@renderer/export/lazyBuildHtml'
+import { loadRenderMarkdownBody } from '@renderer/export/lazyBuildHtml'
 import { useAutoSave } from '@renderer/hooks/useAutoSave'
 import { useCrashBackup } from '@renderer/hooks/useCrashBackup'
 import { applyAutoSave } from '@renderer/hooks/applyAutoSave'
@@ -297,9 +297,14 @@ export default function App() {
   const handleCopyTabAsHtml = useCallback((id: string): void => {
     const c = tabContent(id)
     if (c === null) return
-    void loadBuildExportHtml()
-      .then((build) => build(c.markdown, { title: c.title }))
-      .then((html) => window.lekha.writeClipboard({ html, text: c.markdown }))
+    // A body FRAGMENT (not a full document) on the clipboard's HTML flavor: a
+    // full <!DOCTYPE html> doc is rejected by many rich-paste targets, which
+    // then fall back to plain text. The same HTML is the plain-text flavor too,
+    // so "Copy as HTML" yields HTML everywhere (formatted in rich editors, the
+    // markup in plain ones) - never markdown.
+    void loadRenderMarkdownBody()
+      .then((render) => render(c.markdown))
+      .then((html) => window.lekha.writeClipboard({ html, text: html }))
       .catch((err: unknown) => {
         console.error('[clipboard] Copy as HTML failed:', err)
       })

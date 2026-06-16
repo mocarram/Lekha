@@ -786,7 +786,7 @@ describe('useCommands - copy as html/markdown routing', () => {
     expect(firstCall?.[0]?.html).toBeUndefined()
   })
 
-  it('dispatching "copyAsHtml" builds HTML and writes html + text to the clipboard', async () => {
+  it('dispatching "copyAsHtml" writes an HTML body fragment to both clipboard flavors', async () => {
     const { ref } = makeMockEditor()
     const { fileOps } = makeMockFileOps()
 
@@ -814,9 +814,14 @@ describe('useCommands - copy as html/markdown routing', () => {
     await waitForCall(writeClipboard!)
     expect(writeClipboard).toHaveBeenCalledOnce()
     const firstCall = writeClipboard?.mock.calls[0] as [{ text?: string; html?: string }] | undefined
-    expect(firstCall?.[0]?.html).toContain('<!DOCTYPE html>')
-    // Plain-text fallback is the markdown source.
-    expect(firstCall?.[0]?.text).toBe('# Title')
+    // A body fragment (rich-paste compatible), NOT a full document, and the
+    // SAME rendered HTML in both flavors - so paste yields HTML everywhere,
+    // never the markdown source. (The rendered body's exact markup is verified
+    // against the real Chromium pipeline in the e2e clipboard check; happy-dom's
+    // DOMPurify lacks a real DOM and returns text only.)
+    expect(firstCall?.[0]?.html).not.toContain('<!DOCTYPE html>')
+    expect(firstCall?.[0]?.text).toBe(firstCall?.[0]?.html)
+    expect(firstCall?.[0]?.text).not.toBe('# Title')
   })
 })
 

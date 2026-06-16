@@ -28,7 +28,7 @@ import type { FileOps } from './useFileOps'
 // Lazy HTML export pipeline (katex/highlight.js/markdown-it), shared with App's
 // per-tab Copy as HTML. Dynamic-imported on first use, kept out of the initial
 // chunk; see lazyBuildHtml.ts.
-import { loadBuildExportHtml } from '@renderer/export/lazyBuildHtml'
+import { loadBuildExportHtml, loadRenderMarkdownBody } from '@renderer/export/lazyBuildHtml'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -536,10 +536,13 @@ export function useCommands(
       // ------------------------------------------------------------------
       if (cmd === 'copyAsHtml') {
         const markdown = editorRef.current?.getMarkdown() ?? ''
-        const { title } = useEditorStore.getState()
-        void loadBuildExportHtml()
-          .then((build) => build(markdown, { title }))
-          .then((html) => window.lekha.writeClipboard({ html, text: markdown }))
+        // A body FRAGMENT, not a full <!DOCTYPE html> document: a full doc on
+        // the clipboard's HTML flavor is rejected by many rich-paste targets,
+        // which then fall back to plain text. The HTML is also the plain-text
+        // flavor so "Copy as HTML" yields HTML everywhere, never markdown.
+        void loadRenderMarkdownBody()
+          .then((render) => render(markdown))
+          .then((html) => window.lekha.writeClipboard({ html, text: html }))
           .catch((err: unknown) => {
             console.error('[clipboard] Copy as HTML failed:', err)
           })
