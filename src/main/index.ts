@@ -22,7 +22,7 @@ import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
 import { setupAutoUpdater, checkForUpdates, runUpdateCheck, updateChannel } from '@main/updater'
 import { applySpellCheck } from '@main/spellCheck'
-import { buildContextMenuTemplate } from '@main/contextMenu'
+import { buildContextMenuTemplate, shouldShowContextMenu } from '@main/contextMenu'
 import type { ContextMenuParams as LocalContextMenuParams } from '@main/contextMenu'
 import type { ContextMenuParams as ElectronContextMenuParams } from 'electron'
 import {
@@ -362,6 +362,10 @@ function openWindowAt(bounds: OpenBounds): BrowserWindow {
   // is safe because our local type only uses fields that exist on Electron's type.
   win.webContents.on('context-menu', (_event, electronParams: ElectronContextMenuParams) => {
     const params = electronParams as unknown as LocalContextMenuParams
+    // Only show the editor menu inside editable content. Non-editor chrome
+    // (the gap between the tab bar and the editor, the status bar, blank
+    // sidebar areas) would otherwise show the editor's Cut/Copy/Format menu.
+    if (!shouldShowContextMenu(params)) return
     const send = (cmd: AppCommand): void => {
       win.webContents.send(IPC.command, cmd)
     }

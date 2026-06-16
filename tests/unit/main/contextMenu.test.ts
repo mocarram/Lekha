@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import type { MenuItemConstructorOptions } from 'electron'
-import { buildContextMenuTemplate } from '../../../src/main/contextMenu'
+import { buildContextMenuTemplate, shouldShowContextMenu } from '../../../src/main/contextMenu'
 import type {
   ContextMenuParams,
   ContextMenuCallbacks,
@@ -440,5 +440,19 @@ describe('buildContextMenuTemplate - no misspelled word', () => {
     expect(roles).toContain('paste')
     const boldItem = findItem(template, (i) => i.label === 'Bold')
     expect(boldItem).toBeDefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// shouldShowContextMenu - gate on editable content
+// ---------------------------------------------------------------------------
+
+describe('shouldShowContextMenu', () => {
+  it('shows the menu inside editable content (the editor)', () => {
+    expect(shouldShowContextMenu({ isEditable: true })).toBe(true)
+  })
+
+  it('suppresses the menu on non-editable chrome (the tab/editor gap, status bar)', () => {
+    expect(shouldShowContextMenu({ isEditable: false })).toBe(false)
   })
 })

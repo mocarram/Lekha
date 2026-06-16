@@ -77,6 +77,20 @@ function cmdItem(
 
 const sep: MenuItemConstructorOptions = { type: 'separator' }
 
+/**
+ * Whether the native editor context menu should appear for a right-click.
+ *
+ * Only inside EDITABLE content (the ProseMirror / CodeMirror editor). Electron
+ * emits 'context-menu' for every right-click in the window, so without this
+ * gate the editor's Cut/Copy/Format menu also appeared on non-editor chrome
+ * that has no menu of its own - notably the gap between the tab bar and the
+ * editor. Surfaces with their own React menu (tabs, the window-color picker,
+ * the file tree) already suppress the event via DOM preventDefault.
+ */
+export function shouldShowContextMenu(params: Pick<ContextMenuParams, 'isEditable'>): boolean {
+  return params.isEditable
+}
+
 // ---------------------------------------------------------------------------
 // buildContextMenuTemplate
 // ---------------------------------------------------------------------------
