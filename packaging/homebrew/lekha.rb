@@ -1,9 +1,9 @@
 cask "lekha" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.1.0"
-  sha256 arm:   "627101655879033a79bb8a002032b3e0cfaedfb2f37db8d1a76d4ef63740f751",
-         intel: "40ff903aa923e40c3a23b502208a374067fa1a5094243813c1e4da44cb8694e1"
+  version "0.1.1"
+  sha256 arm:   "52bbae08e1265ecbe73f35325671d1091247b371d47b2563b5f83ebc67dabbd6",
+         intel: "68fa38073680f269692a20eaebe7d4adb67811dd905b118a2c1aef2805c9b1f6"
 
   url "https://github.com/mocarram/Lekha/releases/download/v#{version}/Lekha-#{version}-#{arch}.dmg",
       verified: "github.com/mocarram/Lekha/"
