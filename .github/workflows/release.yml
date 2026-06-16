@@ -41,12 +41,25 @@ jobs:
 
       # Publishes on a tag push; a manual workflow_dispatch run only builds
       # (dry run), so you can validate the pipeline without cutting a release.
+      #
+      # Signing is conditional on CSC_LINK. When it is set, electron-builder
+      # signs (and notarize.cjs notarizes if the APPLE_* secrets exist). When
+      # it is UNSET we must unset the empty CSC_* vars and disable identity
+      # auto-discovery - otherwise electron-builder treats the empty CSC_LINK
+      # as a certificate file path and fails ("... not a file"). This mirrors
+      # `npm run dist:mac`, which builds unsigned the same way.
       - name: Package, (conditionally) sign + notarize, publish
-        run: npx electron-builder --mac --publish ${{ github.event_name == 'push' && 'always' || 'never' }}
+        run: |
+          PUBLISH=${{ github.event_name == 'push' && 'always' || 'never' }}
+          if [ -n "$CSC_LINK" ]; then
+            npx electron-builder --mac --publish "$PUBLISH"
+          else
+            unset CSC_LINK CSC_KEY_PASSWORD
+            CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac --publish "$PUBLISH"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Signing: empty when the secret is unset -> electron-builder builds
-          # unsigned. Set these to flip to signed (no workflow change needed).
+          # Set CSC_LINK + CSC_KEY_PASSWORD to flip to a signed build.
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           # Notarization (read by build/notarize.cjs): empty -> skipped.
