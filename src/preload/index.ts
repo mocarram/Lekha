@@ -202,6 +202,11 @@ const api: LekhaAPI = {
     }>
   },
 
+  // Set (hex) or clear (null) the marker color persisted for a folder path.
+  setFolderColor(path: string, hex: string | null): Promise<void> {
+    return ipcRenderer.invoke(IPC.setFolderColor, path, hex) as Promise<void>
+  },
+
   // Subscribes to set-theme messages from main (Theme menu).
   // Returns an unsubscribe function for cleanup on unmount.
   onSetTheme(cb: (id: string) => void): () => void {

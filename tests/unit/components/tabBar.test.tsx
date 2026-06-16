@@ -21,6 +21,8 @@ const menuNoop = {
   onCloseAll: noop,
   onCopyPath: noop,
   onReveal: noop,
+  windowColor: null,
+  onSetWindowColor: noop,
 }
 
 afterEach(() => {
@@ -596,5 +598,70 @@ describe('TabBar - pinned tabs', () => {
     fireEvent.click(getByRole('menuitem', { name: 'Unpin Tab' }))
     expect(useDocumentsStore.getState().documents[0]!.isPinned).toBe(false)
     void ids
+  })
+})
+
+describe('TabBar - window color menu', () => {
+  it('right-clicking empty tab-bar space opens the swatch menu (not a tab menu)', () => {
+    openTabs(1)
+    const { container, queryByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    // Right-click the bar root itself (empty space), not a tab.
+    fireEvent.contextMenu(container.querySelector('.tab-bar')!)
+    const menu = container.querySelector('.window-color-menu')
+    expect(menu).not.toBeNull()
+    // Swatches + None present; no tab "Close" item (that's the tab menu).
+    expect(menu!.querySelectorAll('.window-color-swatch').length).toBeGreaterThan(0)
+    expect(queryByRole('menuitem', { name: 'Close' })).toBeNull()
+  })
+
+  it('picking a swatch calls onSetWindowColor with that hex', () => {
+    openTabs(1)
+    const onSetWindowColor = vi.fn()
+    const { container, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop}
+        onSetWindowColor={onSetWindowColor} />,
+    )
+    fireEvent.contextMenu(container.querySelector('.tab-bar')!)
+    // Teal swatch (aria-label) -> its hex from the shared palette.
+    fireEvent.click(getByRole('menuitemradio', { name: 'Teal' }))
+    expect(onSetWindowColor).toHaveBeenCalledWith('#0d9488')
+    // Menu dismissed after picking.
+    expect(container.querySelector('.window-color-menu')).toBeNull()
+  })
+
+  it('"None" clears the color (onSetWindowColor with null)', () => {
+    openTabs(1)
+    const onSetWindowColor = vi.fn()
+    const { container, getByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop}
+        windowColor={'#0d9488'} onSetWindowColor={onSetWindowColor} />,
+    )
+    fireEvent.contextMenu(container.querySelector('.tab-bar')!)
+    fireEvent.click(getByRole('menuitem', { name: 'None' }))
+    expect(onSetWindowColor).toHaveBeenCalledWith(null)
+  })
+
+  it('marks the active swatch matching the current windowColor', () => {
+    openTabs(1)
+    const { container } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop}
+        windowColor={'#0d9488'} />,
+    )
+    fireEvent.contextMenu(container.querySelector('.tab-bar')!)
+    const active = container.querySelector('.window-color-swatch--active')
+    expect(active).not.toBeNull()
+    expect(active!.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('right-clicking a tab opens the tab menu, not the color menu', () => {
+    openTabs(1)
+    const { container, getAllByRole } = render(
+      <TabBar {...menuNoop} onSelect={noop} onClose={noop} onNew={noop} />,
+    )
+    fireEvent.contextMenu(getAllByRole('tab')[0]!)
+    expect(container.querySelector('.tab-menu')).not.toBeNull()
+    expect(container.querySelector('.window-color-menu')).toBeNull()
   })
 })

@@ -54,8 +54,9 @@ styling:
   `<input type="color">` (no new dependency).
 - **None** - clears the window's color.
 
-The same action is exposed as a **"Set Window Color"** command in the command
-palette for keyboard users (opens the same popup).
+(Deferred: a command-palette "Set Window Color" entry. Wiring it cleanly means
+threading menu-open state from App into TabBar for marginal value over the
+discoverable right-click path, so it is a follow-up rather than v1.)
 
 ## Architecture and data flow
 

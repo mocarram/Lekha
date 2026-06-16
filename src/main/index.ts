@@ -16,6 +16,7 @@ import { markdownPathsFromArgv } from '@main/openWith'
 import { allowFile, isPathAllowed } from '@main/pathPolicy'
 import { claimSessionRestore } from '@main/sessionRestore'
 import { nextZoomLevel, clampZoomFactor } from '@main/zoom'
+import { normalizeWindowColor } from '@shared/windowColor'
 import { join, resolve } from 'node:path'
 import { statSync } from 'node:fs'
 import { buildMenuTemplate } from '@main/menu'
@@ -564,6 +565,22 @@ void app.whenReady().then(async () => {
     version: app.getVersion(),
     channel: updateChannel(),
   }))
+
+  // Set or clear a folder's marker color via a read-modify-write of the one map
+  // key. This is far safer than a setSettings({folderColors}) whole-map patch
+  // (which would clobber other folders' entries), though not fully atomic:
+  // concurrent calls can still interleave at the awaits and lose a write. That
+  // only happens if two windows recolor within the same few ms - rare and
+  // self-correcting (re-apply) - so a lock isn't worth it. null removes the key.
+  guardedIpc.handle(IPC.setFolderColor, async (_event, path: unknown, hex: unknown) => {
+    if (typeof path !== 'string' || path.length === 0) return
+    const current = await settings.get()
+    const next = { ...current.folderColors }
+    const color = normalizeWindowColor(hex)
+    if (color === null) delete next[path]
+    else next[path] = color
+    await settings.set({ folderColors: next })
+  })
 
   // Renderer-routed New Window: the 'newWindow' AppCommand calls
   // window.lekha.newWindow() which sends this IPC. (The native menu item opens

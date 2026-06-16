@@ -7,6 +7,7 @@ import {
 import { useFileOps } from '@renderer/hooks/useFileOps'
 import { useCommands } from '@renderer/hooks/useCommands'
 import { useStartup } from '@renderer/hooks/useStartup'
+import { applyWindowColor } from '@renderer/windowColor'
 import { useAutoSave } from '@renderer/hooks/useAutoSave'
 import { useCrashBackup } from '@renderer/hooks/useCrashBackup'
 import { applyAutoSave } from '@renderer/hooks/applyAutoSave'
@@ -232,6 +233,9 @@ export default function App() {
   const fileTree = useWorkspaceStore((s) => s.fileTree)
   const rootFolder = useWorkspaceStore((s) => s.rootFolder)
   const showStatusBar = useWorkspaceStore((s) => s.showStatusBar)
+  // This window's marker color; an effect mirrors it to the --window-color CSS
+  // var (the top color rail). Single writer = the effect (applyWindowColor).
+  const windowColor = useWorkspaceStore((s) => s.windowColor)
   // Whether the sidebar panel is shown. When hidden the content column becomes
   // the leftmost panel, so the shell must reserve traffic-light space on the tab
   // strip and re-anchor the word-count popover (both handled in CSS via the
@@ -248,6 +252,25 @@ export default function App() {
   // anchored to the table's reported client rect. Updated on every selection
   // change via EditorPane's onTableStateChange.
   const [tableState, setTableState] = useState<TableState>({ inTable: false })
+
+  // Mirror the window marker color to the --window-color CSS var (the top
+  // rail). Runs on every change incl. the initial null, so the rail appears /
+  // disappears as the color is set, cleared, or restored on folder open.
+  useEffect(() => {
+    applyWindowColor(windowColor)
+  }, [windowColor])
+
+  // Set or clear this window's marker color: update the store (the effect
+  // paints the rail) and, when a folder is open, persist it under that folder
+  // so reopening the project anywhere restores the color. A folderless window's
+  // color stays ephemeral.
+  const handleSetWindowColor = useCallback((hex: string | null): void => {
+    useWorkspaceStore.getState().setWindowColor(hex)
+    const folder = useWorkspaceStore.getState().rootFolder
+    if (folder !== null && typeof window.lekha !== 'undefined') {
+      void window.lekha.setFolderColor(folder, hex)
+    }
+  }, [])
 
   // Keep the floating table toolbar glued to the table while editing: the rect
   // is reported on selection/doc changes, but NOT on scroll/resize, so without
@@ -659,6 +682,8 @@ export default function App() {
           onCopyPath={(path) => { void window.lekha.writeClipboard({ text: path }) }}
           onReveal={(path) => { fileOps.revealEntry(path) }}
           onNew={() => { void fileOps.newFile() }}
+          windowColor={windowColor}
+          onSetWindowColor={handleSetWindowColor}
         />
 
         {externalNotice !== null && (

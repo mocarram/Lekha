@@ -11,6 +11,7 @@ import {
 import { normalizeLineEndings, detectEol } from '@shared/eol'
 import { isOpenablePath } from '@shared/openable'
 import { deriveTitle } from '@shared/pathTitle'
+import { normalizeWindowColor } from '@shared/windowColor'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 
 /**
@@ -955,6 +956,17 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       const tree = await window.lekha.readDir(dir)
       workspaceStore.getState().setRootFolder(dir)
       workspaceStore.getState().setFileTree(tree)
+      // Apply this folder's marker color (overrides any ephemeral color from a
+      // previously folderless window). Best-effort: a settings read failure
+      // just leaves the color unchanged.
+      try {
+        const settings = await window.lekha.getSettings()
+        workspaceStore.getState().setWindowColor(normalizeWindowColor(settings.folderColors[dir]))
+      } catch {
+        // Settings read failed: clear the color rather than leave the previous
+        // folder's color showing under the newly opened folder.
+        workspaceStore.getState().setWindowColor(null)
+      }
     } catch (err) {
       alertOpError(`Could not open the folder "${dir}"`, err)
     }

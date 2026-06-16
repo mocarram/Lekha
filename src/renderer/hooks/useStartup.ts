@@ -22,6 +22,7 @@ import { applyTheme, applyFontSize, injectUserThemes } from '@renderer/themes/in
 import { setSmartPunctuation } from '@renderer/editor/createState'
 import { clampSidebarWidth } from '@renderer/components/sidebarResizerUtils'
 import { applyChromeZoom } from '@renderer/chromeZoom'
+import { normalizeWindowColor } from '@shared/windowColor'
 import type { EditorPaneHandle } from '@renderer/editor/EditorPane'
 import type { BackupRecord } from '@shared/types'
 import { normalizeLineEndings } from '@shared/eol'
@@ -225,6 +226,13 @@ export function useStartup(
           const tree = await window.lekha.readDir(s.lastFolder)
           useWorkspaceStore.getState().setRootFolder(s.lastFolder)
           useWorkspaceStore.getState().setFileTree(tree)
+          // Restore this folder's marker color (App's effect paints the rail).
+          // Global preference, so it applies to EVERY window, not just the
+          // session owner - but only the owner reaches this restore path, and
+          // openFolderPath covers the rest.
+          useWorkspaceStore
+            .getState()
+            .setWindowColor(normalizeWindowColor(s.folderColors[s.lastFolder]))
         } catch {
           // Folder no longer exists or is not readable - skip silently.
         }

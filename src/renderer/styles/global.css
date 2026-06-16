@@ -60,6 +60,24 @@ body,
   --sidebar-toggle-width: calc(26px / var(--zoom-factor, 1));
 }
 
+/* Window-color marker rail: a solid 4px bar pinned to the very top edge of the
+   window, spanning full width over the shell gutter. Theme-independent (the
+   raw hex set by windowColor.ts on --window-color). Sits at y0-4, above the
+   macOS traffic lights (y15+), so it never collides; pointer-events: none keeps
+   the underlying drag region grabbable. Defaults to transparent (invisible,
+   no layout cost) when no color is set, so toggling it on/off is just the var. */
+.app::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  z-index: 100;
+  pointer-events: none;
+  background: var(--window-color, transparent);
+}
+
 /* ---------------------------------------------------------------------------
  * Sidebar toggle button: pinned at the window's top-left, just right of the
  * macOS traffic lights (configured at x:16 in window.ts; the three buttons end
@@ -1144,6 +1162,50 @@ body,
   height: 1px;
   margin: 4px 6px;
   background-color: var(--color-border);
+}
+
+/* ---------------------------------------------------------------------------
+ * Window-color menu: a swatch grid above the Custom / None items. The grid
+ * sits inside the shared filetree-menu popup.
+ * --------------------------------------------------------------------------- */
+.window-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 6px;
+}
+
+.window-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  /* A faint ring so light swatches stay visible on the popup surface. */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  transition: transform 0.1s ease;
+}
+
+.window-color-swatch:hover {
+  transform: scale(1.12);
+}
+
+/* The active color gets a contrasting ring drawn just outside the circle. */
+.window-color-swatch--active {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-accent);
+}
+
+/* The native color input is a non-visual trigger - kept in the layout flow
+   (display:none would block .click() in some engines) but visually hidden. */
+.window-color-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ---------------------------------------------------------------------------

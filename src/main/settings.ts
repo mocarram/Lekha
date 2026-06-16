@@ -31,6 +31,7 @@ const DEFAULTS: Settings = {
   activeTabPath: null,
   pinnedTabPaths: [],
   zoomFactor: 1,
+  folderColors: {},
 }
 
 export function createSettingsStore(baseDir: string): SettingsStore {

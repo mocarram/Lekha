@@ -161,6 +161,12 @@ export interface Settings {
    * via Chromium); restored to every window at startup.
    */
   zoomFactor: number
+  /**
+   * Per-folder window marker colors: absolute folder path -> `#rrggbb` hex.
+   * Global (not session-gated): any window opening a folder applies its color.
+   * Mutated atomically in main via setFolderColor to avoid cross-window clobber.
+   */
+  folderColors: Record<string, string>
 }
 
 /** Default editor font size (px). Shared by the settings store and the renderer. */

@@ -60,6 +60,12 @@ export const IPC = {
   checkForUpdates: 'updater:check',
   /** Renderer -> main: this build's version + update channel (for the About UI). */
   getAppInfo: 'app:getInfo',
+  /**
+   * Renderer -> main: set (or clear, with null) the marker color for a folder.
+   * Atomic read-modify-write of the single folderColors[path] key so windows
+   * editing different folders never clobber each other's entries.
+   */
+  setFolderColor: 'settings:setFolderColor',
   getRecentFiles: 'settings:getRecentFiles',
   addRecentFile: 'settings:addRecentFile',
   getSettings: 'settings:get',

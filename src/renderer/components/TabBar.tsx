@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type WheelEvent } from 'react'
 import { useDocumentsStore } from '@renderer/store/documentsStore'
+import { WINDOW_COLOR_SWATCHES } from '@shared/windowColor'
 
 interface TabBarProps {
   /** Activate the tab with this id. */
@@ -20,6 +21,10 @@ interface TabBarProps {
   onReveal: (path: string) => void
   /** Create a new blank document tab. */
   onNew: () => void
+  /** This window's marker color (`#rrggbb`) or null - drives the active swatch. */
+  windowColor: string | null
+  /** Set (hex) or clear (null) this window's marker color. */
+  onSetWindowColor: (hex: string | null) => void
 }
 
 /** Right-click context-menu state: the targeted tab + click coordinates. */
@@ -80,11 +85,15 @@ export function TabBar({
   onCopyPath,
   onReveal,
   onNew,
+  windowColor,
+  onSetWindowColor,
 }: TabBarProps) {
   const documents = useDocumentsStore((s) => s.documents)
   const activeId = useDocumentsStore((s) => s.activeId)
 
   const tabsRef = useRef<HTMLDivElement>(null)
+  // Hidden native color input, opened by the "Custom…" color-menu item.
+  const colorInputRef = useRef<HTMLInputElement>(null)
 
   // Right-click tab menu (Close / Close Others / ... / Reveal). One menu at a
   // time, dismissed by Escape, outside pointer-down, or running an action.
@@ -110,6 +119,41 @@ export function TabBar({
   const menuAction = (fn: () => void) => () => {
     setMenu(null)
     fn()
+  }
+
+  // Window-color menu (swatches / Custom / None), opened by right-clicking
+  // empty tab-bar space. Same one-at-a-time + dismissal behavior as the tab
+  // menu, keyed on its own coordinates.
+  const [colorMenu, setColorMenu] = useState<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    if (colorMenu === null) return undefined
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') setColorMenu(null)
+    }
+    const onDown = (e: MouseEvent) => {
+      const el = document.querySelector('.window-color-menu')
+      if (el && !el.contains(e.target as Node)) setColorMenu(null)
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onDown)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onDown)
+    }
+  }, [colorMenu])
+
+  /** Pick a window color (hex or null to clear) and dismiss the menu. */
+  const pickColor = (hex: string | null): void => {
+    setColorMenu(null)
+    onSetWindowColor(hex)
+  }
+
+  // Right-click on empty tab-bar space (not a tab - those stopPropagation and
+  // open the tab menu) opens the window-color menu.
+  const onBarContextMenu = (e: React.MouseEvent): void => {
+    e.preventDefault()
+    setMenu(null)
+    setColorMenu({ x: e.clientX, y: e.clientY })
   }
 
   // ---------------------------------------------------------------------
@@ -279,6 +323,9 @@ export function TabBar({
       // Foreign drags (OS files) fail the MIME check and fall through.
       onDragOver={onBarDragOver}
       onDrop={onBarDrop}
+      // Right-click empty bar space opens the window-color menu (tabs handle
+      // their own context menu and stopPropagation).
+      onContextMenu={onBarContextMenu}
     >
       {/* Non-scrolling wrapper: hosts the edge-fade overlays (CSS ::before/
           ::after) so they stay pinned over the strip's edges while the inner
@@ -327,6 +374,9 @@ export function TabBar({
               }}
               onContextMenu={(e) => {
                 e.preventDefault()
+                // Don't let the bar's window-color menu also fire for a tab.
+                e.stopPropagation()
+                setColorMenu(null)
                 setMenu({ id: doc.id, path: doc.path, isPinned: doc.isPinned, x: e.clientX, y: e.clientY })
               }}
             >
@@ -439,6 +489,57 @@ export function TabBar({
           )}
         </div>
       )}
+
+      {/* Window-color menu: swatch grid + Custom + None. Reuses the token-themed
+          popup; `window-color-menu` scopes its outside-click dismissal and the
+          no-drag carve-out so it stays clickable over the strip. */}
+      {colorMenu !== null && (
+        <div
+          className="filetree-menu window-color-menu no-drag"
+          role="menu"
+          style={{ left: `${colorMenu.x}px`, top: `${colorMenu.y}px` }}
+        >
+          <div className="window-color-swatches">
+            {WINDOW_COLOR_SWATCHES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={windowColor === s.hex}
+                aria-label={s.label}
+                title={s.label}
+                className={
+                  'window-color-swatch' +
+                  (windowColor === s.hex ? ' window-color-swatch--active' : '')
+                }
+                style={{ background: s.hex }}
+                onClick={() => { pickColor(s.hex) }}
+              />
+            ))}
+          </div>
+          <div className="filetree-menu__sep" role="separator" />
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={() => { setColorMenu(null); colorInputRef.current?.click() }}>
+            Custom…
+          </button>
+          <button type="button" role="menuitem" className="filetree-menu__item"
+            onClick={() => { pickColor(null) }}>
+            None
+          </button>
+        </div>
+      )}
+
+      {/* Hidden native color picker, opened by "Custom…". value seeds it with
+          the current color so reopening starts where the user left off. */}
+      <input
+        ref={colorInputRef}
+        type="color"
+        className="window-color-input"
+        aria-hidden="true"
+        tabIndex={-1}
+        value={windowColor ?? '#3b82f6'}
+        onChange={(e) => { pickColor(e.target.value) }}
+      />
     </div>
   )
 }

@@ -149,6 +149,12 @@ export interface LekhaAPI {
   getAppInfo(): Promise<{ version: string; channel: UpdateChannel }>
 
   /**
+   * Persist (hex) or clear (null) the window-marker color for a folder path.
+   * Atomic in main; safe to call concurrently from multiple windows.
+   */
+  setFolderColor(path: string, hex: string | null): Promise<void>
+
+  /**
    * Subscribe to set-theme messages from the main process (Theme menu).
    * The callback receives the chosen theme id string.
    * Returns an unsubscribe function that removes the listener.

@@ -52,6 +52,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     sidebarWidth: 240,
     openTabPaths: [],
     pinnedTabPaths: [],    zoomFactor: 1,
+    folderColors: {},
     activeTabPath: null,
     ...overrides,
   }

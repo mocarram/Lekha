@@ -24,6 +24,12 @@ interface WorkspaceState {
   searchCaseSensitive: boolean
   searchWholeWord: boolean
   searchReplaceText: string
+  /**
+   * This window's marker color (a `#rrggbb` hex), or null for none. Drives the
+   * top color rail. For a window with a folder open it mirrors that folder's
+   * persisted color; for a folderless scratch window it is ephemeral.
+   */
+  windowColor: string | null
 }
 
 interface WorkspaceActions {
@@ -39,6 +45,7 @@ interface WorkspaceActions {
   setSearchCaseSensitive(v: boolean): void
   setSearchWholeWord(v: boolean): void
   setSearchReplaceText(v: string): void
+  setWindowColor(hex: string | null): void
 }
 
 export type WorkspaceStore = WorkspaceState & WorkspaceActions
@@ -60,6 +67,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
   searchCaseSensitive: false,
   searchWholeWord: false,
   searchReplaceText: '',
+  windowColor: null,
 
   setRootFolder(path) {
     set({ rootFolder: path })
@@ -107,5 +115,9 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
   setSearchReplaceText(v) {
     set({ searchReplaceText: v })
+  },
+
+  setWindowColor(hex) {
+    set({ windowColor: hex })
   },
 }))
