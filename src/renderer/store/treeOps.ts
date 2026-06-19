@@ -3,7 +3,8 @@ import type { FileNode } from '@shared/types'
 /** The directory containing `path` (its parent). Absolute POSIX paths. */
 export function parentDir(path: string): string {
   const i = path.lastIndexOf('/')
-  return i <= 0 ? path : path.slice(0, i)
+  if (i <= 0) return '/' // '/foo' or 'foo' -> filesystem root
+  return path.slice(0, i)
 }
 
 /**
@@ -48,7 +49,7 @@ export function setNodeChildren(
         mutated = true
         return { ...node, children: mergePreserveLoaded(node.children, newChildren) }
       }
-      if (node.isDirectory && node.children && node.children.length > 0) {
+      if (node.isDirectory && node.children !== undefined) {
         const nextChildren = walk(node.children)
         if (nextChildren !== node.children) {
           mutated = true
