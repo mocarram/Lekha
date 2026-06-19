@@ -243,6 +243,11 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   // across renders and never triggers one.
   const diskSig = useRef<Map<string, { mtimeMs: number; sizeBytes: number }>>(new Map())
 
+  // Per-directory load generation: loadChildren is invoked by both in-app ops
+  // and the filesystem watcher; if two reads of the same dir overlap, only the
+  // latest must win, so a stale earlier read can't overwrite a fresher one.
+  const loadGenRef = useRef<Map<string, number>>(new Map())
+
   /**
    * Adopt the file's CURRENT on-disk state as the external-change baseline.
    * persist()/loadInto() do this inline; every other code path that writes the
@@ -993,7 +998,11 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
   const loadChildren = useCallback(async (dir: string): Promise<void> => {
     const root = workspaceStore.getState().rootFolder
     if (root === null) return
+    const gen = (loadGenRef.current.get(dir) ?? 0) + 1
+    loadGenRef.current.set(dir, gen)
     const children = await window.lekha.readDir(dir)
+    // A newer loadChildren(dir) started while we awaited - drop this stale read.
+    if (loadGenRef.current.get(dir) !== gen) return
     workspaceStore.getState().setChildren(dir, children)
   }, [workspaceStore])
 
@@ -1109,7 +1118,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     const underRoot = (d: string): boolean =>
       moveRoot !== null && (d === moveRoot || d.startsWith(moveRoot + '/'))
     if (underRoot(oldParent)) await loadChildren(oldParent)
-    if (underRoot(destDir)) await loadChildren(destDir)
+    if (destDir !== oldParent && underRoot(destDir)) await loadChildren(destDir)
     // Update the path IN PLACE rather than re-opening: the document is the same
     // (only its location changed), so re-reading from disk would duplicate the
     // tab and discard any unsaved in-memory edits. syncActivePath rewrites the
