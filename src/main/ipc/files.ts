@@ -8,7 +8,7 @@ import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
 import type { WindowRegistry } from '@main/window'
 import { formatWindowTitle } from '@main/windowTitle'
-import { readTextFile, writeFileAtomic, buildFileTree, statFile, verifyOpenFile, listArticles } from '@main/fs-helpers'
+import { readTextFile, writeFileAtomic, listDirChildren, statFile, verifyOpenFile, listArticles } from '@main/fs-helpers'
 import { writeBackup, deleteBackup, listBackups, isBackupRecord } from '@main/backups'
 import {
   createFile,
@@ -109,7 +109,7 @@ export function registerFileHandlers(
 
   safeHandle(IPC.readDir, async (dir) => {
     assertPathAllowed(String(dir))
-    return buildFileTree(String(dir))
+    return listDirChildren(String(dir))
   })
 
   // --- File-tree entry operations (create / rename / delete / reveal) ---
