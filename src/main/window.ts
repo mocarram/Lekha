@@ -23,6 +23,7 @@ import { join } from 'node:path'
 import { IPC } from '@shared/ipc-channels'
 import type { Settings } from '@shared/types'
 import { decideWindowOpen } from '@main/openExternal'
+import { unwatchFolder } from '@main/folderWatcher'
 
 // ---------------------------------------------------------------------------
 // Navigation / window-open hardening (shared by every window we create)
@@ -350,6 +351,10 @@ export function createWindow(
   const controller = registry.add(win)
 
   win.on('closed', () => {
+    // Release this window's native @parcel/watcher subscription (folderWatcher
+    // WeakMap invariant). Fire-and-forget: 'closed' cannot await, and the
+    // window is already gone so there is nothing to surface a failure to.
+    void unwatchFolder(win)
     registry.remove(win)
     onClosed?.(win)
   })
