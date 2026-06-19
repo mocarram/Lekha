@@ -85,6 +85,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     verifyOpenFile: vi.fn(() => Promise.resolve({ status: 'present' as const })),
     writeFile: vi.fn(() => Promise.resolve()),
     readDir: vi.fn(() => Promise.resolve([] as FileNode[])),
+    watchFolder: vi.fn(() => Promise.resolve()),
     listArticles: vi.fn(() => Promise.resolve([])),
     createFile: vi.fn(() => Promise.resolve('')),
     createFolder: vi.fn(() => Promise.resolve('')),
@@ -145,6 +146,7 @@ function makeMockLekha(overrides: Partial<LekhaAPI> = {}): LekhaAPI {
     setAlwaysOnTop: vi.fn(),
     onCommand: vi.fn(() => () => undefined),
     onOpenPath: vi.fn(() => () => undefined),
+    onFolderChanged: vi.fn(() => () => undefined),
     takePendingOpen: vi.fn(() => Promise.resolve([])),
     shouldRestoreSession: vi.fn(() => Promise.resolve(true)),    adjustZoom: vi.fn(() => Promise.resolve(1)),
     checkForUpdates: vi.fn(() => Promise.resolve({ channel: "homebrew" as const, currentVersion: "0.1.0", latestVersion: null, updateAvailable: false, error: false })),
@@ -1683,6 +1685,34 @@ describe('useFileOps - lazy tree', () => {
     expect(readDir).toHaveBeenCalledWith('/proj/sub')
     const sub = useWorkspaceStore.getState().fileTree.find((n) => n.path === '/proj/sub')!
     expect(sub.children).toEqual(subKids)
+  })
+
+  it('loadChildren is single-flight per dir: a stale read does not overwrite a fresher one', async () => {
+    // Two reads of /proj/sub; the FIRST resolves LAST with stale contents.
+    const deferreds: Array<(v: FileNode[]) => void> = []
+    const readDir = vi.fn(
+      (_d: string) => new Promise<FileNode[]>((res) => { deferreds.push(res) }),
+    )
+    useWorkspaceStore.setState({
+      rootFolder: '/proj',
+      fileTree: [{ name: 'sub', path: '/proj/sub', isDirectory: true }],
+    })
+    const { result } = mountFileOps({ readDir })
+
+    let p1!: Promise<void>
+    let p2!: Promise<void>
+    await act(async () => {
+      p1 = result.current.loadChildren('/proj/sub') // gen 1 (stale)
+      p2 = result.current.loadChildren('/proj/sub') // gen 2 (fresh, latest)
+      // resolve the FRESH (2nd) read first, then the STALE (1st) read.
+      deferreds[1]!([{ name: 'fresh.md', path: '/proj/sub/fresh.md', isDirectory: false }])
+      deferreds[0]!([{ name: 'stale.md', path: '/proj/sub/stale.md', isDirectory: false }])
+      await Promise.all([p1, p2])
+    })
+
+    const sub = useWorkspaceStore.getState().fileTree.find((n) => n.path === '/proj/sub')!
+    // The fresh read wins; the stale read was dropped.
+    expect(sub.children).toEqual([{ name: 'fresh.md', path: '/proj/sub/fresh.md', isDirectory: false }])
   })
 
   it('revealPath loads the ancestor chain of a file top-down', async () => {

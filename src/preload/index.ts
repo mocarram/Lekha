@@ -72,6 +72,10 @@ const api: LekhaAPI = {
     return ipcRenderer.invoke(IPC.readDir, dir) as Promise<FileNode[]>
   },
 
+  watchFolder(dir: string | null): Promise<void> {
+    return ipcRenderer.invoke(IPC.watchFolder, dir) as Promise<void>
+  },
+
   listArticles(root: string): Promise<ArticleEntry[]> {
     return ipcRenderer.invoke(IPC.listArticles, root) as Promise<ArticleEntry[]>
   },
@@ -166,6 +170,15 @@ const api: LekhaAPI = {
     const listener = (_event: Electron.IpcRendererEvent, path: string) => cb(path)
     ipcRenderer.on(IPC.openPath, listener)
     return () => ipcRenderer.removeListener(IPC.openPath, listener)
+  },
+
+  // Subscribes to folder-change notifications from the watcher (main process).
+  // Returns an unsubscribe function for cleanup on unmount.
+  onFolderChanged(cb: (payload: { dirs: string[] }) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: { dirs: string[] }) =>
+      cb(payload)
+    ipcRenderer.on(IPC.folderChanged, listener)
+    return () => ipcRenderer.removeListener(IPC.folderChanged, listener)
   },
 
   // Drains the launch-open queue: files the OS asked Lekha to open before any

@@ -10,8 +10,9 @@ files:
   - out/**/*
   - package.json
 
-# No native modules to unpack - Lekha has no .node binaries
-# asarUnpack left empty intentionally
+# @parcel/watcher ships native .node prebuilds; they must live outside the asar.
+asarUnpack:
+  - '**/node_modules/@parcel/watcher*/**'
 
 npmRebuild: false
 

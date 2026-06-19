@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { statSync } from 'node:fs'
 import { IPC } from '@shared/ipc-channels'
 import { allowFile, allowRoot, assertPathAllowed } from '@main/pathPolicy'
+import { senderWindow } from '@main/senderWindow'
+import { watchFolder, unwatchFolder } from '@main/folderWatcher'
 import type { Settings } from '@shared/types'
 import type { SettingsStore } from '@main/settings'
 import type { WindowRegistry } from '@main/window'
@@ -110,6 +112,31 @@ export function registerFileHandlers(
   safeHandle(IPC.readDir, async (dir) => {
     assertPathAllowed(String(dir))
     return listDirChildren(String(dir))
+  })
+
+  // --- Filesystem watcher ---
+  // Start/replace/stop watching the sender window's open folder. Needs the
+  // raw IPC event (to resolve the BrowserWindow via senderWindow), so it goes
+  // through guardedIpc.handle directly rather than safeHandle (which hides the
+  // event). The body is wrapped so a disallowed path (assertPathAllowed throws)
+  // or a watcher.subscribe failure rejects the invoke cleanly instead of
+  // crashing main - matching safeHandle's error-safety. A null/undefined dir
+  // means "stop watching" (renderer's open root cleared).
+  guardedIpc.handle(IPC.watchFolder, async (event, dir: string | null) => {
+    try {
+      const win = senderWindow(event)
+      if (!win) return
+      if (dir === null || dir === undefined) {
+        await unwatchFolder(win)
+        return
+      }
+      // Only watch a path the renderer is already permitted to read.
+      assertPathAllowed(String(dir))
+      await watchFolder(win, String(dir))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      throw new Error(msg, { cause: err })
+    }
   })
 
   // --- File-tree entry operations (create / rename / delete / reveal) ---

@@ -10,6 +10,7 @@ import { useStartup } from '@renderer/hooks/useStartup'
 import { applyWindowColor } from '@renderer/windowColor'
 import { useAutoSave } from '@renderer/hooks/useAutoSave'
 import { useCrashBackup } from '@renderer/hooks/useCrashBackup'
+import { useFolderWatcher } from '@renderer/hooks/useFolderWatcher'
 import { applyAutoSave } from '@renderer/hooks/applyAutoSave'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { parseMarkdown } from '@renderer/editor/parser'
@@ -133,6 +134,12 @@ export default function App() {
   // Crash recovery: always-on debounced backup of unsaved buffers (independent
   // of the auto-save setting). Covers Untitled docs too.
   useCrashBackup(editorRef)
+
+  // Filesystem watcher: tell main to watch the open root (driven by the store's
+  // rootFolder), and re-read only loaded dirs in place on change events.
+  // loadChildren is wrapped in an arrow to dodge the unbound-method lint rule.
+  const loadChildren = useCallback((dir: string) => fileOps.loadChildren(dir), [fileOps])
+  useFolderWatcher({ loadChildren })
 
   // Find/Replace overlay state
   const [findState, setFindState] = useState<{

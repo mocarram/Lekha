@@ -36,6 +36,7 @@
     "*.{css,json,md}": "prettier --write"
   },
   "dependencies": {
+    "@parcel/watcher": "^2.5.6",
     "electron-updater": "^6.8.3"
   },
   "devDependencies": {
