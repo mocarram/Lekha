@@ -251,6 +251,13 @@ export function useStartup(
         }
       }
 
+      // Lazy tree: the root level is loaded, but the active file's ancestor
+      // directories are not. Load them top-down so the auto-revealed active row
+      // has content. Best-effort; failures are swallowed inside revealPath.
+      if (ownsSession && s.activeTabPath !== null) {
+        await fileOpsRef.current.revealPath(s.activeTabPath)
+      }
+
       // -----------------------------------------------------------------
       // Crash recovery: restore unsaved buffers left behind by a crash.
       // -----------------------------------------------------------------

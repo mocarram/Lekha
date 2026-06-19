@@ -70,9 +70,10 @@ export interface FileOps {
   /**
    * Reveal a file in the sidebar by loading its ancestor directories top-down
    * so the auto-expanded active row has content. No-op when no folder is open
-   * or the file is outside the open root.
+   * or the file is outside the open root. Property-style (not method shorthand)
+   * so callers can extract it without the unbound-method lint rule.
    */
-  revealPath(filePath: string): Promise<void>
+  revealPath: (filePath: string) => Promise<void>
   /**
    * Re-stat `path` and adopt its current mtime+size as the external-change
    * baseline. Must be called after any write or disk-reload that bypasses
