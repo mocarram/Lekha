@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { changedDirsFromEvents, type WatcherEvent } from '@main/watcherEvents'
+import { changedDirsFromEvents, remapToWatchedRoot, type WatcherEvent } from '@main/watcherEvents'
 
 describe('changedDirsFromEvents', () => {
   it('maps each event to its parent directory, deduped', () => {
@@ -28,5 +28,20 @@ describe('changedDirsFromEvents', () => {
 
   it('treats a changed directory entry as a change to its parent', () => {
     expect(changedDirsFromEvents([{ type: 'create', path: '/proj/newdir' }])).toEqual(['/proj'])
+  })
+})
+
+describe('remapToWatchedRoot', () => {
+  it('is a no-op when realRoot equals watchedRoot', () => {
+    expect(remapToWatchedRoot('/var/d/sub', '/var/d', '/var/d')).toBe('/var/d/sub')
+  })
+  it('rewrites the resolved prefix back to the watched root', () => {
+    expect(remapToWatchedRoot('/private/var/d/sub', '/private/var/d', '/var/d')).toBe('/var/d/sub')
+  })
+  it('maps the root itself', () => {
+    expect(remapToWatchedRoot('/private/var/d', '/private/var/d', '/var/d')).toBe('/var/d')
+  })
+  it('leaves a path outside realRoot untouched', () => {
+    expect(remapToWatchedRoot('/elsewhere/x', '/private/var/d', '/var/d')).toBe('/elsewhere/x')
   })
 })

@@ -31,13 +31,10 @@ const PROJECT_ROOT = path.resolve(__dirname, '../..')
 // into this dir during the test to simulate an external app.
 // ---------------------------------------------------------------------------
 function buildFixture(): string {
-  // realpathSync: on macOS os.tmpdir() is a /var -> /private/var symlink, and
-  // @parcel/watcher emits canonical (resolved) paths. The renderer matches the
-  // watcher's changed dir against the open root, so the fixture path the test
-  // opens must be the SAME canonical form the watcher reports - exactly what a
-  // real (non-symlinked) folder gives for free. Without this the live update
-  // never matches a loaded dir and the tree silently never refreshes.
-  const docsDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'lekha-watch-docs-')))
+  // Intentionally NOT realpath'd: macOS tmpdir is under a /var -> /private/var
+  // symlink, so this exercises the watcher's real-path -> watched-root remap
+  // (FSEvents reports resolved paths; the tree uses the unresolved open path).
+  const docsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lekha-watch-docs-'))
   fs.mkdirSync(path.join(docsDir, 'sub'), { recursive: true })
   fs.mkdirSync(path.join(docsDir, 'cold'), { recursive: true }) // stays collapsed
   fs.writeFileSync(path.join(docsDir, 'root.md'), '# Root\n', 'utf8')

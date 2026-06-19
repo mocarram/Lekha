@@ -1,7 +1,8 @@
+import { realpathSync } from 'node:fs'
 import type { BrowserWindow } from 'electron'
 import watcher from '@parcel/watcher'
 import { IPC } from '@shared/ipc-channels'
-import { changedDirsFromEvents } from './watcherEvents'
+import { changedDirsFromEvents, remapToWatchedRoot } from './watcherEvents'
 
 /** Coalesce bursts of FS events into one refresh per window. */
 const DEBOUNCE_MS = 250
@@ -41,6 +42,16 @@ export async function watchFolder(win: BrowserWindow, dir: string): Promise<void
   const state: WatchState = { subscription: null, timer: null, pending: new Set() }
   watches.set(win, state)
 
+  // @parcel/watcher (FSEvents) reports symlink-resolved paths, but the tree
+  // keys nodes by the unresolved `dir` it was opened with. Resolve the real
+  // root once so we can remap each reported dir back into `dir`'s namespace.
+  let realRoot = dir
+  try {
+    realRoot = realpathSync(dir)
+  } catch {
+    // dir may not exist yet; subscribe will fail below and we bail. Use dir as-is.
+  }
+
   let subscription: { unsubscribe: () => Promise<void> }
   try {
     subscription = await watcher.subscribe(
@@ -50,7 +61,9 @@ export async function watchFolder(win: BrowserWindow, dir: string): Promise<void
           console.error('[folderWatcher] watcher callback error:', err)
           return
         }
-        for (const d of changedDirsFromEvents(events)) state.pending.add(d)
+        for (const d of changedDirsFromEvents(events)) {
+          state.pending.add(remapToWatchedRoot(d, realRoot, dir))
+        }
         if (state.pending.size === 0) return
         if (state.timer === null) {
           state.timer = setTimeout(() => flush(win, state), DEBOUNCE_MS)

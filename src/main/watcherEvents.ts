@@ -28,3 +28,23 @@ export function changedDirsFromEvents(events: WatcherEvent[]): string[] {
   }
   return [...dirs]
 }
+
+/**
+ * Rewrites a changed directory from the watcher's real-path namespace back to
+ * the watched root's original (possibly-symlinked) namespace. @parcel/watcher
+ * (FSEvents) reports symlink-resolved paths, but the renderer's tree keys nodes
+ * by the unresolved path the folder was opened with. When realRoot === watchedRoot
+ * (no symlink) this is a no-op.
+ */
+export function remapToWatchedRoot(
+  changedDir: string,
+  realRoot: string,
+  watchedRoot: string,
+): string {
+  if (realRoot === watchedRoot) return changedDir
+  if (changedDir === realRoot) return watchedRoot
+  if (changedDir.startsWith(realRoot + '/')) {
+    return watchedRoot + changedDir.slice(realRoot.length)
+  }
+  return changedDir
+}
