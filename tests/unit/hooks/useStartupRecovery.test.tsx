@@ -350,6 +350,7 @@ describe('useStartup - session ownership (File > New Window)', () => {
     await new Promise((r) => setTimeout(r, 0))
     expect(fileOps.restoreTabs).not.toHaveBeenCalled()
     expect(listBackups).not.toHaveBeenCalled()
+    expect(fileOps.revealPath).not.toHaveBeenCalled()
     expect(useDocumentsStore.getState().documents).toHaveLength(0)
     expect(setMarkdown).not.toHaveBeenCalled()
   })
