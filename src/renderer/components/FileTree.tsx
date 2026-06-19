@@ -110,7 +110,7 @@ interface FileTreeNodeProps {
   /** Toggle a directory's expanded state. */
   onToggleExpand: (path: string) => void
   /** Load a directory's children on first expand (lazy tree). */
-  onLoadChildren: ((dir: string) => void | Promise<void>) | undefined
+  onLoadChildren: ((dir: string) => void) | undefined
   /** Path currently being renamed inline (null when none). */
   renamingPath: string | null
   /** Open the context menu for a node at the given client coordinates. */
@@ -297,13 +297,18 @@ export function FileTree({
   // identity even when the parent re-renders with fresh inline arrows. This is
   // what makes the FileTreeNode memo effective: rows only re-render when their
   // own data (node / active / expanded / renaming) changes.
-  const handlersRef = useRef({ onSelect, onRename })
+  const handlersRef = useRef({ onSelect, onRename, onLoadChildren })
   useEffect(() => {
-    handlersRef.current = { onSelect, onRename }
+    handlersRef.current = { onSelect, onRename, onLoadChildren }
   })
 
   const selectStable = useCallback((path: string) => {
     handlersRef.current.onSelect(path)
+  }, [])
+
+  const loadChildrenStable = useCallback((dir: string) => {
+    const r = handlersRef.current.onLoadChildren?.(dir)
+    if (r) void r.catch((err) => console.error('[FileTree] load children failed:', dir, err))
   }, [])
 
   const toggleExpand = useCallback((path: string) => {
@@ -365,7 +370,7 @@ export function FileTree({
           depth={0}
           expandedPaths={effectiveExpanded}
           onToggleExpand={toggleExpand}
-          onLoadChildren={onLoadChildren}
+          onLoadChildren={loadChildrenStable}
           renamingPath={renamingPath}
           onContextMenu={handleNodeContextMenu}
           onRenameCommit={renameCommit}
