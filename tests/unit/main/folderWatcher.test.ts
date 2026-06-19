@@ -93,4 +93,54 @@ describe('folderWatcher', () => {
     await vi.advanceTimersByTimeAsync(250)
     expect(send).not.toHaveBeenCalled()
   })
+
+  it('unsubscribes a subscription that resolves after unwatchFolder (await-race guard)', async () => {
+    const { win } = makeWin()
+    // Make subscribe pend until we resolve it.
+    let resolveSub!: (s: { unsubscribe: typeof unsubscribe }) => void
+    subscribe.mockImplementationOnce(
+      () =>
+        new Promise((res) => {
+          resolveSub = res
+        }),
+    )
+
+    const p = watchFolder(win as never, '/proj') // starts awaiting subscribe
+    // watchFolder's own `await unwatchFolder()` resolves on a microtask, after
+    // which it runs `watches.set(win, state)` and parks on the pending
+    // subscribe. Flush that microtask so the state is registered before we tear
+    // down - otherwise unwatchFolder below would no-op on an empty WeakMap.
+    await Promise.resolve()
+    expect(subscribe).toHaveBeenCalledTimes(1)
+
+    await unwatchFolder(win as never) // tears down before subscribe resolves
+    resolveSub({ unsubscribe }) // subscribe now resolves
+    await p
+
+    expect(unsubscribe).toHaveBeenCalledTimes(1) // the resolved sub was cleaned up
+  })
+
+  it('does not reset the debounce timer on a later batch within the window', async () => {
+    const { win, send } = makeWin()
+    await watchFolder(win as never, '/proj')
+    mock.state.cb!(null, [{ type: 'create', path: '/proj/a.md' }]) // timer starts here
+    await vi.advanceTimersByTimeAsync(100)
+    mock.state.cb!(null, [{ type: 'create', path: '/proj/sub/b.md' }]) // must NOT reset timer
+    await vi.advanceTimersByTimeAsync(150) // 250ms after the FIRST event
+    expect(send).toHaveBeenCalledTimes(1) // one coalesced send
+    expect(send).toHaveBeenCalledWith(IPC.folderChanged, {
+      dirs: expect.arrayContaining(['/proj', '/proj/sub']),
+    })
+  })
+
+  it('re-arms the timer for a new batch after a flush', async () => {
+    const { win, send } = makeWin()
+    await watchFolder(win as never, '/proj')
+    mock.state.cb!(null, [{ type: 'create', path: '/proj/a.md' }])
+    await vi.advanceTimersByTimeAsync(250)
+    expect(send).toHaveBeenCalledTimes(1)
+    mock.state.cb!(null, [{ type: 'create', path: '/proj/c.md' }]) // new batch after flush
+    await vi.advanceTimersByTimeAsync(250)
+    expect(send).toHaveBeenCalledTimes(2) // timer re-armed, second send fired
+  })
 })

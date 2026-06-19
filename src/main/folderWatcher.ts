@@ -15,7 +15,12 @@ interface WatchState {
   pending: Set<string>
 }
 
-const watches = new Map<BrowserWindow, WatchState>()
+/**
+ * Per-window watch state. A WeakMap so a closed window's JS state can be GC'd.
+ * INVARIANT: the window's 'closed' handler MUST call unwatchFolder(win) - the
+ * native @parcel/watcher subscription is not released by GC alone.
+ */
+const watches = new WeakMap<BrowserWindow, WatchState>()
 
 function flush(win: BrowserWindow, state: WatchState): void {
   state.timer = null
@@ -41,7 +46,10 @@ export async function watchFolder(win: BrowserWindow, dir: string): Promise<void
     subscription = await watcher.subscribe(
       dir,
       (err, events) => {
-        if (err) return
+        if (err) {
+          console.error('[folderWatcher] watcher callback error:', err)
+          return
+        }
         for (const d of changedDirsFromEvents(events)) state.pending.add(d)
         if (state.pending.size === 0) return
         if (state.timer === null) {
@@ -50,7 +58,8 @@ export async function watchFolder(win: BrowserWindow, dir: string): Promise<void
       },
       { ignore: IGNORE_GLOBS },
     )
-  } catch {
+  } catch (err) {
+    console.error('[folderWatcher] subscribe failed:', err)
     watches.delete(win)
     return
   }
