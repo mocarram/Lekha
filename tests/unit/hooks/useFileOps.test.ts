@@ -1007,14 +1007,16 @@ describe('useFileOps - file-tree ops', () => {
   })
 
   it('createFolderEntry creates the folder and refreshes the tree', async () => {
-    const createFolder = vi.fn(() => Promise.resolve('/proj/Untitled Folder'))
+    const createFolder = vi.fn(() => Promise.resolve('/proj/sub/Untitled Folder'))
     const readDir = vi.fn(() => Promise.resolve([] as FileNode[]))
     const { result } = mountFileOps({ createFolder, readDir })
+    useWorkspaceStore.setState({ rootFolder: '/proj' })
 
     await act(async () => { await result.current.createFolderEntry('/proj/sub') })
 
     expect(createFolder).toHaveBeenCalledWith('/proj/sub', 'Untitled Folder')
-    expect(readDir).not.toHaveBeenCalled() // no root open -> loadChildren no-ops
+    // With a root open, the affected dir is re-read (loadChildren -> readDir).
+    expect(readDir).toHaveBeenCalledWith('/proj/sub')
   })
 
   it('renameEntry remaps the active doc and refreshes the tree', async () => {
