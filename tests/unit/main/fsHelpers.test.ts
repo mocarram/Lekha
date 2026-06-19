@@ -82,6 +82,15 @@ describe('buildFileTree', () => {
     const names = tree.map((n) => n.name)
     expect(names).not.toContain('node_modules')
   })
+
+  it('returns an empty array for an empty directory', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-empty-'))
+    try {
+      expect(await buildFileTree(dir)).toEqual([])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('listDirChildren', () => {
@@ -100,20 +109,27 @@ describe('listDirChildren', () => {
   })
 
   it('excludes dotfiles, dotdirs, node_modules and non-openable files', async () => {
-    mkdirSync(join(tmpDir, 'node_modules'), { recursive: true })
-    mkdirSync(join(tmpDir, '.git'), { recursive: true })
-    writeFileSync(join(tmpDir, '.hidden2.md'), 'x', 'utf8')
-    writeFileSync(join(tmpDir, 'image.png'), 'x', 'utf8')
-    writeFileSync(join(tmpDir, 'keep.md'), 'x', 'utf8')
+    // Use a fresh empty dir so the shared beforeEach fixtures do not leak into
+    // the assertions for this isolated test.
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-exclude-'))
+    try {
+      mkdirSync(join(dir, 'node_modules'), { recursive: true })
+      mkdirSync(join(dir, '.git'), { recursive: true })
+      writeFileSync(join(dir, '.hidden2.md'), 'x', 'utf8')
+      writeFileSync(join(dir, 'image.png'), 'x', 'utf8')
+      writeFileSync(join(dir, 'keep.md'), 'x', 'utf8')
 
-    const level = await listDirChildren(tmpDir)
-    const names = level.map((n) => n.name)
+      const level = await listDirChildren(dir)
+      const names = level.map((n) => n.name)
 
-    expect(names).toContain('keep.md')
-    expect(names).not.toContain('node_modules')
-    expect(names).not.toContain('.git')
-    expect(names).not.toContain('.hidden2.md')
-    expect(names).not.toContain('image.png')
+      expect(names).toContain('keep.md')
+      expect(names).not.toContain('node_modules')
+      expect(names).not.toContain('.git')
+      expect(names).not.toContain('.hidden2.md')
+      expect(names).not.toContain('image.png')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('sorts directories first, then files, each case-insensitive', async () => {
@@ -129,6 +145,15 @@ describe('listDirChildren', () => {
       const level = await listDirChildren(dir)
 
       expect(level.map((n) => n.name)).toEqual(['alpha', 'Zeta', 'apple.md', 'Beta.md'])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('returns an empty array for an empty directory (loaded-empty, not unloaded)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-empty-'))
+    try {
+      expect(await listDirChildren(dir)).toEqual([])
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

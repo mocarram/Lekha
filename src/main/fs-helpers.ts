@@ -47,6 +47,8 @@ const byName = (a: FileNode, b: FileNode) =>
  * Lists ONE directory level: immediate openable files and sub-directories.
  * Dotfiles, dotdirs, and node_modules are excluded; only files in the shared
  * openable set (md/markdown/mdown/mkd/mdx/txt/text) are included.
+ * Symlinks are not followed (a symlink Dirent is neither a file nor a
+ * directory, so it is silently excluded).
  * Sub-directories are returned with `children` LEFT UNDEFINED (unloaded) - the
  * sidebar loads them lazily on expand. Sort order: directories first (alpha,
  * case-insensitive), then files.
