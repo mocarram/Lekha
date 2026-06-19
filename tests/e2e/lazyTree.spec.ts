@@ -77,18 +77,20 @@ test.describe('lazy load and expand', () => {
 
   test('opening a folder shows only the root level; sub-folder children are not loaded', async () => {
     // Top-level entries are present.
-    await expect(win.locator('.file-tree__name', { hasText: 'root.md' })).toBeVisible({
+    await expect(win.locator('.file-tree__name', { hasText: /^root\.md$/ })).toBeVisible({
       timeout: 10_000,
     })
     await expect(win.locator('.file-tree__name', { hasText: /^sub$/ })).toBeVisible()
     await expect(win.locator('.file-tree__name', { hasText: /^other$/ })).toBeVisible()
     // The sub-folder's child has not been loaded into the DOM yet (lazy).
-    await expect(win.locator('.file-tree__name', { hasText: 'nested.md' })).toHaveCount(0)
+    await expect(win.locator('.file-tree__name', { hasText: /^nested\.md$/ })).toHaveCount(0, {
+      timeout: 2_000, // must be absent right after the root level renders, not a retry target
+    })
   })
 
   test('expanding a sub-folder loads and shows its children', async () => {
     await win.locator('.file-tree__name', { hasText: /^sub$/ }).click()
-    await expect(win.locator('.file-tree__name', { hasText: 'nested.md' })).toBeVisible({
+    await expect(win.locator('.file-tree__name', { hasText: /^nested\.md$/ })).toBeVisible({
       timeout: 10_000,
     })
   })
@@ -128,7 +130,7 @@ test.describe('restore reveal', () => {
     })
     // ...and because the restored active tab lives inside sub/, its ancestor
     // dir was auto-revealed and its children auto-loaded: no click required.
-    await expect(win.locator('.file-tree__name', { hasText: 'nested.md' })).toBeVisible({
+    await expect(win.locator('.file-tree__name', { hasText: /^nested\.md$/ })).toBeVisible({
       timeout: 10_000,
     })
   })
