@@ -1046,7 +1046,7 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (path === null) return
     try {
       const newPath = await window.lekha.duplicatePath(path)
-      await loadChildren(parentDir(editorStore.getState().path ?? ''))
+      await loadChildren(parentDir(path))
       await openPath(newPath)
     } catch (err) {
       alertOpError('Could not duplicate the file', err)
@@ -1055,11 +1055,10 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
 
   // Move the current file to trash (after confirm), then reset to a blank doc.
   const deleteCurrent = useCallback(async (): Promise<void> => {
-    const { path } = editorStore.getState()
-    if (path === null) return
     // Capture the active path BEFORE closing the tab clears it, so we can patch
     // the deleted file's parent directory in the tree afterwards.
-    const deletedPath = editorStore.getState().path
+    const { path } = editorStore.getState()
+    if (path === null) return
     if (
       !window.confirm(
         'Move this file to the Trash? You can restore it from the system Trash.',
@@ -1077,7 +1076,13 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     } else {
       await newFile()
     }
-    if (deletedPath !== null) await loadChildren(parentDir(deletedPath))
+    if (path !== null) {
+      try {
+        await loadChildren(parentDir(path))
+      } catch {
+        // deletion already succeeded; the tree refresh is best-effort
+      }
+    }
   }, [editorStore, documentsStore, closeTab, newFile, loadChildren])
 
   // Move the current file into a folder chosen via the native picker.
