@@ -109,6 +109,8 @@ interface FileTreeNodeProps {
   expandedPaths: Set<string>
   /** Toggle a directory's expanded state. */
   onToggleExpand: (path: string) => void
+  /** Load a directory's children on first expand (lazy tree). */
+  onLoadChildren: ((dir: string) => void | Promise<void>) | undefined
   /** Path currently being renamed inline (null when none). */
   renamingPath: string | null
   /** Open the context menu for a node at the given client coordinates. */
@@ -137,6 +139,7 @@ const FileTreeNode = memo(function FileTreeNode({
   depth,
   expandedPaths,
   onToggleExpand,
+  onLoadChildren,
   renamingPath,
   onContextMenu,
   onRenameCommit,
@@ -155,6 +158,9 @@ const FileTreeNode = memo(function FileTreeNode({
 
   const handleClick = () => {
     if (node.isDirectory) {
+      if (!expanded && node.children === undefined) {
+        void onLoadChildren?.(node.path)
+      }
       onToggleExpand(node.path)
     } else {
       onSelect(node.path)
@@ -207,6 +213,7 @@ const FileTreeNode = memo(function FileTreeNode({
               depth={depth + 1}
               expandedPaths={expandedPaths}
               onToggleExpand={onToggleExpand}
+              onLoadChildren={onLoadChildren}
               renamingPath={renamingPath}
               onContextMenu={onContextMenu}
               onRenameCommit={onRenameCommit}
@@ -244,6 +251,12 @@ interface FileTreeProps {
   onDelete?: (path: string) => void | Promise<void>
   /** Reveal `path` in the OS file manager. */
   onReveal?: (path: string) => void
+  /**
+   * Load a directory's children on first expand (lazy tree). Called with the
+   * directory path when an UNLOADED folder is expanded. Optional so read-only
+   * call sites and existing tests can omit it.
+   */
+  onLoadChildren?: (dir: string) => void | Promise<void>
 }
 
 interface MenuState {
@@ -271,6 +284,7 @@ export function FileTree({
   onRename,
   onDelete,
   onReveal,
+  onLoadChildren,
 }: FileTreeProps) {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [renamingPath, setRenamingPath] = useState<string | null>(null)
@@ -351,6 +365,7 @@ export function FileTree({
           depth={0}
           expandedPaths={effectiveExpanded}
           onToggleExpand={toggleExpand}
+          onLoadChildren={onLoadChildren}
           renamingPath={renamingPath}
           onContextMenu={handleNodeContextMenu}
           onRenameCommit={renameCommit}

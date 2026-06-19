@@ -42,6 +42,8 @@ interface SidebarProps {
   onDeleteEntry: (path: string) => void | Promise<void>
   /** Reveal `path` in the OS file manager. */
   onRevealEntry: (path: string) => void
+  /** Load a directory's children on first expand (lazy tree). */
+  onLoadChildren: (dir: string) => void | Promise<void>
   /** Open a folder (by absolute path) as the workspace - used by drag-and-drop. */
   onOpenFolderPath: (dir: string) => void | Promise<void>
   /** Show a brief transient message to the user (e.g. drop feedback). */
@@ -76,6 +78,7 @@ export function Sidebar({
   onRenameEntry,
   onDeleteEntry,
   onRevealEntry,
+  onLoadChildren,
   onOpenFolderPath,
   onNotify,
   sidebarWidth,
@@ -183,6 +186,7 @@ export function Sidebar({
                 onRename={onRenameEntry}
                 onDelete={onDeleteEntry}
                 onReveal={onRevealEntry}
+                onLoadChildren={onLoadChildren}
               />
             )}
             {/* Drag-over overlay hint (shown whether empty or populated). */}
