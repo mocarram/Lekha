@@ -41,6 +41,11 @@ export interface LekhaAPI {
   verifyOpenFile(args: { path: string; inode: number }): Promise<OpenFileStatus>
   writeFile(path: string, content: string): Promise<void>
   readDir(dir: string): Promise<FileNode[]>
+  /**
+   * Tell the main process which folder this window has open so it can watch it
+   * for live changes. Pass null to stop watching (folder closed).
+   */
+  watchFolder(dir: string | null): Promise<void>
   /** List all markdown files under `root` (recursive), most-recent first. */
   listArticles(root: string): Promise<ArticleEntry[]>
 
@@ -114,6 +119,12 @@ export interface LekhaAPI {
    * Returns an unsubscribe function that removes the listener.
    */
   onOpenPath(cb: (path: string) => void): () => void
+
+  /**
+   * Subscribe to folder-change notifications from the watcher. The callback
+   * receives the directories that changed on disk. Returns an unsubscribe fn.
+   */
+  onFolderChanged(cb: (payload: { dirs: string[] }) => void): () => void
 
   /**
    * Drain the queue of files the OS asked Lekha to open at launch, before any

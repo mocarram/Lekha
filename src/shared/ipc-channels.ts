@@ -160,6 +160,8 @@ export const IPC = {
   openThemeFolder: 'themes:openFolder',
   /** Renderer -> main: re-scan the user themes folder and return UserTheme[]. */
   reloadThemes: 'themes:reload',
+  /** Renderer -> main: start/replace/stop watching the open folder (null = stop). */
+  watchFolder: 'fs:watchFolder',
   /**
    * Main -> renderer: filesystem watcher detected changes under the open folder.
    * Carries { dirs: string[] } - the changed parent directories; the renderer
