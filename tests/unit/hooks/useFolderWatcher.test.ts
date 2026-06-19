@@ -85,6 +85,22 @@ describe('useFolderWatcher', () => {
     expect(loadChildren).not.toHaveBeenCalled()
   })
 
+  it('subscribes to onFolderChanged exactly once despite loadChildren identity changes', () => {
+    const lekha = makeLekha()
+    vi.stubGlobal('lekha', lekha)
+    let loadChildren = vi.fn(() => Promise.resolve())
+
+    const { rerender } = renderHook(() => useFolderWatcher({ loadChildren }))
+    expect(lekha.onFolderChanged).toHaveBeenCalledTimes(1)
+
+    loadChildren = vi.fn(() => Promise.resolve()) // new identity (App re-render)
+    rerender()
+    loadChildren = vi.fn(() => Promise.resolve())
+    rerender()
+
+    expect(lekha.onFolderChanged).toHaveBeenCalledTimes(1) // did NOT resubscribe
+  })
+
   it('unsubscribes from folderChanged on unmount', () => {
     const lekha = makeLekha()
     vi.stubGlobal('lekha', lekha)
