@@ -143,7 +143,6 @@ function makeMockFileOps(): MockFileOpsResult {
   const saveAs = vi.fn(() => Promise.resolve())
   const openFolder = vi.fn(() => Promise.resolve())
   const openFolderPath = vi.fn(() => Promise.resolve())
-  const refreshTree = vi.fn(() => Promise.resolve())
   const guardUnsaved = vi.fn(() => Promise.resolve(true))
   const revertToSaved = vi.fn(() => Promise.resolve())
   const duplicateCurrent = vi.fn(() => Promise.resolve())
@@ -161,7 +160,7 @@ function makeMockFileOps(): MockFileOpsResult {
   const revealEntry = vi.fn()
   const verifyActiveDoc = vi.fn(() => Promise.resolve())
   const resetToBlank = vi.fn()
-  const fileOps: FileOps = { newFile, open, openPath, restoreTabs: vi.fn(() => Promise.resolve()), save, saveAs, openFolder, saveQuiet: vi.fn(() => Promise.resolve()), openFolderPath, refreshTree, refreshDiskSig: vi.fn(() => Promise.resolve()), guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab, closeOtherTabs: vi.fn(() => Promise.resolve()), closeTabsToRight: vi.fn(() => Promise.resolve()), closeSavedTabs: vi.fn(() => Promise.resolve()), closeAllTabs: vi.fn(() => Promise.resolve()), saveAllForClose, discardAllForClose, syncActivePath, createFileEntry, createFolderEntry, renameEntry, deleteEntry, revealEntry, verifyActiveDoc, resetToBlank }
+  const fileOps: FileOps = { newFile, open, openPath, restoreTabs: vi.fn(() => Promise.resolve()), save, saveAs, openFolder, saveQuiet: vi.fn(() => Promise.resolve()), openFolderPath, loadChildren: vi.fn(() => Promise.resolve()), revealPath: vi.fn(() => Promise.resolve()), refreshDiskSig: vi.fn(() => Promise.resolve()), guardUnsaved, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, selectTab, closeTab, closeOtherTabs: vi.fn(() => Promise.resolve()), closeTabsToRight: vi.fn(() => Promise.resolve()), closeSavedTabs: vi.fn(() => Promise.resolve()), closeAllTabs: vi.fn(() => Promise.resolve()), saveAllForClose, discardAllForClose, syncActivePath, createFileEntry, createFolderEntry, renameEntry, deleteEntry, revealEntry, verifyActiveDoc, resetToBlank }
   return { fileOps, newFile, open, openPath, save, saveAs, openFolder, revertToSaved, duplicateCurrent, deleteCurrent, moveCurrentTo, saveAllForClose, discardAllForClose }
 }
 

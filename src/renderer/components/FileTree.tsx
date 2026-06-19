@@ -260,7 +260,7 @@ interface MenuState {
  * children when expanded. The context menu and inline-rename state live here at
  * the root so a single menu/input is active at a time. All mutating actions are
  * delegated to the optional callback props (the caller wires them to
- * window.lekha + refreshTree); when a callback is absent the action is a no-op.
+ * window.lekha + loadChildren); when a callback is absent the action is a no-op.
  */
 export function FileTree({
   nodes,

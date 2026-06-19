@@ -14,6 +14,7 @@ import { useDocumentsStore } from '../../../src/renderer/store/documentsStore'
 import type { EditorPaneHandle } from '../../../src/renderer/editor/EditorPane'
 import type { LekhaAPI } from '../../../src/preload/api'
 import type { FileNode } from '../../../src/shared/types'
+import { loadedDirPaths } from '../../../src/renderer/store/treeOps'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1013,7 +1014,7 @@ describe('useFileOps - file-tree ops', () => {
     await act(async () => { await result.current.createFolderEntry('/proj/sub') })
 
     expect(createFolder).toHaveBeenCalledWith('/proj/sub', 'Untitled Folder')
-    expect(readDir).not.toHaveBeenCalled() // no root open -> refreshTree no-ops
+    expect(readDir).not.toHaveBeenCalled() // no root open -> loadChildren no-ops
   })
 
   it('renameEntry remaps the active doc and refreshes the tree', async () => {
@@ -1656,5 +1657,57 @@ describe('useFileOps - restoreTabs re-pins persisted pinned tabs', () => {
     expect(useDocumentsStore.getState().documents.map((d) => `${d.path}${d.isPinned ? '*' : ''}`))
       .toEqual(['/c.md*', '/a.md*', '/b.md'])
     expect(useDocumentsStore.getState().activeDocument()?.path).toBe('/b.md')
+  })
+})
+
+describe('useFileOps - lazy tree', () => {
+  it('loadChildren reads a directory and patches that node in the store', async () => {
+    const subKids: FileNode[] = [
+      { name: 'nested.md', path: '/proj/sub/nested.md', isDirectory: false },
+    ]
+    const readDir = vi.fn((d: string) =>
+      Promise.resolve(d === '/proj/sub' ? subKids : ([] as FileNode[])),
+    )
+    useWorkspaceStore.setState({
+      rootFolder: '/proj',
+      fileTree: [{ name: 'sub', path: '/proj/sub', isDirectory: true }],
+    })
+    const { result } = mountFileOps({ readDir })
+
+    await act(async () => {
+      await result.current.loadChildren('/proj/sub')
+    })
+
+    expect(readDir).toHaveBeenCalledWith('/proj/sub')
+    const sub = useWorkspaceStore.getState().fileTree.find((n) => n.path === '/proj/sub')!
+    expect(sub.children).toEqual(subKids)
+  })
+
+  it('revealPath loads the ancestor chain of a file top-down', async () => {
+    const calls: string[] = []
+    const readDir = vi.fn((d: string) => {
+      calls.push(d)
+      if (d === '/proj/a') {
+        return Promise.resolve([{ name: 'b', path: '/proj/a/b', isDirectory: true }] as FileNode[])
+      }
+      if (d === '/proj/a/b') {
+        return Promise.resolve([
+          { name: 'deep.md', path: '/proj/a/b/deep.md', isDirectory: false },
+        ] as FileNode[])
+      }
+      return Promise.resolve([] as FileNode[])
+    })
+    useWorkspaceStore.setState({
+      rootFolder: '/proj',
+      fileTree: [{ name: 'a', path: '/proj/a', isDirectory: true }],
+    })
+    const { result } = mountFileOps({ readDir })
+
+    await act(async () => {
+      await result.current.revealPath('/proj/a/b/deep.md')
+    })
+
+    expect(calls).toEqual(['/proj/a', '/proj/a/b'])
+    expect(loadedDirPaths(useWorkspaceStore.getState().fileTree)).toContain('/proj/a/b')
   })
 })
