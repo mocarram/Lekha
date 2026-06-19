@@ -665,6 +665,7 @@ export default function App() {
         onRenameEntry={(oldPath, newName) => { void fileOps.renameEntry(oldPath, newName) }}
         onDeleteEntry={(path) => { void fileOps.deleteEntry(path) }}
         onRevealEntry={(path) => { fileOps.revealEntry(path) }}
+        onLoadChildren={(dir) => { void fileOps.loadChildren(dir) }}
         onOpenFolderPath={(dir) => { void fileOps.openFolderPath(dir) }}
         onNotify={notifyDrop}
         sidebarWidth={sidebarWidth}

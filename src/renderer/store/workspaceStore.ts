@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { FileNode } from '@shared/types'
+import { mergePreserveLoaded, setNodeChildren } from './treeOps'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,6 +36,12 @@ interface WorkspaceState {
 interface WorkspaceActions {
   setRootFolder(path: string | null): void
   setFileTree(tree: FileNode[]): void
+  /**
+   * Replace the children of the directory at `path` (merging to preserve
+   * already-loaded descendants). When `path` is the open root folder, replaces
+   * the top-level tree. No-op when no node matches.
+   */
+  setChildren(path: string, children: FileNode[]): void
   setRecentFiles(list: string[]): void
   toggleSidebar(): void
   setSidebarVisible(v: boolean): void
@@ -75,6 +82,15 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
   setFileTree(tree) {
     set({ fileTree: tree })
+  },
+
+  setChildren(path, children) {
+    set((state) => {
+      if (path === state.rootFolder) {
+        return { fileTree: mergePreserveLoaded(state.fileTree, children) }
+      }
+      return { fileTree: setNodeChildren(state.fileTree, path, children) }
+    })
   },
 
   setRecentFiles(list) {

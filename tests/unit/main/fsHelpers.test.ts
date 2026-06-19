@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { buildFileTree, writeFileAtomic, readTextFile, statFile, verifyOpenFile, findPathByInode, deriveArticleTitle, deriveArticlePreview, listArticles } from '@main/fs-helpers'
+import { buildFileTree, listDirChildren, writeFileAtomic, readTextFile, statFile, verifyOpenFile, findPathByInode, deriveArticleTitle, deriveArticlePreview, listArticles } from '@main/fs-helpers'
 
 let tmpDir: string
 
@@ -81,6 +81,82 @@ describe('buildFileTree', () => {
     const tree = await buildFileTree(tmpDir)
     const names = tree.map((n) => n.name)
     expect(names).not.toContain('node_modules')
+  })
+
+  it('returns an empty array for an empty directory', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-empty-'))
+    try {
+      expect(await buildFileTree(dir)).toEqual([])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('listDirChildren', () => {
+  it('returns only the immediate level; sub-directories are left unloaded', async () => {
+    mkdirSync(join(tmpDir, 'lvl-sub'), { recursive: true })
+    writeFileSync(join(tmpDir, 'lvl-a.md'), '# a', 'utf8')
+    writeFileSync(join(tmpDir, 'lvl-sub', 'nested.md'), '# n', 'utf8')
+
+    const level = await listDirChildren(tmpDir)
+
+    const sub = level.find((n) => n.name === 'lvl-sub')
+    expect(sub).toBeDefined()
+    expect(sub!.isDirectory).toBe(true)
+    expect(sub!.children).toBeUndefined()
+    expect(level.find((n) => n.name === 'lvl-a.md')?.isDirectory).toBe(false)
+  })
+
+  it('excludes dotfiles, dotdirs, node_modules and non-openable files', async () => {
+    // Use a fresh empty dir so the shared beforeEach fixtures do not leak into
+    // the assertions for this isolated test.
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-exclude-'))
+    try {
+      mkdirSync(join(dir, 'node_modules'), { recursive: true })
+      mkdirSync(join(dir, '.git'), { recursive: true })
+      writeFileSync(join(dir, '.hidden2.md'), 'x', 'utf8')
+      writeFileSync(join(dir, 'image.png'), 'x', 'utf8')
+      writeFileSync(join(dir, 'keep.md'), 'x', 'utf8')
+
+      const level = await listDirChildren(dir)
+      const names = level.map((n) => n.name)
+
+      expect(names).toContain('keep.md')
+      expect(names).not.toContain('node_modules')
+      expect(names).not.toContain('.git')
+      expect(names).not.toContain('.hidden2.md')
+      expect(names).not.toContain('image.png')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('sorts directories first, then files, each case-insensitive', async () => {
+    // Use a fresh empty dir so the shared beforeEach fixtures do not perturb
+    // the expected ordering for this exact-equality assertion.
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-sort-'))
+    try {
+      mkdirSync(join(dir, 'Zeta'), { recursive: true })
+      mkdirSync(join(dir, 'alpha'), { recursive: true })
+      writeFileSync(join(dir, 'Beta.md'), 'x', 'utf8')
+      writeFileSync(join(dir, 'apple.md'), 'x', 'utf8')
+
+      const level = await listDirChildren(dir)
+
+      expect(level.map((n) => n.name)).toEqual(['alpha', 'Zeta', 'apple.md', 'Beta.md'])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('returns an empty array for an empty directory (loaded-empty, not unloaded)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'lekha-fs-empty-'))
+    try {
+      expect(await listDirChildren(dir)).toEqual([])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
 

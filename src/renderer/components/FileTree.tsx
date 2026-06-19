@@ -109,6 +109,8 @@ interface FileTreeNodeProps {
   expandedPaths: Set<string>
   /** Toggle a directory's expanded state. */
   onToggleExpand: (path: string) => void
+  /** Load a directory's children on first expand (lazy tree). */
+  onLoadChildren: ((dir: string) => void) | undefined
   /** Path currently being renamed inline (null when none). */
   renamingPath: string | null
   /** Open the context menu for a node at the given client coordinates. */
@@ -137,6 +139,7 @@ const FileTreeNode = memo(function FileTreeNode({
   depth,
   expandedPaths,
   onToggleExpand,
+  onLoadChildren,
   renamingPath,
   onContextMenu,
   onRenameCommit,
@@ -155,6 +158,9 @@ const FileTreeNode = memo(function FileTreeNode({
 
   const handleClick = () => {
     if (node.isDirectory) {
+      if (!expanded && node.children === undefined) {
+        void onLoadChildren?.(node.path)
+      }
       onToggleExpand(node.path)
     } else {
       onSelect(node.path)
@@ -207,6 +213,7 @@ const FileTreeNode = memo(function FileTreeNode({
               depth={depth + 1}
               expandedPaths={expandedPaths}
               onToggleExpand={onToggleExpand}
+              onLoadChildren={onLoadChildren}
               renamingPath={renamingPath}
               onContextMenu={onContextMenu}
               onRenameCommit={onRenameCommit}
@@ -244,6 +251,12 @@ interface FileTreeProps {
   onDelete?: (path: string) => void | Promise<void>
   /** Reveal `path` in the OS file manager. */
   onReveal?: (path: string) => void
+  /**
+   * Load a directory's children on first expand (lazy tree). Called with the
+   * directory path when an UNLOADED folder is expanded. Optional so read-only
+   * call sites and existing tests can omit it.
+   */
+  onLoadChildren?: (dir: string) => void | Promise<void>
 }
 
 interface MenuState {
@@ -260,7 +273,7 @@ interface MenuState {
  * children when expanded. The context menu and inline-rename state live here at
  * the root so a single menu/input is active at a time. All mutating actions are
  * delegated to the optional callback props (the caller wires them to
- * window.lekha + refreshTree); when a callback is absent the action is a no-op.
+ * window.lekha + loadChildren); when a callback is absent the action is a no-op.
  */
 export function FileTree({
   nodes,
@@ -271,6 +284,7 @@ export function FileTree({
   onRename,
   onDelete,
   onReveal,
+  onLoadChildren,
 }: FileTreeProps) {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [renamingPath, setRenamingPath] = useState<string | null>(null)
@@ -283,13 +297,18 @@ export function FileTree({
   // identity even when the parent re-renders with fresh inline arrows. This is
   // what makes the FileTreeNode memo effective: rows only re-render when their
   // own data (node / active / expanded / renaming) changes.
-  const handlersRef = useRef({ onSelect, onRename })
+  const handlersRef = useRef({ onSelect, onRename, onLoadChildren })
   useEffect(() => {
-    handlersRef.current = { onSelect, onRename }
+    handlersRef.current = { onSelect, onRename, onLoadChildren }
   })
 
   const selectStable = useCallback((path: string) => {
     handlersRef.current.onSelect(path)
+  }, [])
+
+  const loadChildrenStable = useCallback((dir: string) => {
+    const r = handlersRef.current.onLoadChildren?.(dir)
+    if (r) void r.catch((err) => console.error('[FileTree] load children failed:', dir, err))
   }, [])
 
   const toggleExpand = useCallback((path: string) => {
@@ -351,6 +370,7 @@ export function FileTree({
           depth={0}
           expandedPaths={effectiveExpanded}
           onToggleExpand={toggleExpand}
+          onLoadChildren={loadChildrenStable}
           renamingPath={renamingPath}
           onContextMenu={handleNodeContextMenu}
           onRenameCommit={renameCommit}

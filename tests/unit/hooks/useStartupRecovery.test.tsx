@@ -96,6 +96,9 @@ function makeFileOps(readFile: (p: string) => Promise<string>): FileOps {
     }
   })
   const selectTab = vi.fn(() => Promise.resolve())
+  // Dedicated spy (not the shared `noop`) so the session-restore reveal test can
+  // assert revealPath was called with the active tab path unambiguously.
+  const revealPath = vi.fn(() => Promise.resolve())
   const noop = vi.fn(() => Promise.resolve())
   return {
     open: noop,
@@ -106,7 +109,8 @@ function makeFileOps(readFile: (p: string) => Promise<string>): FileOps {
     newFile: noop,
     openFolder: noop,
     openFolderPath: noop,
-    refreshTree: noop,
+    loadChildren: noop,
+    revealPath,
     refreshDiskSig: noop,
     saveQuiet: noop,
     guardUnsaved: vi.fn(() => Promise.resolve(true)),
@@ -346,6 +350,7 @@ describe('useStartup - session ownership (File > New Window)', () => {
     await new Promise((r) => setTimeout(r, 0))
     expect(fileOps.restoreTabs).not.toHaveBeenCalled()
     expect(listBackups).not.toHaveBeenCalled()
+    expect(fileOps.revealPath).not.toHaveBeenCalled()
     expect(useDocumentsStore.getState().documents).toHaveLength(0)
     expect(setMarkdown).not.toHaveBeenCalled()
   })
@@ -363,6 +368,31 @@ describe('useStartup - session ownership (File > New Window)', () => {
       expect(fileOps.restoreTabs).toHaveBeenCalledWith(['/a.md'], '/a.md', [])
     })
     expect(listBackups).toHaveBeenCalled()
+  })
+
+  it('reveals the active file in the lazy tree after restore', async () => {
+    // A folder is open and the active tab lives inside a subfolder. The lazy
+    // tree only loads the root level, so the active file's ancestor directories
+    // must be revealed (loaded top-down) for its auto-expanded row to have
+    // content.
+    listBackups.mockResolvedValue([])
+    readFile.mockResolvedValue('# active')
+    stubLekha(
+      makeSettings({
+        lastFolder: '/proj',
+        openTabPaths: ['/proj/sub/active.md'],
+        activeTabPath: '/proj/sub/active.md',
+      }),
+      true,
+    )
+
+    const fileOps = makeFileOps((p) => readFile(p))
+    const { ref } = makeEditorRef()
+    renderHook(() => useStartup(fileOps, ref))
+
+    await waitFor(() => {
+      expect(fileOps.revealPath).toHaveBeenCalledWith('/proj/sub/active.md')
+    })
   })
 })
 

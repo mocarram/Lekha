@@ -4,6 +4,7 @@ import { getOutline } from '@renderer/editor/outline'
 import { countWords } from '@renderer/editor/wordCount'
 import { useEditorStore } from '@renderer/store/editorStore'
 import { useWorkspaceStore } from '@renderer/store/workspaceStore'
+import { parentDir } from '@renderer/store/treeOps'
 import {
   useDocumentsStore,
   type DocumentTab,
@@ -61,11 +62,18 @@ export interface FileOps {
   /** Open a folder by absolute path (no dialog) as the workspace root. */
   openFolderPath(dir: string): Promise<void>
   /**
-   * Re-read the current root folder and refresh the workspace file tree.
-   * Called after any file-tree mutation (create/rename/delete) so the sidebar
-   * reflects the on-disk state. No-op when no folder is open.
+   * Read one directory and patch only that node's children into the workspace
+   * tree (lazy load on expand / incremental refresh after an in-app file op).
+   * No-op when no folder is open.
    */
-  refreshTree(): Promise<void>
+  loadChildren(dir: string): Promise<void>
+  /**
+   * Reveal a file in the sidebar by loading its ancestor directories top-down
+   * so the auto-expanded active row has content. No-op when no folder is open
+   * or the file is outside the open root. Property-style (not method shorthand)
+   * so callers can extract it without the unbound-method lint rule.
+   */
+  revealPath: (filePath: string) => Promise<void>
   /**
    * Re-stat `path` and adopt its current mtime+size as the external-change
    * baseline. Must be called after any write or disk-reload that bypasses
@@ -980,14 +988,36 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     await openFolderPath(dir)
   }, [openFolderPath])
 
-  // Re-read the open root folder and push the fresh tree into the store.
-  // No-op when no folder is open (nothing to refresh).
-  const refreshTree = useCallback(async (): Promise<void> => {
+  // Re-read one directory and patch only that node's children into the store
+  // (preserving any already-loaded descendants). No-op when no folder is open.
+  const loadChildren = useCallback(async (dir: string): Promise<void> => {
     const root = workspaceStore.getState().rootFolder
     if (root === null) return
-    const tree = await window.lekha.readDir(root)
-    workspaceStore.getState().setFileTree(tree)
+    const children = await window.lekha.readDir(dir)
+    workspaceStore.getState().setChildren(dir, children)
   }, [workspaceStore])
+
+  // Reveal a file in the tree by loading its ancestor directories top-down, so
+  // the (auto-expanded) active row has real content under it. Bounded by the
+  // file's depth. No-op when no folder is open or the file is outside the root.
+  const revealPath = useCallback(async (filePath: string): Promise<void> => {
+    const root = workspaceStore.getState().rootFolder
+    if (root === null) return
+    if (filePath !== root && !filePath.startsWith(root + '/')) return
+    const rel = filePath.slice(root.length + 1)
+    const segs = rel.split('/')
+    segs.pop() // drop the file name; keep ancestor directory segments
+    let dir = root
+    for (const seg of segs) {
+      if (seg === '') continue
+      dir = `${dir}/${seg}`
+      try {
+        await loadChildren(dir)
+      } catch {
+        return // an ancestor is gone/unreadable; stop revealing
+      }
+    }
+  }, [loadChildren, workspaceStore])
 
   // Reload the current file from disk, discarding in-memory edits. Confirms
   // first when the document has unsaved changes.
@@ -1017,15 +1047,17 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (path === null) return
     try {
       const newPath = await window.lekha.duplicatePath(path)
-      await refreshTree()
+      await loadChildren(parentDir(path))
       await openPath(newPath)
     } catch (err) {
       alertOpError('Could not duplicate the file', err)
     }
-  }, [editorStore, refreshTree, openPath])
+  }, [editorStore, loadChildren, openPath])
 
   // Move the current file to trash (after confirm), then reset to a blank doc.
   const deleteCurrent = useCallback(async (): Promise<void> => {
+    // Capture the active path BEFORE closing the tab clears it, so we can patch
+    // the deleted file's parent directory in the tree afterwards.
     const { path } = editorStore.getState()
     if (path === null) return
     if (
@@ -1045,8 +1077,14 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     } else {
       await newFile()
     }
-    await refreshTree()
-  }, [editorStore, documentsStore, closeTab, newFile, refreshTree])
+    if (path !== null) {
+      try {
+        await loadChildren(parentDir(path))
+      } catch {
+        // deletion already succeeded; the tree refresh is best-effort
+      }
+    }
+  }, [editorStore, documentsStore, closeTab, newFile, loadChildren])
 
   // Move the current file into a folder chosen via the native picker.
   const moveCurrentTo = useCallback(async (): Promise<void> => {
@@ -1054,6 +1092,8 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (path === null) return
     const destDir = await window.lekha.openFolderDialog()
     if (destDir === null) return
+    // Capture the source's parent before the move so we can patch both ends.
+    const oldParent = parentDir(path)
     let newPath: string
     try {
       newPath = await window.lekha.movePath(path, destDir)
@@ -1062,13 +1102,20 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       alertOpError('Could not move the file', err)
       return
     }
-    await refreshTree()
+    // Patch only the directories under the open root that actually changed; the
+    // destination MAY be outside the workspace, in which case there is nothing
+    // in the sidebar tree to refresh for it.
+    const moveRoot = workspaceStore.getState().rootFolder
+    const underRoot = (d: string): boolean =>
+      moveRoot !== null && (d === moveRoot || d.startsWith(moveRoot + '/'))
+    if (underRoot(oldParent)) await loadChildren(oldParent)
+    if (underRoot(destDir)) await loadChildren(destDir)
     // Update the path IN PLACE rather than re-opening: the document is the same
     // (only its location changed), so re-reading from disk would duplicate the
     // tab and discard any unsaved in-memory edits. syncActivePath rewrites the
     // tab(s), keeps the live save target correct, and re-syncs the OS title.
     syncActivePath(newPath, { remapFrom: path })
-  }, [editorStore, refreshTree, syncActivePath])
+  }, [editorStore, loadChildren, workspaceStore, syncActivePath])
 
   // -------------------------------------------------------------------------
   // File-tree operations (create / rename / delete / reveal)
@@ -1090,24 +1137,24 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     if (target === null) return
     try {
       const path = await window.lekha.createFile(target, 'Untitled.md')
-      await refreshTree()
+      await loadChildren(target)
       // Open the freshly created (empty) file so the user can start typing.
       await openPath(path)
     } catch (err) {
       window.alert(err instanceof Error ? err.message : String(err))
     }
-  }, [resolveDir, refreshTree, openPath])
+  }, [resolveDir, loadChildren, openPath])
 
   const createFolderEntry = useCallback(async (dir: string | null): Promise<void> => {
     const target = resolveDir(dir)
     if (target === null) return
     try {
       await window.lekha.createFolder(target, 'Untitled Folder')
-      await refreshTree()
+      await loadChildren(target)
     } catch (err) {
       window.alert(err instanceof Error ? err.message : String(err))
     }
-  }, [resolveDir, refreshTree])
+  }, [resolveDir, loadChildren])
 
   const renameEntry = useCallback(async (oldPath: string, newName: string): Promise<void> => {
     try {
@@ -1121,11 +1168,11 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       if (editorStore.getState().path === oldPath) {
         syncActivePath(newPath)
       }
-      await refreshTree()
+      await loadChildren(parentDir(oldPath))
     } catch (err) {
       window.alert(err instanceof Error ? err.message : String(err))
     }
-  }, [documentsStore, editorStore, syncActivePath, refreshTree])
+  }, [documentsStore, editorStore, syncActivePath, loadChildren])
 
   const deleteEntry = useCallback(async (path: string): Promise<void> => {
     // Confirm before trashing. trashItem is recoverable (OS trash), but a
@@ -1143,11 +1190,11 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
       ) {
         syncActivePath(null)
       }
-      await refreshTree()
+      await loadChildren(parentDir(path))
     } catch (err) {
       window.alert(err instanceof Error ? err.message : String(err))
     }
-  }, [editorStore, syncActivePath, refreshTree])
+  }, [editorStore, syncActivePath, loadChildren])
 
   const revealEntry = useCallback((path: string): void => {
     void window.lekha.revealPath(path)
@@ -1217,7 +1264,8 @@ export function useFileOps(editorRef: RefObject<EditorPaneHandle | null>): FileO
     newFile,
     openFolder,
     openFolderPath,
-    refreshTree,
+    loadChildren,
+    revealPath,
     refreshDiskSig,
     guardUnsaved,
     revertToSaved,

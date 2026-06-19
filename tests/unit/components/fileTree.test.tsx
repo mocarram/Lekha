@@ -31,6 +31,10 @@ const NESTED_NODES: FileNode[] = [
   { name: 'readme.md', path: '/p/readme.md', isDirectory: false },
 ]
 
+const UNLOADED_DIR: FileNode[] = [
+  { name: 'docs', path: '/p/docs', isDirectory: true }, // children omitted = unloaded
+]
+
 describe('FileTree', () => {
   it('renders a list of file nodes', () => {
     const { getByText } = render(
@@ -164,4 +168,34 @@ describe('FileTree', () => {
     expect(row?.className).toContain('active')
   })
 
+})
+
+describe('FileTree - lazy load on expand', () => {
+  it('calls onLoadChildren with the dir path on first expand of an unloaded folder', () => {
+    const onLoadChildren = vi.fn()
+    const { getByText } = render(
+      <FileTree
+        nodes={UNLOADED_DIR}
+        activePath={null}
+        onSelect={() => {}}
+        onLoadChildren={onLoadChildren}
+      />,
+    )
+    fireEvent.click(getByText('docs'))
+    expect(onLoadChildren).toHaveBeenCalledWith('/p/docs')
+  })
+
+  it('does not call onLoadChildren when expanding an already-loaded folder', () => {
+    const onLoadChildren = vi.fn()
+    const { getByText } = render(
+      <FileTree
+        nodes={NESTED_NODES}
+        activePath={null}
+        onSelect={() => {}}
+        onLoadChildren={onLoadChildren}
+      />,
+    )
+    fireEvent.click(getByText('docs')) // NESTED_NODES.docs has children already
+    expect(onLoadChildren).not.toHaveBeenCalled()
+  })
 })

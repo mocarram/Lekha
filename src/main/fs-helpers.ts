@@ -40,40 +40,57 @@ export async function mapPool<T, R>(
   return out
 }
 
+const byName = (a: FileNode, b: FileNode) =>
+  a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+
 /**
- * Recursively builds a tree of openable text/markdown files and directories.
- * Dotfiles, dotdirs, and node_modules are excluded.
- * Only files in the shared openable set (md/markdown/mdown/mkd/mdx/txt/text)
- * are included.
- * Sort order: directories first (alpha, case-insensitive), then files (alpha, case-insensitive).
+ * Lists ONE directory level: immediate openable files and sub-directories.
+ * Dotfiles, dotdirs, and node_modules are excluded; only files in the shared
+ * openable set (md/markdown/mdown/mkd/mdx/txt/text) are included.
+ * Symlinks are not followed (a symlink Dirent is neither a file nor a
+ * directory, so it is silently excluded).
+ * Sub-directories are returned with `children` LEFT UNDEFINED (unloaded) - the
+ * sidebar loads them lazily on expand. Sort order: directories first (alpha,
+ * case-insensitive), then files.
  */
-export async function buildFileTree(dir: string): Promise<FileNode[]> {
+export async function listDirChildren(dir: string): Promise<FileNode[]> {
   const entries = await readdir(dir, { withFileTypes: true })
 
   const dirs: FileNode[] = []
   const files: FileNode[] = []
 
   for (const entry of entries) {
-    // Skip dotfiles, dotdirs and node_modules.
     if (isDotEntry(entry.name) || entry.name === 'node_modules') continue
 
     const absPath = join(dir, entry.name)
 
     if (entry.isDirectory()) {
-      const children = await buildFileTree(absPath)
-      dirs.push({ name: entry.name, path: absPath, isDirectory: true, children })
+      dirs.push({ name: entry.name, path: absPath, isDirectory: true })
     } else if (entry.isFile() && OPENABLE_EXT_SET.has(extname(entry.name).toLowerCase())) {
       files.push({ name: entry.name, path: absPath, isDirectory: false })
     }
   }
 
-  const byName = (a: FileNode, b: FileNode) =>
-    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-
   dirs.sort(byName)
   files.sort(byName)
 
   return [...dirs, ...files]
+}
+
+/**
+ * Recursively builds the full tree of openable files and directories. Used by
+ * folder-wide search to enumerate every file up front. The lazy sidebar tree
+ * uses listDirChildren instead and loads levels on demand.
+ * Sort order: directories first (alpha, case-insensitive), then files.
+ */
+export async function buildFileTree(dir: string): Promise<FileNode[]> {
+  const level = await listDirChildren(dir)
+  for (const node of level) {
+    if (node.isDirectory) {
+      node.children = await buildFileTree(node.path)
+    }
+  }
+  return level
 }
 
 /**
