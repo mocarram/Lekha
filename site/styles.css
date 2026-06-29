@@ -490,6 +490,41 @@ code {
   font-size: 13px;
   line-height: 1.5;
 }
+.install__shots {
+  width: min(880px, 94vw);
+  margin: 30px auto 0;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.shot {
+  margin: 0;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.shot figcaption {
+  margin-top: 11px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+@media (max-width: 620px) {
+  .install__shots {
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
 
 /* ===================== Footer ===================== */
 .footer {
