@@ -222,10 +222,27 @@ brew install --cask lekha</code></pre>
           Or <a href="https://github.com/mocarram/Lekha/releases/latest">download the .dmg</a> from
           the latest release (Apple silicon &amp; Intel).
         </p>
-        <p class="install__note">
-          Requires macOS 11 Big Sur or later. Lekha is currently unsigned, so on first launch
-          right-click the app and choose <strong>Open</strong> to get past Gatekeeper.
-        </p>
+        <div class="callout" role="note">
+          <p class="callout__title">First launch (unsigned build)</p>
+          <p class="callout__body">
+            The current builds are ad-hoc signed (not yet notarized), so on first launch macOS
+            shows <em>&ldquo;Lekha&rdquo; Not Opened</em> and blocks it. To open it, go to
+            <strong>System Settings &rarr; Privacy &amp; Security</strong>, scroll to the
+            <em>Security</em> section, and click <strong>Open Anyway</strong>, then
+            <strong>Open</strong> in the confirmation dialog. You only need to do this once.
+          </p>
+          <p class="callout__body callout__body--tight">Or clear the quarantine flag in Terminal:</p>
+          <div
+            class="codeblock codeblock--sm"
+            data-copy='xattr -dr com.apple.quarantine "/Applications/Lekha.app"'
+          >
+            <pre><code>xattr -dr com.apple.quarantine "/Applications/Lekha.app"</code></pre>
+            <button class="codeblock__copy" type="button" aria-label="Copy command">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+            </button>
+          </div>
+        </div>
+        <p class="install__note">Requires macOS 11 Big Sur or later (Apple silicon &amp; Intel).</p>
       </section>
     </main>
 
