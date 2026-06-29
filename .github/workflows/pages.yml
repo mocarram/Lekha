@@ -9,7 +9,7 @@ name: Deploy site to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [staging]
     paths:
       - 'site/**'
       - '.github/workflows/pages.yml'
