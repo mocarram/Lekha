@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "vite.config.ts",
+    // The LekhaAPI global (window.lekha) + the shared types the adapter mirrors.
+    "../src/preload/api.d.ts",
+    // Ambient module declarations for the reused renderer: '*.css' / '*?raw'
+    // (globals.d.ts) and the untyped markdown-it-* plugins (editor/*.d.ts).
+    "../src/renderer/**/*.d.ts"
+  ]
+}
