@@ -1,0 +1,10 @@
+node_modules/
+out/
+*.vsix
+*.tsbuildinfo
+
+# Vendored build assets (produced by scripts/copy-assets.mjs)
+media/vendor/
+# Bundled webview client (produced by esbuild)
+media/webview.js
+media/webview.js.map

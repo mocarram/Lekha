@@ -1,0 +1,147 @@
+{
+  "name": "lekha-markdown-preview",
+  "displayName": "Lekha Markdown Preview",
+  "description": "View Markdown in a tab with Lekha's clean, GitHub-flavored look — math, diagrams, and syntax highlighting included.",
+  "version": "0.1.0",
+  "publisher": "mocarram",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "preview",
+    "lekha",
+    "katex",
+    "mermaid"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mocarram/Lekha.git",
+    "directory": "vscode-extension"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "lekha.markdownPreview",
+        "displayName": "Lekha Markdown Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lekha.openPreviewToSide",
+        "title": "Lekha: Open Preview to the Side",
+        "category": "Lekha",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "lekha.openPreview",
+        "title": "Lekha: Open Preview",
+        "category": "Lekha"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "lekha.openPreviewToSide",
+          "when": "editorLangId == markdown",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "lekha.openPreviewToSide",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "lekha.openPreview",
+          "when": "editorLangId == markdown"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "lekha.openPreviewToSide",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l",
+        "when": "editorLangId == markdown"
+      }
+    ],
+    "configuration": {
+      "title": "Lekha Markdown Preview",
+      "properties": {
+        "lekha.theme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "github",
+            "night"
+          ],
+          "enumDescriptions": [
+            "Follow VS Code's active color theme (dark → Night, light → GitHub)",
+            "Lekha's light GitHub-flavored theme",
+            "Lekha's dark Night theme"
+          ],
+          "default": "auto",
+          "description": "Which Lekha theme the preview uses."
+        },
+        "lekha.fontSize": {
+          "type": "number",
+          "default": 16,
+          "minimum": 8,
+          "maximum": 40,
+          "description": "Base font size (px) for the rendered document."
+        },
+        "lekha.contentWidth": {
+          "type": "string",
+          "default": "820px",
+          "description": "Max width of the reading column (any CSS length, e.g. \"820px\" or \"90%\")."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "copy-assets": "node scripts/copy-assets.mjs",
+    "build": "node esbuild.mjs && npm run copy-assets",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/smoke.mjs",
+    "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production && npm run copy-assets"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.4",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.11",
+    "markdown-it": "^14.1.0",
+    "markdown-it-emoji": "^3.0.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-mark": "^4.0.0",
+    "markdown-it-sub": "^2.0.0",
+    "markdown-it-sup": "^2.0.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "mermaid": "^11.4.1"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}

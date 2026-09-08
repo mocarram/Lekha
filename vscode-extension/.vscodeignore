@@ -1,0 +1,9 @@
+.gitignore
+tsconfig.json
+esbuild.mjs
+scripts/**
+src/**
+**/*.map
+**/*.ts
+node_modules/**
+!media/**

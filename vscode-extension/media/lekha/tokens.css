@@ -1,0 +1,240 @@
+/*
+ * tokens.css - THE Lekha design-token contract.
+ *
+ * This is the single, documented source of truth for every design token the
+ * app's component CSS consumes. It is imported before global.css and all theme
+ * files so its :root defaults are always present.
+ *
+ * --------------------------------------------------------------------------
+ * Two layers
+ * --------------------------------------------------------------------------
+ *   Layer 1 - Palette primitives (--gh-*): raw color constants (the default
+ *             GitHub-light palette). Only Layer 2 references these; component
+ *             CSS must NEVER use --gh-* directly.
+ *   Layer 2 - Semantic design tokens (--bg, --text, --accent, --editor-*, …):
+ *             the names component CSS uses. A THEME is just a [data-theme="id"]
+ *             block that re-assigns Layer-2 tokens (see styles/themes/*.css and
+ *             styles/themes/_template.css). Themes never touch component rules.
+ *
+ * The legacy --color-* aliases (used by global.css's structural skeleton) map
+ * onto the Layer-2 tokens so there is one effective namespace.
+ *
+ * To author a theme: copy styles/themes/_template.css, set the tokens you want
+ * to change, done. To add a token: declare it here (with a default + a one-line
+ * doc comment) so every theme inherits a sensible value automatically.
+ */
+
+/* ===========================================================================
+ * Layer 1 - Palette primitives (GitHub light defaults)
+ * =========================================================================== */
+:root {
+  /* Surface */
+  --gh-bg:           #ffffff;
+  --gh-surface:      #fafafa;
+  --gh-border:       #ededed;
+  --gh-border-light: #e1e4e8;
+
+  /* Text */
+  --gh-text:         #333333;
+  --gh-text-muted:   #9b9b9b;
+  --gh-text-sub:     #6a737d;
+  --gh-text-dark:    #2b2b2b;
+  --gh-text-file:    #4a4a4a;
+
+  /* Accent / link */
+  --gh-link:         #4183c4;
+
+  /* Editor content */
+  --gh-blockquote-border: #dfe2e5;
+  --gh-table-border:      #dfe2e5;
+  --gh-table-header-bg:   #f6f8fa;
+  --gh-code-bg:           #f6f8fa;
+  --gh-code-bg-inline:    #f8f8f8;
+  --gh-hr-color:          #e1e4e8;
+
+  /* Sidebar rows (hover only; the active row uses an accent-derived tint set in
+   * the Layer-2 tokens below, so it stays consistent across every theme). */
+  --gh-row-hover-bg:  #efefef;
+
+  /* Find highlights */
+  --gh-find-match:         #fff3b0;
+  --gh-find-match-current: #ffb454;
+
+  /* Markdown ==highlight== (mark) */
+  --gh-highlight-bg:   #fff8c5;
+  --gh-highlight-text: #24292e;
+
+  /* Selection */
+  --gh-selection: #d7e4ff;
+
+  /* GitHub light hljs token colors */
+  --gh-hljs-keyword:   #d73a49;
+  --gh-hljs-string:    #032f62;
+  --gh-hljs-comment:   #6a737d;
+  --gh-hljs-function:  #6f42c1;
+  --gh-hljs-number:    #005cc5;
+  --gh-hljs-tag:       #22863a;
+  --gh-hljs-attribute: #e36209;
+  --gh-hljs-section:   #005cc5;
+}
+
+/* ===========================================================================
+ * Structural layout metrics (fixed chrome dimensions, theme-independent)
+ * =========================================================================== */
+:root {
+  --titlebar-height: 34px;
+  --statusbar-height: 26px;
+  /* Default sidebar width; updated live by the resizer and on startup restore. */
+  --sidebar-width: 240px;
+}
+
+/* ===========================================================================
+ * Layer 2 - Universal design tokens (the tokens component CSS consumes)
+ *
+ * Switching themes = overriding these in a [data-theme="..."] selector.
+ * =========================================================================== */
+:root {
+  /* Surfaces */
+  --bg:              var(--gh-bg);
+  --surface:         var(--gh-surface);
+  --border:          var(--gh-border);
+  --border-light:    var(--gh-border-light);
+
+  /* Text */
+  --text:            var(--gh-text);
+  --text-muted:      var(--gh-text-muted);
+  --text-sub:        var(--gh-text-sub);
+  --text-dark:       var(--gh-text-dark);
+  --text-file:       var(--gh-text-file);
+  --heading:         var(--gh-text);
+
+  /* Accent */
+  --link:            var(--gh-link);
+  --accent:          var(--gh-link);
+
+  /* Editor content */
+  --selection:          var(--gh-selection);
+  --code-bg:            var(--gh-code-bg);
+  --code-bg-inline:     var(--gh-code-bg-inline);
+  --code-text:          var(--gh-text);
+  --blockquote-text:    var(--gh-text-sub);
+  --blockquote-border:  var(--gh-blockquote-border);
+  --table-border:       var(--gh-table-border);
+  --table-header-bg:    var(--gh-table-header-bg);
+  --hr-color:           var(--gh-hr-color);
+
+  /* Sidebar / chrome.
+   * The active-row background is a faint, accent-tinted wash (minimalist chrome) so
+   * the selection whispers instead of shouting. Because it is derived from
+   * --accent via color-mix, every theme gets a coherent subtle highlight without
+   * needing its own --sidebar-active override. */
+  --sidebar-bg:      var(--gh-surface);
+  --sidebar-active:  color-mix(in srgb, var(--accent) 14%, transparent);
+  --sidebar-hover:   var(--gh-row-hover-bg);
+  --statusbar-text:  var(--gh-text-muted);
+  /* Font size for the sidebar list rows (file tree, outline, articles). */
+  --sidebar-font-size: 16px;
+
+  /* App-shell ("floating panels") chrome:
+   *   --window-bg  the gutter backdrop the rounded sidebar/content panels sit on.
+   *                Derived a touch darker than --surface so it reads on every
+   *                theme without per-theme edits; themes may override it.
+   *   --shell-gap  the padding/gutter + gap between the panels. */
+  --window-bg: color-mix(in srgb, var(--surface) 92%, #000);
+  --shell-gap: 6px;
+
+  /* Find highlights */
+  --find-match:         var(--gh-find-match);
+  --find-match-current: var(--gh-find-match-current);
+  --highlight-bg:       var(--gh-highlight-bg);
+  --highlight-text:     var(--gh-highlight-text);
+
+  /* Syntax highlighting tokens */
+  --hljs-keyword:   var(--gh-hljs-keyword);
+  --hljs-string:    var(--gh-hljs-string);
+  --hljs-comment:   var(--gh-hljs-comment);
+  --hljs-function:  var(--gh-hljs-function);
+  --hljs-number:    var(--gh-hljs-number);
+  --hljs-tag:       var(--gh-hljs-tag);
+  --hljs-attribute: var(--gh-hljs-attribute);
+  --hljs-section:   var(--gh-hljs-section);
+
+  /* Typography */
+  --font-editor: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono:   "SF Mono", "Consolas", "Liberation Mono", Menlo, monospace;
+  --font-ui:     -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  /* Editor layout metrics (theme-overridable). A theme can widen the reading
+     column, scale the type, or loosen line spacing without touching the engine.
+     The width is the app's wide reading default: it expands to fill the available pane (88%) up to
+     a 1150px cap, so wide windows use the space instead of leaving big empty
+     gutters, while narrower windows keep comfortable side margins. */
+  --editor-max-width:  min(1150px, 88%);
+  --editor-font-scale: 1;
+  --editor-line-height: 1.7;
+
+  /* Semantic tokens for danger, overlays, shadows, and on-accent text.
+   * Dark themes override these where the light defaults would look wrong. */
+  --danger:              #cb2431;   /* error/delete red (legible on light bg) */
+  --on-accent:           #ffffff;   /* text on accent-colored backgrounds */
+  --on-accent-muted:     rgba(255, 255, 255, 0.82);  /* dimmed text on accent */
+  --overlay-scrim:       rgba(0, 0, 0, 0.35);        /* standard modal backdrop */
+  --overlay-scrim-strong: rgba(0, 0, 0, 0.82);       /* heavy backdrop (lightbox) */
+  --shadow:              0 8px 32px rgba(0, 0, 0, 0.18);  /* standard elevation */
+  --shadow-sm:           0 2px 8px rgba(0, 0, 0, 0.14);   /* small elevation (toolbars) */
+  --shadow-lg:           0 16px 48px rgba(0, 0, 0, 0.28); /* large elevation (palette) */
+
+  /* Scrollbar thumb (sidebar + editor). Light default = translucent black, which
+   * dark themes override to translucent white so the thumb stays visible against
+   * a dark surface. */
+  --scrollbar-thumb:       rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.32);
+
+  /* Soft accent focus ring shared by inputs, checkboxes, and switches. Derived
+   * from --accent so every theme gets a coherent glow. */
+  --focus-ring:          0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+
+  /* Shape - border-radius scale (theme-overridable). Component CSS consumes
+   * ONLY these tokens; no raw px radii are hardcoded. Set them all to 0 for a
+   * square/brutalist UI, or raise them for a softer, rounder look.
+   *   --radius-sm   small controls: inputs, chips, inline code, small buttons
+   *   --radius      base: buttons, cards, panels, menu surfaces
+   *   --radius-lg   large surfaces: dialogs, toasts, command palette
+   *   --radius-xl   extra-large surfaces: image lightbox, large cards
+   *   --radius-pill fully-rounded pills / toggles (clamps large) */
+  --radius-sm:   4px;
+  --radius:      6px;
+  --radius-lg:   8px;
+  --radius-xl:   10px;
+  --radius-pill: 999px;
+
+  /* Presentation mode (full-screen slide overlay). These are deliberately dark
+   * regardless of the active theme: a presentation reads as a dark stage so it
+   * looks the same projected anywhere. Component CSS (.pres-*) consumes these
+   * instead of hardcoding colors; override here to retheme the slide stage. */
+  --pres-bg:      #1a1a1a;   /* slide overlay background */
+  --pres-text:    #f0f0f0;   /* slide body text */
+  --pres-heading: #ffffff;   /* slide headings */
+  --pres-rule:    rgba(255, 255, 255, 0.15);  /* heading underline / hr */
+  --pres-border:  rgba(255, 255, 255, 0.2);   /* table cell borders */
+  --pres-code-bg: rgba(255, 255, 255, 0.08);  /* code block / inline code bg */
+  --pres-code-text: #e0e0e0;                  /* code text */
+  --pres-quote:   #c0c0c0;                     /* blockquote text */
+  --pres-quote-border: rgba(255, 255, 255, 0.3); /* blockquote left border */
+  --pres-counter: rgba(255, 255, 255, 0.5);   /* slide counter text */
+
+  /* Component-scoped tokens (theme-overridable):
+   *   --list-indent  Outer + per-level indent for editor lists (tight). */
+  --list-indent: 1.6em;
+  /*   --focus-dim    Opacity of non-focused blocks in Focus Mode. */
+  --focus-dim: 0.25;
+
+  /* Legacy --color-* aliases consumed by the structural skeleton (global.css).
+   * They map onto the Layer-2 tokens so there is one effective namespace. */
+  --color-bg:         var(--bg);
+  --color-surface:    var(--surface);
+  --color-border:     var(--border);
+  --color-text:       var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent:     var(--accent);
+}
